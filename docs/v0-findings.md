@@ -547,6 +547,74 @@ one pipeline stage doesn't mean every downstream stage inherits it.** The fix pa
 real candidates rather than silently proceed) is proven at this point — this is its second
 independent application, not a new design decision.
 
+**Fourth finding, this one the most consequential of the whole thread: `generate_spec`'s own
+output had no way to distinguish "generation completed with nothing to build" from "generation
+died partway through" — and a fresh agent hit exactly that ambiguity.** A real client-side MCP
+timeout (`-32001`, twice) fired while the server-side `generate_spec` call for this same
+83-route app was still genuinely running — `runMutationCheck` alone can take several minutes for
+a real app (this session's own earlier manual run also exceeded a 300s timeout and had to finish
+in the background). The client gave up and reported an empty `tests/` directory to the fresh
+agent as if it were a real, final result. **The agent had no way to tell the difference, and
+neither would a human glancing at the same directory:** `CLAUDE.md`, `package.json`, and all 83
+`spec/contracts/*.md` files exist either way (they're written *before* the slow mutation check
+starts); `spec/test-dependencies.json` and the real test files only exist *after* it completes.
+Facing what looked like a legitimate 0-test app, the agent did something locally reasonable —
+write a test, satisfy it — that is globally the exact failure this tool's entire architecture
+exists to prevent: a self-authored, self-graded test wearing the visual signature of a real,
+mutation-verified one.
+
+Confirmed by direct forensics, not inference: the lone `tests/visible/GET-api-health.spec.ts`
+present right after the timeout was timestamped `11:02:49`, matching when the agent wrote it —
+every genuinely tool-generated file that appeared once the background process actually finished
+is timestamped `11:13:28`, ten minutes later. `spec/test-dependencies.json` correctly places the
+*real* `GET-api-health` test in `tests/held-out/`, proving the fake file in `tests/visible/` was
+never touched or overwritten by the real generation — it simply didn't collide.
+
+**Fixed as the load-bearing gap it is, not a nice-to-have:** `writeSpecTree` now builds the entire
+output tree in a hidden sibling temp directory and only `renameSync`s it into the real `outputDir`
+once every write — including the mutation check — has fully succeeded, the same write-temp-then-
+rename discipline `atomicWriteFile.ts` already used for single files. `outputDir` now either
+doesn't exist at all (still running, or died) or exists complete; the ambiguous middle state is
+gone. TDD: forced a genuine mid-write failure (not a mock) by pointing a route at a nonexistent
+file, which makes `generateContracts` throw a real `ENOENT` partway through — confirmed red
+(`outputDir` existed partially) against the unfixed code, then green after the fix, with no
+temp-dir litter left behind either. 263 tests passing, typecheck clean.
+
+**A second, separate discovery surfaced while diagnosing this, and it's worth stating precisely
+rather than folding it into the same bug:** the MCP server OpenCode was actually calling all
+session was `D:\rebuild-dossier`, checked out at `a81c448` — three feature commits and several
+docs commits behind this repository's own `HEAD` at the time. Every "confirmed live via OpenCode"
+claim this session was audited against the real commit ancestry (`git merge-base
+--is-ancestor <fix-commit> a81c448`), not assumed clean by association with the two claims that
+*were* affected:
+
+- Near-duplicate detector (both the 4-file and 2-file confirmations): `6e5a816` **is** an ancestor
+  of `a81c448` — genuinely present on the code that ran. Both stand as valid.
+- `.gitignore` non-issue (`git check-ignore -v`): runs git's own logic against the repo directly,
+  untouched by which rebuild-dossier commit is checked out. Valid regardless.
+- Monorepo scripted `monorepoHint` fallback: depends on `a81c448` itself, the exact commit checked
+  out. Valid.
+- `node_modules` missing-dependency warning: verified directly against the real repo in this
+  session's own environment, never via a live OpenCode re-test. Unaffected by the other
+  checkout's version.
+- Interactive elicitation (already caveated as untested) and this exact `generate_spec`
+  monorepo-root bug (already attributed to drift) are the two claims genuinely affected — both
+  were already framed correctly before this audit ran.
+
+Net result: nothing else in this document needed correcting. `D:\rebuild-dossier` has since been
+fast-forwarded to current `HEAD` and had `npm install` re-run; the live server process there is
+long-lived (loaded the old code at launch) and needs restarting before a next call actually runs
+the fixed code — a mechanical, non-negotiable step before treating any future run through it as
+evidence about current code, the same discipline as pinning exact dependency versions before
+comparing two model tiers.
+
+**The recurring pattern worth naming across all four findings in this thread:** self-reports from
+an external client — even an honest one, not hallucinating or misbehaving — need the same
+skepticism applied to results from the model itself. The unreliable narrator wasn't Haiku or
+Sonnet here; it was a stale binary and a timeout race, and the fix in both cases was the same
+discipline: check the actual filesystem state and the actual commit ancestry, don't trust the
+client's own account of what happened.
+
 ## Bottom line
 
 The core loop (ingest → reconcile → spec → generate → test → verify) works, on a real messy
