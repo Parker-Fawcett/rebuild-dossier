@@ -132,6 +132,12 @@ export interface MutationTarget {
   filename: string;
   content: string;
   sourceFile: string; // route's underlying source file, relative to the original repo
+  maxMutationSites?: number; // caps how many of sourceFile's enumerated sites get checked for
+  // this target — a page test's cost is one fresh scratch-copy + `next dev`
+  // boot PER SITE (see prepareScratchCopy/runVitestOnce below), which scales
+  // with a page component's incidental code complexity, not with anything
+  // this tool controls. Undefined (the default, used by every non-page
+  // target) means uncapped.
 }
 
 export interface MutationResult {
@@ -168,6 +174,37 @@ function runVitestOnce(scratchDir: string, testFilePath: string): boolean {
   }
 }
 
+// Real, live-triggered finding (smoke test against a real 19-page Next.js
+// app): rmSync's recursive delete can throw ENOTEMPTY even with force:true
+// when something is still actively writing inside scratchDir at the moment
+// of deletion — observed cause was next dev's own worker/compiler child
+// processes outliving the top-level next dev pid that afterAll killed (see
+// nextDevServerBoilerplate.ts's process-group kill fix, which addresses the
+// root cause). This is a second, defense-in-depth layer: even after that
+// fix, a transient race here must not be allowed to throw past this point —
+// an uncaught exception mid-mutation-check aborts every remaining target's
+// check for the entire (possibly many-minutes-long) generate_spec call, per
+// writeSpecTree's atomicity model. A handful of short retries clears the
+// overwhelmingly common case (a process finishing its exit a few hundred ms
+// late); if it still fails after that, a leaked scratch dir under the OS
+// temp folder is a nuisance to clean up manually, not a correctness problem
+// worth crashing the whole run over.
+function removeScratchDirWithRetry(scratchDir: string): void {
+  const maxAttempts = 5;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      rmSync(scratchDir, { recursive: true, force: true });
+      return;
+    } catch (err) {
+      if (attempt === maxAttempts) {
+        console.error(`rebuild-dossier: failed to remove scratch dir ${scratchDir} after ${maxAttempts} attempts — leaving it in place:`, err);
+        return;
+      }
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 200 * attempt);
+    }
+  }
+}
+
 // Runs the test once against a pristine (unmutated) copy. Without this, a
 // test that can never pass — a broken import, a missing env var, whatever —
 // looks IDENTICAL to a real kill on every single mutant: runVitestOnce
@@ -185,7 +222,7 @@ function passesBaseline(originalRepoPath: string, target: MutationTarget): boole
     writeFileSync(testFilePath, target.content);
     return runVitestOnce(scratchDir, testFilePath);
   } finally {
-    rmSync(scratchDir, { recursive: true, force: true });
+    removeScratchDirWithRetry(scratchDir);
   }
 }
 
@@ -209,7 +246,8 @@ export function runMutationCheck(originalRepoPath: string, targets: MutationTarg
       continue;
     }
 
-    const sites = sitesBySourceFile.get(target.sourceFile) ?? [];
+    const allSites = sitesBySourceFile.get(target.sourceFile) ?? [];
+    const sites = target.maxMutationSites !== undefined ? allSites.slice(0, target.maxMutationSites) : allSites;
 
     for (const site of sites) {
       const scratchDir = prepareScratchCopy(originalRepoPath);
@@ -230,7 +268,7 @@ export function runMutationCheck(originalRepoPath: string, targets: MutationTarg
           killed: !succeeded
         });
       } finally {
-        rmSync(scratchDir, { recursive: true, force: true });
+        removeScratchDirWithRetry(scratchDir);
       }
     }
   }

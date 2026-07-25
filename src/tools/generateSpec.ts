@@ -73,7 +73,12 @@ export async function generateSpecHandler(args: z.infer<typeof generateSpecInput
 
   const outputDir = siblingRebuildDir(args.repoPath);
   const cases = loadCases(args.repoPath);
-  const { mutationReport } = writeSpecTree({ repoPath: args.repoPath, outputDir, evidence, cases });
+  const { mutationReport, capturedPages, skippedPages } = await writeSpecTree({
+    repoPath: args.repoPath,
+    outputDir,
+    evidence,
+    cases
+  });
 
   // Real finding: a target repo with no node_modules of its own makes every
   // generated test fail to even import its dependencies inside the
@@ -93,10 +98,23 @@ export async function generateSpecHandler(args: z.infer<typeof generateSpecInput
             mutationsChecked: mutationReport.results.length,
             weakTests: mutationReport.weakTestFiles,
             unrunnableTests: mutationReport.unrunnableTestFiles,
+            // Mirrors weakTests/unrunnableTests above: a generate_spec call
+            // that captured only some pages (a Playwright/next-dev hiccup on
+            // one route) must never look identical to one that captured all
+            // of them — see generatePageTests.ts's skipped-page visibility
+            // requirement.
+            capturedPages: capturedPages.length,
+            skippedPages,
             ...(missingNodeModules
               ? {
                   warning:
                     'No node_modules found in the target repo — mutation-check results are unreliable without the target\'s own real dependencies installed. Run `npm install` in the target repo, then re-run generate_spec.'
+                }
+              : {}),
+            ...(skippedPages.length > 0
+              ? {
+                  pageCaptureNote:
+                    'One or more page routes could not be captured (see skippedPages) — those pages have no generated test and stay in spec/untested-contracts.json. Note that page-test generation also spawns a real `next dev` + Chromium instance, which makes generate_spec noticeably slower for apps with many pages.'
                 }
               : {})
           },

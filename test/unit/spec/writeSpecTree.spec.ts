@@ -15,7 +15,7 @@ const vitestEntry = join(ownProjectRoot, 'node_modules/vitest/vitest.mjs');
 const now = new Date(0).toISOString();
 
 describe('writeSpecTree', () => {
-  it('writes the full spec/.claude/tests structure and runs the mutation check', () => {
+  it('writes the full spec/.claude/tests structure and runs the mutation check', async () => {
     const repoDir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-writetree-repo-'));
     const outputDir = join(tmpdir(), `rebuild-dossier-writetree-out-${Date.now()}-${Math.random().toString(36).slice(2)}`);
     try {
@@ -65,7 +65,7 @@ describe('writeSpecTree', () => {
         }
       ];
 
-      const report = writeSpecTree({ repoPath: repoDir, outputDir, evidence, cases });
+      const report = await writeSpecTree({ repoPath: repoDir, outputDir, evidence, cases });
 
       expect(existsSync(join(outputDir, 'CLAUDE.md'))).toBe(true);
       expect(readFileSync(join(outputDir, 'CLAUDE.md'), 'utf-8')).toContain('sample-app');
@@ -126,7 +126,7 @@ describe('writeSpecTree', () => {
     }
   }, 60000);
 
-  it('pins the exact installed dependency version into the generated package.json, not the original range', () => {
+  it('pins the exact installed dependency version into the generated package.json, not the original range', async () => {
     const repoDir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-writetree-repo-'));
     const outputDir = join(tmpdir(), `rebuild-dossier-writetree-out-${Date.now()}-${Math.random().toString(36).slice(2)}`);
     try {
@@ -147,7 +147,7 @@ describe('writeSpecTree', () => {
         signals: []
       };
 
-      writeSpecTree({ repoPath: repoDir, outputDir, evidence, cases: [] });
+      await writeSpecTree({ repoPath: repoDir, outputDir, evidence, cases: [] });
 
       const pkg = JSON.parse(readFileSync(join(outputDir, 'package.json'), 'utf-8'));
       expect(pkg.dependencies).toEqual({ express: '4.19.2' });
@@ -158,7 +158,7 @@ describe('writeSpecTree', () => {
     }
   }, 60000);
 
-  it('the generated npm test script only ever runs tests/visible, never tests/held-out or tests/weak', () => {
+  it('the generated npm test script only ever runs tests/visible, never tests/held-out or tests/weak', async () => {
     // Caught by a real fresh-agent handoff: the generator's own default
     // ("vitest run", no path) picks up every test under tests/ — visible,
     // held-out, and weak all live in the same tree vitest scans by default.
@@ -195,7 +195,7 @@ describe('writeSpecTree', () => {
         signals: []
       };
 
-      writeSpecTree({ repoPath: repoDir, outputDir, evidence, cases: [] });
+      await writeSpecTree({ repoPath: repoDir, outputDir, evidence, cases: [] });
 
       const heldOutFiles = readdirSync(join(outputDir, 'tests', 'held-out'));
       expect(heldOutFiles.length).toBeGreaterThan(0); // this fixture must actually exercise the split
@@ -243,7 +243,7 @@ describe('writeSpecTree', () => {
     }
   }, 60000);
 
-  it('generates a Next.js API route test (no Express app anywhere) and wires it into contract coverage', () => {
+  it('generates a Next.js API route test (no Express app anywhere) and wires it into contract coverage', async () => {
     // Deliberately does not assert on real mutation-check execution here — a
     // generated test importing 'next/server' needs a real `next` install to
     // run at all, which this fast fixture doesn't have (same reason the gate-
@@ -275,7 +275,7 @@ describe('writeSpecTree', () => {
         signals: []
       };
 
-      writeSpecTree({ repoPath: repoDir, outputDir, evidence, cases: [] });
+      await writeSpecTree({ repoPath: repoDir, outputDir, evidence, cases: [] });
 
       const visibleFiles = readdirSync(join(outputDir, 'tests', 'visible'));
       const heldOutFiles = existsSync(join(outputDir, 'tests', 'held-out')) ? readdirSync(join(outputDir, 'tests', 'held-out')) : [];
@@ -300,7 +300,7 @@ describe('writeSpecTree', () => {
     }
   }, 60000);
 
-  it('writes a vitest.config.ts disabling file parallelism when gate tests are generated (each spawns its own next dev against the same app dir)', () => {
+  it('writes a vitest.config.ts disabling file parallelism when gate tests are generated (each spawns its own next dev against the same app dir)', async () => {
     const repoDir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-writetree-repo-'));
     const outputDir = join(tmpdir(), `rebuild-dossier-writetree-out-${Date.now()}-${Math.random().toString(36).slice(2)}`);
     try {
@@ -338,7 +338,7 @@ describe('writeSpecTree', () => {
         }
       ];
 
-      writeSpecTree({ repoPath: repoDir, outputDir, evidence, cases });
+      await writeSpecTree({ repoPath: repoDir, outputDir, evidence, cases });
 
       expect(existsSync(join(outputDir, 'vitest.config.ts'))).toBe(true);
       expect(readFileSync(join(outputDir, 'vitest.config.ts'), 'utf-8')).toContain('fileParallelism: false');
@@ -357,7 +357,7 @@ describe('writeSpecTree', () => {
     }
   }, 60000);
 
-  it('refuses to overwrite an existing output directory', () => {
+  it('refuses to overwrite an existing output directory', async () => {
     const repoDir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-writetree-repo-'));
     const outputDir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-writetree-out-'));
     try {
@@ -370,14 +370,14 @@ describe('writeSpecTree', () => {
         existingTests: [],
         signals: []
       };
-      expect(() => writeSpecTree({ repoPath: repoDir, outputDir, evidence, cases: [] })).toThrow();
+      await expect(writeSpecTree({ repoPath: repoDir, outputDir, evidence, cases: [] })).rejects.toThrow();
     } finally {
       rmSync(repoDir, { recursive: true, force: true });
       rmSync(outputDir, { recursive: true, force: true });
     }
   });
 
-  it('never leaves a partial output directory behind when generation fails partway through', () => {
+  it('never leaves a partial output directory behind when generation fails partway through', async () => {
     // Real, live-triggered finding: an MCP client that times out waiting for
     // generate_spec (a real, multi-minute call for a real app) has no way to
     // tell "generation is still running/failed" from "this app genuinely has
@@ -404,7 +404,7 @@ describe('writeSpecTree', () => {
         signals: []
       };
 
-      expect(() => writeSpecTree({ repoPath: repoDir, outputDir, evidence, cases: [] })).toThrow();
+      await expect(writeSpecTree({ repoPath: repoDir, outputDir, evidence, cases: [] })).rejects.toThrow();
 
       expect(existsSync(outputDir)).toBe(false);
       // No temp-directory litter left behind in the parent either.

@@ -10,6 +10,7 @@ import { generateContracts } from './generateContracts.js';
 import { generateTests } from './generateTests.js';
 import { generateNextApiTests } from './generateNextApiTests.js';
 import { generateGateTests, generateSecretEntryTests } from './generateGateTests.js';
+import { generatePageTests, type SkippedPage } from './generatePageTests.js';
 import { computeUntestedContractFiles } from './computeUntestedContractFiles.js';
 import { generateTestDependencies, type TestPlacement } from './generateTestDependencies.js';
 import { pinDependencyVersions } from './pinDependencyVersions.js';
@@ -29,6 +30,8 @@ export interface WriteSpecTreeInput {
 
 export interface WriteSpecTreeResult {
   mutationReport: MutationCheckReport;
+  capturedPages: string[]; // page route files whose Playwright capture succeeded
+  skippedPages: SkippedPage[]; // page route files visibly skipped, with why — see generatePageTests.ts
 }
 
 // The generated tests are always vitest, regardless of what test runner the
@@ -91,7 +94,7 @@ ${signalLines || '(no signals recorded)'}
 // The one and only place this tool writes outside its own scratch state —
 // always a clean sibling directory, never the original repo, and refuses to
 // clobber an existing output so a prior rebuild attempt is never silently lost.
-export function writeSpecTree(input: WriteSpecTreeInput): WriteSpecTreeResult {
+export async function writeSpecTree(input: WriteSpecTreeInput): Promise<WriteSpecTreeResult> {
   const { repoPath, outputDir, evidence, cases } = input;
 
   if (existsSync(outputDir)) {
@@ -115,22 +118,22 @@ export function writeSpecTree(input: WriteSpecTreeInput): WriteSpecTreeResult {
   // (still running, or died) or exists complete — never partial.
   const buildDir = join(dirname(outputDir), `.tmp-${basename(outputDir)}-${randomUUID()}`);
 
-  let mutationReport: MutationCheckReport;
+  let result: WriteSpecTreeResult;
   try {
-    mutationReport = writeSpecTreeInto(buildDir, { repoPath, evidence, cases });
+    result = await writeSpecTreeInto(buildDir, { repoPath, evidence, cases });
   } catch (err) {
     rmSync(buildDir, { recursive: true, force: true });
     throw err;
   }
 
   renameSync(buildDir, outputDir);
-  return { mutationReport };
+  return result;
 }
 
-function writeSpecTreeInto(
+async function writeSpecTreeInto(
   outputDir: string,
   input: Pick<WriteSpecTreeInput, 'repoPath' | 'evidence' | 'cases'>
-): MutationCheckReport {
+): Promise<WriteSpecTreeResult> {
   const { repoPath, evidence, cases } = input;
 
   mkdirSync(join(outputDir, '.claude', 'rules'), { recursive: true });
@@ -167,7 +170,14 @@ function writeSpecTreeInto(
     writeFileSync(skillPath, skillFile.content);
   }
 
-  for (const file of generateContracts(repoPath, evidence.routes)) {
+  // Must run before generateContracts below — contracts for `kind: 'page'`
+  // routes now embed a reference-screenshot section (or an explicit
+  // capture-failed note) sourced from this result. This is also the one
+  // real async I/O phase in this otherwise-synchronous pipeline (spins up
+  // its own `next dev` + Chromium once — see generatePageTests.ts).
+  const pageResult = await generatePageTests(repoPath, evidence, cases);
+
+  for (const file of generateContracts(repoPath, evidence.routes, pageResult.assetManifest, pageResult.skippedPages)) {
     writeFileSync(join(outputDir, 'spec', 'contracts', file.filename), file.content);
   }
 
@@ -177,20 +187,41 @@ function writeSpecTreeInto(
 
   writeFileSync(join(outputDir, 'kickoff-prompt.txt'), KICKOFF_PROMPT);
 
+  if (pageResult.screenshots.length > 0) {
+    mkdirSync(join(outputDir, 'spec', 'assets', 'screenshots'), { recursive: true });
+    for (const screenshot of pageResult.screenshots) {
+      writeFileSync(join(outputDir, screenshot.path), screenshot.buffer);
+    }
+    writeFileSync(join(outputDir, 'spec', 'assets-manifest.json'), JSON.stringify(pageResult.assetManifest, null, 2));
+  }
+
   const { visible: expressVisible, heldOut: expressHeldOut } = generateTests(repoPath, evidence, cases);
   const { visible: nextApiVisible, heldOut: nextApiHeldOut } = generateNextApiTests(repoPath, evidence, cases);
   const gateTests = [...generateGateTests(repoPath, evidence, cases), ...generateSecretEntryTests(repoPath, evidence, cases)];
-  const visible = [...expressVisible, ...nextApiVisible, ...gateTests];
-  const heldOut = [...expressHeldOut, ...nextApiHeldOut];
+  const visible = [...expressVisible, ...nextApiVisible, ...gateTests, ...pageResult.visible];
+  const heldOut = [...expressHeldOut, ...nextApiHeldOut, ...pageResult.heldOut];
 
   // Makes "only build what's currently failing" mechanically enforced (via
   // the PreToolUse hook in settings.json) instead of just a sentence in the
   // kickoff prompt a model can weigh less heavily than intended.
+  //
+  // Note (pre-existing behavior, not introduced by page tests): this is
+  // computed from coveredRouteFiles BEFORE runMutationCheck runs below — a
+  // test satisfying coveredRouteFiles unblocks its file regardless of
+  // whether the mutation check later downgrades it to weak/unrunnable, for
+  // both API and page routes alike. Deliberate — see the plan's "Decision B"
+  // for why this isn't special-cased for pages.
   const testedSourceFiles = [...visible, ...heldOut].flatMap((f) => f.coveredRouteFiles ?? [f.sourceFile]);
   const untestedContractFiles = computeUntestedContractFiles(evidence.routes, testedSourceFiles);
   writeFileSync(join(outputDir, 'spec', 'untested-contracts.json'), JSON.stringify(untestedContractFiles, null, 2));
 
   const pinnedDependencies = pinDependencyVersions(repoPath, evidence.packageJson.dependencies);
+
+  // Page tests spawn their own `next dev` + Chromium exactly like gate tests
+  // do (both reuse the shared devServerBoilerplate() — see
+  // nextDevServerBoilerplate.ts), so they need the same playwright
+  // devDependency and the same sequential-file-execution treatment below.
+  const usesDevServerBoilerplate = gateTests.length > 0 || pageResult.visible.length > 0 || pageResult.heldOut.length > 0;
 
   writeFileSync(
     join(outputDir, 'package.json'),
@@ -201,15 +232,15 @@ function writeSpecTreeInto(
         type: 'module',
         scripts: { test: REBUILD_TEST_SCRIPT },
         ...(Object.keys(pinnedDependencies).length > 0 ? { dependencies: pinnedDependencies } : {}),
-        devDependencies: gateTests.length > 0 ? { vitest: '^4.0.0', playwright: '^1.61.1' } : { vitest: '^4.0.0' }
+        devDependencies: usesDevServerBoilerplate ? { vitest: '^4.0.0', playwright: '^1.61.1' } : { vitest: '^4.0.0' }
       },
       null,
       2
     )
   );
 
-  if (gateTests.length > 0) {
-    // Each gate test file spawns its own `next dev` against the SAME app
+  if (usesDevServerBoilerplate) {
+    // Each such test file spawns its own `next dev` against the SAME app
     // directory. Next.js only allows one dev server per project directory
     // at a time regardless of port, so running test files concurrently
     // (vitest's default) makes them fight over that lock. Sequential file
@@ -268,5 +299,5 @@ export default defineConfig({
     writeFileSync(join(outputDir, '.claude', 'workflows', workflowFile.filename), workflowFile.content);
   }
 
-  return mutationReport;
+  return { mutationReport, capturedPages: pageResult.capturedPages, skippedPages: pageResult.skippedPages };
 }

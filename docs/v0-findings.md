@@ -1,6 +1,6 @@
 # rebuild-dossier v0: findings
 
-**Status:** v0 built (6 MCP tools, 260 unit tests), validated end-to-end against **two real,
+**Status:** v0 built (6 MCP tools, 295 unit tests), validated end-to-end against **two real,
 structurally different apps** (Madeline — Next.js client-side gate pattern; catchandtrade — a
 real Prisma+Postgres+Stripe+eBay-backed API app), across **two model tiers** (Sonnet, Haiku),
 with a precisely-characterized weak-model failure boundary and a security-hardening pass
@@ -11,6 +11,18 @@ is closed (video ingestion, live Chrome capture, asset-manifest extraction, a 4t
 original-CLAUDE.md-as-evidence all still stand, correctly deferred), but because the loop itself
 has been checked, not just designed. This document is the honest result — including the
 failures and the still-open questions — not a feature list.
+
+Real Playwright-based page-test generation is also now built and verified against the same real
+83-route app — but "verified" here means the mechanism works, not that most of what it produces
+is meaningfully tested: of 19 pages, exactly **1** has a demonstrated, content-driven mutation
+kill; the rest are `weak`, `unrunnable`, or untested by the mutation engine entirely, mostly
+because this app gates real content behind auth that a fresh, unauthenticated capture can't reach.
+Also found and fixed one real crash bug no unit test could have caught (a `next dev`
+process-group leak racing mutation-check cleanup), and two concrete, opposite-direction examples
+of the DOM-text classifier's known, accepted risk — one of which recurred on a second page,
+non-deterministically, between two runs of the identical app. See "Real page-test generation,"
+below, including one design tension (weak/unrunnable tests still unblock a page) left explicitly
+open rather than resolved.
 
 ## The hypothesis being tested
 
@@ -252,6 +264,137 @@ reconciliation to resolve, and the handoff itself doesn't exercise reconciliatio
 it behaves the same on an API validation rule or error-response shape as it did on a UI gate has
 no answer yet either way — the one open question from this run that a differently-authored real
 app (one that actually has comments/TODOs on ambiguous API behavior) would be needed to answer.
+
+## Real page-test generation: the mechanism works and is verified; most pages it produces don't
+
+The catchandtrade generalization run above left `untested-contracts.json` with 19 files, all of
+them page routes outside any generator's scope, permanently blocked from being built. Real
+Playwright-based capture, DOM-text-driven assertions, and screenshot-as-reference-only contracts
+were built to close that gap (see the plan; new modules `generatePageTests.ts`,
+`classifyDomText.ts`, `pageCaptureSchema.ts`, `assetManifestSchema.ts`,
+`nextDevServerBoilerplate.ts`). **The honest headline from actually running it against the real
+83-route, 19-page catchandtrade app is not "19/19 pages unblocked."** It's this: the generation
+mechanism itself is real and verified end to end, but for this specific, auth-heavy app,
+black-box capture with no logged-in session can't reach most pages' real, authenticated content —
+so most of the resulting tests carry little to no behavioral signal, and a live-fetched-content
+classifier gap turned out to be a bigger, more consequential problem than initially scoped. The
+capability is real; what it's actually worth on this app is much more modest than "unblocked" by
+itself suggests, and that's the finding worth remembering, not a footnote to it.
+
+**The numbers, stated plainly:** of 19 pages, 13 landed in `weak` (a mutation site existed, ran,
+killed nothing) and 1–2 in `unrunnable` (failed even the baseline pass against real, unmodified
+source — see below on why this count itself isn't stable). 3 more (`legal-terms`, `legal-privacy`,
+`scan`) had **zero applicable mutation sites at all** — not a passing grade, just nothing for the
+3 mutators to touch, so they were never even at risk of being flagged weak. That leaves exactly
+**one** page, `watchlist`, with a demonstrated, hand-traced, content-driven mutation kill — the
+only page in this real app where the generated test is actually shown to catch a real behavioral
+regression. **1 real, verified test out of 19 pages** is the number that matters more than
+`untested-contracts.json` going to `[]`; the untested-contracts state describes what got built,
+not what got verified. For calibration, not excuse: API routes in this same run hit a comparable
+but smaller version of this problem (32 of 64, 50%, weak or unrunnable) — this isn't a new failure
+mode this feature invented, but pages hit it at a distinctly higher rate (15 of 19, ~79%) than API
+routes did, driven specifically by how much of this app's real content sits behind auth that a
+fresh, unauthenticated Playwright session never gets past.
+
+**A real bug found only by running against a real app, not by hand-tracing the same code
+multiple times.** The first live smoke-test run crashed outright with `ENOTEMPTY` deleting a
+mutation-check scratch directory — mid-run, after real work had already been done, not at
+startup. Root cause, confirmed by reading `nextDevServerBoilerplate.ts`'s own spawn/kill code
+against what actually happened: `next dev` spawns its own worker/compiler child processes that,
+by default, inherit its process group; the generated test's own `afterAll` was only killing
+`next dev`'s own pid, so those children kept running — and kept writing into the scratch
+directory (`.next/cache/**`) — after the "test" had formally finished, racing the caller's
+`rmSync` cleanup in `runMutationCheck.ts`. Fixed at the actual source: spawn `next dev` with
+`detached: true` (POSIX) so it leads its own process group, and kill the whole group via
+`process.kill(-pid, 'SIGKILL')` on cleanup instead of the single pid — symmetrical with the
+Windows branch's pre-existing `/t` tree-kill, which had quietly been correct all along. Added a
+second, defense-in-depth layer regardless: `removeScratchDirWithRetry` (short backoff, 5
+attempts) around every scratch-dir cleanup in `runMutationCheck.ts`, so a transient race of this
+shape can never again abort an entire, possibly many-minutes-long `generate_spec` call. Re-ran
+the full suite (295/295 green) and the real smoke test twice more after the fix — zero crashes,
+zero leaked scratch directories. This is exactly the category of bug a unit test cannot surface
+(it requires a real `next dev` boot/kill lifecycle under real process-group semantics) and
+hand-tracing the same generator code multiple times had already missed.
+
+One unit test also failed on the first real run (`generatePageTests.spec.ts`'s dynamic-route-
+segment test), but tracing it against the sibling generators' actual behavior
+(`generateTests.ts`, `generateGateTests.ts` both deliberately keep the raw route pattern in the
+describe title, substituting only in the real network call — confirmed by their own existing,
+passing assertions) showed the implementation was already correct and consistent; the test's own
+assertion was wrong. Fixed the test, not the code.
+
+**The four semantic questions pinned down at design time (see the plan) — now answered with
+real evidence:**
+
+- **Mutation-kill meaningfulness for pages: confirmed real, but rare, and the "rare" is the
+  finding.** The one kill — `PAGE-watchlist.page.spec.ts` / `flip-comparison` /
+  `src/app/watchlist/page.tsx:24` (`typeof window !== 'undefined' ? localStorage.getItem(...) ||
+  default : default`) — was traced by hand: flipping to `===` makes the *server-side* branch call
+  `localStorage`, which doesn't exist in Node, crashing SSR and replacing the expected rendered
+  content with an error page, which the generated content assertion correctly caught. Genuinely
+  content-driven, not incidental — the higher bar this project's own doc comment says a page-test
+  kill doesn't automatically clear. But 1-for-19 is the real rate, and the reason isn't subtle:
+  this app gates most pages behind auth and a fresh Playwright session with no session captures
+  the same generic login-page content regardless of the target page's own logic, so most pages'
+  actual internal branching is never reached by what got captured or asserted on in the first
+  place. The mechanism proved itself capable of a real kill when it can reach real logic; on this
+  app, it mostly can't.
+- **Weak/unrunnable tests still unblock their page — a real, surfaced tension, not a closed
+  decision.** Confirmed by direct read of `writeSpecTree.ts` that this matches pre-existing
+  behavior for API routes (`coveredRouteFiles` unblocks before `runMutationCheck` ever runs, for
+  any route kind) — so this isn't a regression this feature introduced. But the untested-contracts
+  hook exists specifically to withhold a rebuild agent's permission to write a file until a test
+  demonstrably covers it, and here that permission is being granted to up to 15 of 19 pages (79%,
+  worse than API routes' already-notable 50%) on the strength of a test the system's own mutation
+  check just labeled as providing zero signal, or — for `PAGE-root` — a test that doesn't even
+  reliably pass against the real, unmodified source it's supposed to be testing. That's a real
+  erosion of what the hook's guarantee is actually worth in practice, at a scale now large enough
+  to notice, not just a theoretical edge case. This is left open deliberately: **not fixed in this
+  pass, flagged as a design question worth revisiting** (e.g. should a `weak` or `unrunnable` page
+  test actually be strong enough to unblock a page, or should the hook require at least one real
+  kill?) rather than filed away as settled just because it matches an existing precedent.
+- **Dynamic-classification false negatives: confirmed, in both directions, and the second
+  direction recurred on a second page.** `src/app/grading/page.tsx:12`'s
+  `GRADE_VALUES = [10, 9.5, 9, ..., 1]` — a fixed grading-scale legend used as dropdown option
+  values — got every value classified `dynamic (number)`, weakening an exact assertion of the
+  scale into a loose shape-only match. The opposite, more consequential direction is why
+  `PAGE-root` failed its *baseline* pass at all (not a timeout or infra gap — traced directly): the
+  homepage's "Cards in Database" stat is live-fetched and read `"2,007"` at capture time versus
+  `"0"` moments later on an unmutated re-run, because `NUMBER_PATTERN`
+  (`/^-?\d+(\.\d+)?%?$/`) has no thousands-separator support, so a comma-formatted live number
+  fell through to the default `static` classification and got an exact-text assertion instead of a
+  shape check. **This recurred on a second real page, not just root**, discovered while
+  double-checking this write-up rather than in the original run: `PAGE-marketplace` was classified
+  `unrunnable` in the full run but `weak` in a later, narrower rerun of the identical app — the
+  same test flipping pass/fail against genuinely unmutated source between two runs. Reading
+  `src/app/marketplace/page.tsx:199` confirms why: `totalCards.toLocaleString()`, the identical
+  live-fetched-count-with-commas pattern as root. Two real pages hit by the same classifier gap,
+  one of them caught mid-write-up rather than in the original pass, is stronger evidence this is a
+  systematic blind spot (comma-formatted live numbers specifically) rather than a one-off. The
+  system's own pre-existing `passesBaseline` safety net did correctly catch and demote both
+  instances rather than reporting a misleading kill rate — real confirmation that a defense built
+  for a different reason also covers this — but a classifier gap that causes two pages' pass/fail
+  status to be non-deterministic across identical runs of the same real app is a real problem, not
+  a fully contained one.
+- **Captured-vs-skipped visibility: not exercised live.** All 19 pages captured successfully in
+  every real run (`skippedPages: []` every time), so the visible-skip mechanism remains verified
+  only at the unit-test level — no real run has yet hit an actual partial-capture failure to
+  confirm the end-to-end path.
+
+**What this does and does not prove:** this is one real app, and it's a specifically unfavorable
+one for this technique — heavily auth-gated, several live-fetched homepage/marketplace stats. It
+does not show page-test generation is worthless (the mechanism is real, verified, and produced one
+genuinely content-driven kill), and it does not show the classifier is unfit for purpose (a
+hand-rolled handful of regexes was never claimed to be a general "is this dynamic" oracle, and the
+design already flagged this exact risk as accepted, not solved). What it does show, concretely: on
+an app shaped like this one, "pages unblocked" and "pages meaningfully tested" are very different
+numbers (19 vs. 1), and the classifier's blind spot for comma-formatted live numbers is systematic
+enough to have already caused non-deterministic results on two separate pages. Whether a
+differently-shaped app (less auth-gating, fewer live homepage stats) would look meaningfully
+better has no answer yet — that, plus reconsidering the weak/unrunnable-still-unblocks question
+above, are the next real steps, not a restatement of this one.
+
+295 tests passing, typecheck clean.
 
 ## Weak-model diagnostic experiment: what Haiku actually did with a real, unscripted bug
 
@@ -632,7 +775,23 @@ predicted — and a security-hardening pass that was adversarially verified live
 simulated, this is a materially stronger evidence base than the single-app validation this
 document originally reported: two model tiers, two structurally different app shapes, a named
 and reproduced failure boundary, and a rails-hardening fix validated under real pressure rather
-than replayed against already-written files. Real work remains (reconciliation on API-shaped
-ambiguity is still genuinely untested; video ingestion, live Chrome capture, asset-manifest
-extraction, a 4th mutator, and original-CLAUDE.md-as-evidence are all correctly still
-backlogged) — but the core hypothesis itself is no longer resting on one validated example.
+than replayed against already-written files. Real page-test generation is now built against that
+same 19-untested-page gap, and the same discipline paid off again in a way that cuts against the
+feature rather than for it: a real smoke test found a crash bug (a `next dev` process-group leak)
+that hand-tracing the same generator code had already missed, and — more importantly — showed
+that on this specific, auth-heavy real app, "19 pages unblocked" and "19 pages meaningfully
+tested" are very different claims. Only 1 of 19 pages has a demonstrated, content-driven mutation
+kill; the rest are weak, unrunnable, or never reached by the mutation engine at all, mostly
+because black-box capture with no session can't get past this app's auth gates. Two concrete,
+opposite-direction DOM-text-classification false negatives turned up along the way — a fixed
+grading-scale legend read as dynamic, and a live-fetched, comma-formatted stat read as static, the
+latter recurring non-deterministically on a second page — and one real design tension surfaced
+deliberately unresolved: weak/unrunnable page tests unblock a page's write-permission the same way
+weak API-route tests already do, at a notably higher rate (79% vs. 50% in this run), which is a
+real erosion of the untested-contracts hook's guarantee worth reconsidering, not a settled
+decision just because it matches existing behavior. Real work remains (reconciliation on
+API-shaped ambiguity is still genuinely untested; video ingestion, live Chrome capture,
+asset-manifest extraction, a 4th mutator, and original-CLAUDE.md-as-evidence are all correctly
+still backlogged; the weak/unrunnable-unblocks-a-page tension and a second, less auth-gated real
+app to test page-generation against are the natural next steps) — but the core hypothesis itself
+is no longer resting on one validated example.

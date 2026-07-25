@@ -76,6 +76,10 @@ export interface GeneratedTestFile extends GeneratedFile {
   // the original app's guard mechanism, while the routes it behaviorally
   // covers (and a rebuild agent must still build) can be entirely different
   // files. Falls back to [sourceFile] when absent.
+  maxMutationSites?: number; // caps runMutationCheck's per-target mutation-site count — see
+  // generatePageTests.ts, which sets this to bound the cost of one fresh
+  // `next dev` boot per mutation site. Left undefined (uncapped) for every
+  // other generator; runMutationCheck.ts treats undefined as Infinity.
 }
 
 export function generateTests(

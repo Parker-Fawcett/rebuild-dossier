@@ -6,6 +6,7 @@ import type { GeneratedTestFile } from './generateTests.js';
 import { toPosixRelative } from '../util/paths.js';
 import { listSourceFiles } from '../util/listSourceFiles.js';
 import { findSecretConst } from '../ingest/smellDetectors/clientSideSecretGate.js';
+import { devServerBoilerplate } from './nextDevServerBoilerplate.js';
 
 const GATE_TOPIC_PREFIX = 'smell:client-side-secret-gate:';
 
@@ -52,64 +53,6 @@ export function isComponentLive(repoPath: string, filePaths: string[], component
 
 function concretePath(path: string): string {
   return path.replace(/:[^/]+/g, 'test-value-123');
-}
-
-function devServerBoilerplate(): string {
-  return `import { chromium } from 'playwright';
-import { spawn, spawnSync } from 'node:child_process';
-import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const appRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const port = 10000 + Math.floor(Math.random() * 40000);
-// "localhost", not "127.0.0.1" — Next's dev server only trusts "localhost" as
-// a default dev origin; 127.0.0.1 silently fails the HMR/hydration handshake.
-const baseUrl = \`http://localhost:\${port}\`;
-
-let devServer;
-let browser;
-
-async function waitForReady(deadline) {
-  while (Date.now() < deadline) {
-    try {
-      const res = await fetch(baseUrl);
-      if (res.status < 500) return;
-    } catch {
-      // not up yet
-    }
-    await new Promise((resolve) => setTimeout(resolve, 500));
-  }
-  throw new Error('next dev did not become ready in time');
-}
-
-beforeAll(async () => {
-  // Spawn next's own CLI script directly via node, NOT "npx next dev" through
-  // a shell — a shell-wrapped spawn (cmd.exe on Windows) means .kill() only
-  // kills the shell, leaving the actual next dev process orphaned and still
-  // holding the port for every subsequent test run.
-  const require = createRequire(import.meta.url);
-  const nextBin = require.resolve('next/dist/bin/next');
-  devServer = spawn(process.execPath, [nextBin, 'dev', '-p', String(port)], { cwd: appRoot, stdio: 'ignore' });
-  await waitForReady(Date.now() + 60000);
-  browser = await chromium.launch({ headless: true });
-}, 90000);
-
-afterAll(async () => {
-  await browser?.close();
-  if (devServer?.pid) {
-    if (process.platform === 'win32') {
-      spawnSync('taskkill', ['/pid', String(devServer.pid), '/t', '/f']);
-    } else {
-      try {
-        devServer.kill('SIGKILL');
-      } catch {
-        // already gone
-      }
-    }
-  }
-});
-`;
 }
 
 function testFileContent(gatePath: string, protectedPath: string): string {
