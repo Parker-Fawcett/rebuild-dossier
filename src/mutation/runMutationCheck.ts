@@ -194,15 +194,20 @@ function runVitestOnce(scratchDir: string, testFilePath: string): boolean {
     const output = execFileSync('node', [VITEST_ENTRY, 'run', testFilePath, '--root', scratchDir, '--reporter=json', '--no-color'], {
       encoding: 'utf-8',
       timeout: VITEST_RUN_TIMEOUT_MS,
-      // Real, live-triggered finding: execFileSync's `timeout` option
-      // defaults to SIGTERM, which is only a request to terminate — vitest
-      // itself (or whatever it's stuck awaiting inside a hung `beforeAll`,
-      // e.g. a next dev boot or chromium.launch() that never resolves) can
-      // simply not honor it. Observed directly: a run that should have been
-      // capped at VITEST_RUN_TIMEOUT_MS instead ran for ~97 minutes — the
-      // stated timeout was never actually enforced, just requested.
-      // SIGKILL cannot be ignored, so the cap this comment's own name
-      // promises is now a real one.
+      // execFileSync's `timeout` option defaults to SIGTERM, which vitest
+      // (or whatever it's awaiting inside a hung `beforeAll`) can simply not
+      // honor — SIGKILL can't be ignored, so this is a real, defensible
+      // hardening against that general Node.js gotcha.
+      // NOT a confirmed fix for a specific, still-unexplained hang found
+      // this same session: one reproduction — with this exact killSignal
+      // already set — ran for ~97 minutes and exited on its own
+      // (`signal: null`, never killed), meaning VITEST_RUN_TIMEOUT_MS
+      // wasn't enforced at all, by any signal, in that run. Root cause not
+      // found; see docs/v0-findings.md's "execFileSync's mutation-check
+      // timeout doesn't reliably fire" entry — every timing number this
+      // function has ever contributed to (including the ~9.15-minute
+      // catchandtrade page-test-generation figure) is what happened to
+      // occur, not a value this timeout guaranteed as an upper bound.
       killSignal: 'SIGKILL',
       stdio: ['ignore', 'pipe', 'ignore']
     });
