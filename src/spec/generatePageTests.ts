@@ -1,6 +1,8 @@
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { join } from 'node:path';
 import { chromium, type Browser } from 'playwright';
 import type { EvidenceBundle, RouteEntry } from '../ingest/evidenceSchema.js';
 import type { Case } from '../reconciliation/types.js';
@@ -10,6 +12,7 @@ import type { AssetManifestEntry } from './assetManifestSchema.js';
 import { classifyDomText } from './classifyDomText.js';
 import { concretePath, sanitizeFilenameBase } from './routeTestAssertions.js';
 import { devServerBoilerplate } from './nextDevServerBoilerplate.js';
+import { classifyPageWithVision, DEFAULT_GROQ_VISION_MODEL } from './visionClassifier.js';
 
 // Complements generateGateTests.ts/generateTests.ts for page/component routes
 // with real Playwright-driven capture (see the plan this module implements:
@@ -64,6 +67,8 @@ export interface GeneratePageTestsResult {
   screenshots: CapturedScreenshot[];
   capturedPages: string[]; // route files successfully captured
   skippedPages: SkippedPage[]; // route files visibly skipped, with why — never silently absent
+  visionClassificationEnabled: boolean; // whether this run attempted vision classification at all (both GROQ_API_KEY and REBUILD_DOSSIER_ENABLE_VISION_CLASSIFICATION must be set)
+  pageVisionFallbacks: SkippedPage[]; // captured pages that fell back to the regex classifier despite vision being enabled, with why — never silently indistinguishable from a page vision actually classified
 }
 
 const EMPTY_RESULT: GeneratePageTestsResult = {
@@ -72,7 +77,9 @@ const EMPTY_RESULT: GeneratePageTestsResult = {
   assetManifest: [],
   screenshots: [],
   capturedPages: [],
-  skippedPages: []
+  skippedPages: [],
+  visionClassificationEnabled: false,
+  pageVisionFallbacks: []
 };
 
 async function waitForReady(baseUrl: string, deadline: number): Promise<void> {
@@ -172,6 +179,24 @@ function assertionFor(node: DomTextNode): string {
 // ============================= CAPTURE PHASE =============================
 // Everything below this line is pure/sync, given a PageCapture — fully
 // unit-testable without a real browser.
+
+// Applies an optional vision-classification result over the regex-classified
+// baseline. `null` (vision disabled, unavailable, or returned something
+// invalid) or a length mismatch leaves domOutline completely untouched —
+// the regex classifier's guess is always a safe, valid fallback, never
+// discarded on a failed vision attempt.
+export function applyVisionClassification(
+  domOutline: DomTextNode[],
+  visionResult: Pick<DomTextNode, 'kind' | 'dynamicShape'>[] | null
+): DomTextNode[] {
+  if (!visionResult || visionResult.length !== domOutline.length) return domOutline;
+  // Explicitly assigns dynamicShape (not just `...visionResult[i]`) — a plain
+  // object spread only overwrites keys present on the source, so a node
+  // reclassified from dynamic to static would otherwise keep its stale
+  // dynamicShape from the regex baseline, since {kind: 'static'} has no
+  // dynamicShape key to override it with.
+  return domOutline.map((node, i) => ({ ...node, kind: visionResult[i]!.kind, dynamicShape: visionResult[i]!.dynamicShape }));
+}
 
 export function buildPageTestContent(route: RouteEntry, capture: PageCapture): string {
   const concrete = concretePath(route.path);
@@ -294,7 +319,20 @@ export async function generatePageTests(
   const visible: GeneratedTestFile[] = [];
   const heldOut: GeneratedTestFile[] = [];
 
-  captures.forEach(({ route, result }, index) => {
+  // Deliberately opt-in via two env vars, not bare GROQ_API_KEY presence —
+  // an ambient key set for an unrelated tool must never silently start
+  // sending this target repo's source code and screenshots to a third
+  // party. See visionClassifier.ts's own doc comment and the plan.
+  const visionEnabled = Boolean(process.env.GROQ_API_KEY) && process.env.REBUILD_DOSSIER_ENABLE_VISION_CLASSIFICATION === '1';
+  const visionModel = process.env.REBUILD_DOSSIER_GROQ_VISION_MODEL || DEFAULT_GROQ_VISION_MODEL;
+  const pageVisionFallbacks: SkippedPage[] = [];
+
+  // Deliberately a second, later loop rather than folded into the
+  // browser-driving loop above: this runs after the dev server and browser
+  // are already closed, so a slow or hung Groq call can never hold either
+  // open, and result.capture.domOutline already has its regex-classified
+  // baseline to fall back to by simply not overriding it.
+  for (const [index, { route, result }] of captures.entries()) {
     const base = sanitizeFilenameBase(undefined, route.path);
     const assetId = `${base}-screenshot`;
     const screenshotPath = `spec/assets/screenshots/${base}.png`;
@@ -309,7 +347,38 @@ export async function generatePageTests(
     });
     screenshots.push({ path: screenshotPath, buffer: result.screenshotBuffer });
 
-    const finalCapture: PageCapture = { ...result.capture, screenshotAssetId: assetId };
+    let domOutline = result.capture.domOutline;
+    if (visionEnabled) {
+      let sourceCode = '';
+      try {
+        sourceCode = readFileSync(join(repoPath, route.file), 'utf-8');
+      } catch {
+        // Missing/unreadable source file — proceed with an empty string
+        // rather than aborting the page; vision is still attempted on the
+        // screenshot alone, just with less signal.
+      }
+      const visionResult = await classifyPageWithVision(
+        result.screenshotBuffer, // the same screenshot already captured for the asset manifest — never re-captured
+        domOutline, // full nodes, regex guess included — "confirm or correct," not "classify from scratch"
+        sourceCode,
+        process.env.GROQ_API_KEY!,
+        visionModel
+      );
+      if (visionResult) {
+        domOutline = applyVisionClassification(domOutline, visionResult);
+      } else {
+        // Covers every failure mode uniformly (bad key, rate-limited past
+        // the retry, deprecated model, malformed response, oversized
+        // screenshot, timeout) — never silently indistinguishable from a
+        // page vision actually classified.
+        pageVisionFallbacks.push({
+          routeFile: route.file,
+          reason: 'vision classification unavailable or returned an invalid response; used the regex classifier for this page'
+        });
+      }
+    }
+
+    const finalCapture: PageCapture = { ...result.capture, domOutline, screenshotAssetId: assetId };
 
     const testFile: GeneratedTestFile = {
       filename: `${base}.page.spec.ts`,
@@ -324,7 +393,16 @@ export async function generatePageTests(
     } else {
       visible.push(testFile);
     }
-  });
+  }
 
-  return { visible, heldOut, assetManifest, screenshots, capturedPages, skippedPages };
+  return {
+    visible,
+    heldOut,
+    assetManifest,
+    screenshots,
+    capturedPages,
+    skippedPages,
+    visionClassificationEnabled: visionEnabled,
+    pageVisionFallbacks
+  };
 }

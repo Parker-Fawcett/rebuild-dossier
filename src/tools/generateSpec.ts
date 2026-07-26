@@ -73,7 +73,7 @@ export async function generateSpecHandler(args: z.infer<typeof generateSpecInput
 
   const outputDir = siblingRebuildDir(args.repoPath);
   const cases = loadCases(args.repoPath);
-  const { mutationReport, capturedPages, skippedPages } = await writeSpecTree({
+  const { mutationReport, capturedPages, skippedPages, visionClassificationEnabled, pageVisionFallbacks } = await writeSpecTree({
     repoPath: args.repoPath,
     outputDir,
     evidence,
@@ -105,6 +105,9 @@ export async function generateSpecHandler(args: z.infer<typeof generateSpecInput
             // requirement.
             capturedPages: capturedPages.length,
             skippedPages,
+            // Always present, not conditional — whether vision classification
+            // ran at all must never be silently ambiguous from the response.
+            visionClassificationEnabled,
             ...(missingNodeModules
               ? {
                   warning:
@@ -115,6 +118,19 @@ export async function generateSpecHandler(args: z.infer<typeof generateSpecInput
               ? {
                   pageCaptureNote:
                     'One or more page routes could not be captured (see skippedPages) — those pages have no generated test and stay in spec/untested-contracts.json. Note that page-test generation also spawns a real `next dev` + Chromium instance, which makes generate_spec noticeably slower for apps with many pages.'
+                }
+              : {}),
+            ...(visionClassificationEnabled
+              ? {
+                  visionClassificationNote:
+                    'Vision-assisted DOM-text classification is enabled — each captured page\'s screenshot and (redacted) source code is sent to the configured Groq model. This adds one API call per page, real latency/cost on top of the existing capture cost, and means page content leaves this machine.'
+                }
+              : {}),
+            ...(pageVisionFallbacks.length > 0
+              ? {
+                  pageVisionFallbacks,
+                  pageVisionFallbackNote:
+                    'One or more pages could not be vision-classified and fell back to regex-based classification for that page (see pageVisionFallbacks) — those pages\' dynamic-vs-static assertions may be less accurate.'
                 }
               : {})
           },

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { generatePageTests, buildPageTestContent } from '../../../src/spec/generatePageTests.js';
+import { generatePageTests, buildPageTestContent, applyVisionClassification } from '../../../src/spec/generatePageTests.js';
 import type { EvidenceBundle, RouteEntry } from '../../../src/ingest/evidenceSchema.js';
-import type { PageCapture } from '../../../src/spec/pageCaptureSchema.js';
+import type { DomTextNode, PageCapture } from '../../../src/spec/pageCaptureSchema.js';
 
 const now = new Date(0).toISOString();
 
@@ -35,7 +35,9 @@ describe('generatePageTests preconditions', () => {
       assetManifest: [],
       screenshots: [],
       capturedPages: [],
-      skippedPages: []
+      skippedPages: [],
+      visionClassificationEnabled: false,
+      pageVisionFallbacks: []
     });
   });
 
@@ -65,6 +67,29 @@ describe('generatePageTests preconditions', () => {
     expect(result.skippedPages[0]?.routeFile).toBe('page.tsx');
     expect(result.skippedPages[0]?.reason).toBeTruthy();
   }, 15000);
+});
+
+describe('applyVisionClassification', () => {
+  const domOutline: DomTextNode[] = [
+    { selectorHint: 'h1', text: 'Welcome', kind: 'static' },
+    { selectorHint: '.price', text: '$42.00', kind: 'dynamic', dynamicShape: 'currency' }
+  ];
+
+  it('applies a valid vision result over the regex baseline, node by node', () => {
+    const visionResult = [{ kind: 'static' as const }, { kind: 'static' as const }];
+    expect(applyVisionClassification(domOutline, visionResult)).toEqual([
+      { selectorHint: 'h1', text: 'Welcome', kind: 'static' },
+      { selectorHint: '.price', text: '$42.00', kind: 'static' }
+    ]);
+  });
+
+  it('leaves domOutline untouched when the vision result is null', () => {
+    expect(applyVisionClassification(domOutline, null)).toEqual(domOutline);
+  });
+
+  it('leaves domOutline untouched when the vision result length does not match', () => {
+    expect(applyVisionClassification(domOutline, [{ kind: 'static' }])).toEqual(domOutline);
+  });
 });
 
 describe('buildPageTestContent', () => {

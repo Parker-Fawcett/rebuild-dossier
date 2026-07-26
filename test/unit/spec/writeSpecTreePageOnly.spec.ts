@@ -33,7 +33,9 @@ vi.mock('../../../src/spec/generatePageTests.js', () => ({
     assetManifest: [],
     screenshots: [],
     capturedPages: ['page.tsx'],
-    skippedPages: []
+    skippedPages: [],
+    visionClassificationEnabled: false,
+    pageVisionFallbacks: []
   })
 }));
 

@@ -32,6 +32,8 @@ export interface WriteSpecTreeResult {
   mutationReport: MutationCheckReport;
   capturedPages: string[]; // page route files whose Playwright capture succeeded
   skippedPages: SkippedPage[]; // page route files visibly skipped, with why — see generatePageTests.ts
+  visionClassificationEnabled: boolean; // whether vision-assisted classification was attempted this run — see generatePageTests.ts
+  pageVisionFallbacks: SkippedPage[]; // captured pages that fell back to the regex classifier despite vision being enabled, with why
 }
 
 // The generated tests are always vitest, regardless of what test runner the
@@ -299,5 +301,11 @@ export default defineConfig({
     writeFileSync(join(outputDir, '.claude', 'workflows', workflowFile.filename), workflowFile.content);
   }
 
-  return { mutationReport, capturedPages: pageResult.capturedPages, skippedPages: pageResult.skippedPages };
+  return {
+    mutationReport,
+    capturedPages: pageResult.capturedPages,
+    skippedPages: pageResult.skippedPages,
+    visionClassificationEnabled: pageResult.visionClassificationEnabled,
+    pageVisionFallbacks: pageResult.pageVisionFallbacks
+  };
 }
