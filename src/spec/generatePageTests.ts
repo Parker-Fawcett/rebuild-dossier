@@ -229,7 +229,17 @@ export async function generatePageTests(
     // identical note: Next's dev server only trusts "localhost" as a
     // default dev origin.
     const baseUrl = `http://localhost:${port}`;
-    devServer = spawn(process.execPath, [nextBin, 'dev', '-p', String(port)], { cwd: repoPath, stdio: 'ignore' });
+    // detached: true (POSIX) so this is its own process group — see the
+    // identical fix and comment in nextDevServerBoilerplate.ts. Real,
+    // live-triggered finding here too: without it, next dev's own
+    // worker/compiler children survive the `finally` block's kill of just
+    // this pid and are left running indefinitely, each holding real RAM
+    // and a real port, until something else notices and kills them by hand.
+    devServer = spawn(process.execPath, [nextBin, 'dev', '-p', String(port)], {
+      cwd: repoPath,
+      stdio: 'ignore',
+      detached: process.platform !== 'win32'
+    });
     await waitForReady(baseUrl, Date.now() + DEV_SERVER_READY_TIMEOUT_MS);
     browser = await chromium.launch({ headless: true });
 
@@ -268,7 +278,10 @@ export async function generatePageTests(
         spawnSync('taskkill', ['/pid', String(devServer.pid), '/t', '/f']);
       } else {
         try {
-          devServer.kill('SIGKILL');
+          // Negative pid targets the whole process group created by
+          // detached: true above — see nextDevServerBoilerplate.ts's
+          // identical fix.
+          process.kill(-devServer.pid, 'SIGKILL');
         } catch {
           // already gone
         }

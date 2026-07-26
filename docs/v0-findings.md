@@ -539,12 +539,34 @@ backlogged and revisited opportunistically rather than manufactured on demand.
   exactly this reason.
 - **The contract-coverage caveat is not yet written into generated `CLAUDE.md`** as an explicit,
   stated limitation of the methodology.
-- **The mutation-check's own ephemeral scratch copies** live nested under the OS temp
-  directory; Next 16's Turbopack workspace-root auto-detection walks every ancestor directory
-  looking for lockfiles, and a stray one anywhere above temp can make it pick the wrong root and
-  fail confusingly. Doesn't affect a real rebuild directory (a normal, stable location), only
-  the mutation-check's own QC step for gate tests — real, but scoped and environment-dependent;
-  not chased this round.
+- **The mutation-check's own ephemeral scratch copies, Next 16/Turbopack: root cause found and
+  fixed, but a second, deeper problem surfaced underneath it, unresolved.** Attempting a second
+  real app (a fresh clone of Madeline, chosen specifically to be far less auth-gated than
+  catchandtrade, to test whether that changes the mutation-kill rate) hit this immediately: every
+  one of 10 generated tests came back `unrunnable`. Direct reproduction (spawning `next dev`
+  by hand inside a real scratch copy, not through the suppressed-stdio generated test) found the
+  exact cause: `linkNodeModules` symlinks `node_modules/next` into the scratch copy, and
+  Turbopack deliberately refuses to resolve its own package through a symlink pointing outside
+  the scratch directory ("For security and performance reasons, files outside of the project
+  directory will not be compiled") — so `next dev` never becomes ready, for every target, on
+  every Next 16 + Turbopack app. **Fixed**: `next` is now real-copied into the scratch copy
+  instead of symlinked (`runMutationCheck.ts`'s `linkOrCopyEntry`/`COPIED_PACKAGES`); confirmed
+  directly that `next dev` then boots cleanly (real, on-disk `next/package.json`, no Turbopack
+  error). Found and fixed a second, related bug the same way: `generatePageTests.ts`'s own
+  capture-phase spawn had the identical missing-process-group-kill issue already fixed in
+  `nextDevServerBoilerplate.ts` — confirmed by real orphaned `next-server` processes that
+  survived a kill of just their direct pid.
+  **Still open, and this is the part worth stating plainly rather than glossing over**: even
+  with both of those fixed, a full run against Madeline still failed 100% of baseline checks,
+  and root-causing *that* surfaced something stranger — `execFileSync`'s own `timeout` option
+  isn't engaging at all in this environment. One isolated repro exited on its own after 97
+  minutes with `signal: null` (a natural exit, not a kill), on an unusually new Node runtime
+  (v26.5.0, installed fresh mid-session via Homebrew) — pointing at a real quirk in that specific
+  Node version's `execFileSync` timeout handling, not something a scoped code change here can
+  fix. **The Madeline auth-gating comparison itself remains genuinely unanswered** — not from a
+  rebuild-dossier bug, but because a full run on this machine takes anywhere from ~16 minutes to
+  multiple hours, unpredictably. Revisiting this needs a different environment (an LTS Node
+  version) before it's worth spending more wall-clock time on the same machine.
 
 Resolved since the initial write-up, worth noting precisely rather than silently deleting the
 history: near-duplicate case fragmentation (three gate variants with no cross-reference between

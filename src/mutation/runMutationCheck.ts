@@ -30,6 +30,37 @@ function symlinkEntry(target: string, linkPath: string): void {
   }
 }
 
+// Real, live-triggered finding (smoke test against a real Next 16 +
+// Turbopack app): symlinking `next` itself into the scratch copy makes
+// Turbopack's own workspace-root detection fail 100% of the time —
+// "Turbopack build failed... We couldn't find the Next.js package
+// (next/package.json) from the project directory... For security and
+// performance reasons, files outside of the project directory will not be
+// compiled." Turbopack deliberately refuses to resolve its own package
+// through a symlink pointing outside the scratch directory, so `next dev`
+// never becomes ready and every target is misreported as `unrunnable` —
+// not because the test or the target app is broken, but because of how the
+// scratch copy links its own dependencies. `next` is the one package real-
+// copied (not symlinked) so a genuine, in-project-directory
+// `next/package.json` always exists; every other dependency stays
+// symlinked to avoid the cost (confirmed real: ~170MB for `next` alone) of
+// copying all of node_modules per mutation site.
+const COPIED_PACKAGES = new Set(['next']);
+
+function linkOrCopyEntry(target: string, linkPath: string, entryName: string): void {
+  if (COPIED_PACKAGES.has(entryName)) {
+    try {
+      cpSync(target, linkPath, { recursive: true });
+    } catch {
+      // best effort — see symlinkEntry's own comment above: a failed entry
+      // surfaces later as a real resolution failure, reported as
+      // "unrunnable" rather than silently mis-scoring a real mutation
+    }
+    return;
+  }
+  symlinkEntry(target, linkPath);
+}
+
 // The scratch copy only ever gets source files (copying node_modules per
 // mutation would be far too expensive) — so a generated test importing the
 // original repo's real runtime deps (express, next, etc.) needs node_modules
@@ -38,9 +69,10 @@ function symlinkEntry(target: string, linkPath: string): void {
 // fixtures), falls back to a single junction over rebuild-dossier's whole
 // node_modules. When it does, scratchDir/node_modules is built as a real
 // directory with one junction per top-level package from the target's own
-// install — plus an overlay junction for any test-only tooling package
-// (see above) the target doesn't have, since that's never the target's own
-// dependency to provide.
+// install (except `next`, real-copied — see linkOrCopyEntry above) — plus
+// an overlay junction for any test-only tooling package (see above) the
+// target doesn't have, since that's never the target's own dependency to
+// provide.
 function linkNodeModules(originalRepoPath: string, scratchDir: string): void {
   const originalNodeModules = join(originalRepoPath, 'node_modules');
   if (!existsSync(originalNodeModules)) {
@@ -53,7 +85,7 @@ function linkNodeModules(originalRepoPath: string, scratchDir: string): void {
 
   const ownEntries = new Set(readdirSync(originalNodeModules));
   for (const entry of ownEntries) {
-    symlinkEntry(join(originalNodeModules, entry), join(scratchNodeModules, entry));
+    linkOrCopyEntry(join(originalNodeModules, entry), join(scratchNodeModules, entry), entry);
   }
 
   for (const pkg of TEST_ONLY_TOOLING_PACKAGES) {
@@ -162,6 +194,16 @@ function runVitestOnce(scratchDir: string, testFilePath: string): boolean {
     const output = execFileSync('node', [VITEST_ENTRY, 'run', testFilePath, '--root', scratchDir, '--reporter=json', '--no-color'], {
       encoding: 'utf-8',
       timeout: VITEST_RUN_TIMEOUT_MS,
+      // Real, live-triggered finding: execFileSync's `timeout` option
+      // defaults to SIGTERM, which is only a request to terminate — vitest
+      // itself (or whatever it's stuck awaiting inside a hung `beforeAll`,
+      // e.g. a next dev boot or chromium.launch() that never resolves) can
+      // simply not honor it. Observed directly: a run that should have been
+      // capped at VITEST_RUN_TIMEOUT_MS instead ran for ~97 minutes — the
+      // stated timeout was never actually enforced, just requested.
+      // SIGKILL cannot be ignored, so the cap this comment's own name
+      // promises is now a real one.
+      killSignal: 'SIGKILL',
       stdio: ['ignore', 'pipe', 'ignore']
     });
     const jsonStart = output.indexOf('{');
