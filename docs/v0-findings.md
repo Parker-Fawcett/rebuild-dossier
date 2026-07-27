@@ -1,6 +1,6 @@
 # rebuild-dossier v0: findings
 
-**Status:** v0 built (6 MCP tools, 332 unit tests), validated end-to-end against **two real,
+**Status:** v0 built (6 MCP tools, 334 unit tests), validated end-to-end against **two real,
 structurally different apps** (Madeline — Next.js client-side gate pattern; catchandtrade — a
 real Prisma+Postgres+Stripe+eBay-backed API app), across **two model tiers** (Sonnet, Haiku),
 with a precisely-characterized weak-model failure boundary and a security-hardening pass
@@ -40,6 +40,22 @@ rail turns out, on independently checking rather than trusting the self-report, 
 confirmation (`novafolio`, the third), one now-unverifiable self-reported claim, and one verified
 partial counterexample — not three-for-three. See "Do reference screenshots
 actually help," below.
+
+A fourth test app, `fieldnotes` — the first with a real, persistent `better-sqlite3` backend
+rather than a static JSON stat endpoint — surfaced two real generator bugs no prior app had
+exercised (`generateNextApiTests.ts` never sent a request body for any HTTP method, always
+crashing a `POST`/`PUT`/`PATCH` handler that calls `request.json()`; the mutation-check's scratch
+copy never set its vitest subprocess's `cwd`, so a target app's own relative-path side effects
+leaked into `rebuild-dossier`'s own directory instead of staying contained), both fixed and
+re-verified against the real app. A blind rebuild of that app then answered the actual question
+this backend-having app was built to test: does a blind rebuild reproduce *functional* behavior,
+not just appearance? Answer, confirmed by running identical real HTTP requests against both apps
+side by side: visual and HTTP-status-code-level API parity are both achievable blind (every
+route's status codes matched exactly), but **response/request body schema parity is not** — the
+rebuild independently invented a different, internally-consistent field name (`note` vs. the
+original's `message`) and a different timestamp format, because the generated API contract
+records only the route handler's outer signature, never the JSON body shape, since the generated
+tests assert status codes only. See "Blind rebuild of a real backend," below.
 
 ## The hypothesis being tested
 
@@ -1007,6 +1023,138 @@ skepticism applied to results from the model itself. The unreliable narrator was
 Sonnet here; it was a stale binary and a timeout race, and the fix in both cases was the same
 discipline: check the actual filesystem state and the actual commit ancestry, don't trust the
 client's own account of what happened.
+
+## Two real bugs found only by testing against an app with genuine backend functionality
+
+Every prior test app (`novafolio`, `emberandrust`) had at most one trivial API route returning a
+static JSON stat — never a route that reads a request body, never any code that persists state
+relative to the process's own working directory. `fieldnotes`, a small guestbook app with a real
+`better-sqlite3`-backed database and full `GET`/`POST /api/notes` + `DELETE /api/notes/[id]` CRUD
+(manually verified correct via real curl requests before running the pipeline at all), exercised
+two code paths nothing before it had touched — and both immediately surfaced real, previously
+undetected bugs.
+
+**Bug 1 — `generateNextApiTests.ts` never sent a request body, for any HTTP method.** The
+generated smoke test constructed `new NextRequest(url, { method })` with no `body` field, so any
+`POST`/`PUT`/`PATCH` handler that unconditionally calls `request.json()` always throws
+(`SyntaxError: Unexpected end of JSON input`), landing that route's test in `unrunnableTests`
+regardless of whether the route's actual logic is correct. Confirmed for real against
+`fieldnotes`: `POST-api-notes.spec.ts` failed the baseline "responds without crashing" check
+before the fix, purely because the generated request had nothing for `request.json()` to parse —
+not because of any real problem with the route. Fixed by sending `body: JSON.stringify({})` and a
+`Content-Type: application/json` header for `POST`/`PUT`/`PATCH` only (`GET`/`DELETE` unchanged,
+matching real REST conventions). An empty object is a deliberately minimal, generic placeholder —
+there's no way to infer the route's real expected shape from static analysis alone, matching the
+same philosophy as `concretePath`'s existing `test-value-123` placeholder for dynamic segments.
+The handler's own validation then legitimately returns its own 4xx for the missing fields, which
+still satisfies the existing `expect(res.status).toBeLessThan(500)` assertion — the fix only
+needed to stop `request.json()` itself from throwing, not to satisfy any particular business-logic
+outcome. Re-ran `generate_spec` against the real `fieldnotes` app after the fix:
+`POST-api-notes.spec.ts` moved from `unrunnableTests` to `weakTests` (mutation-checked, not
+crashing), and `mutationsChecked` rose from 3 to 5 — this app has real branching validation logic
+in its POST handler that simply couldn't be exercised at all before.
+
+**Bug 2 — the mutation-check's scratch-copy isolation leaked a real file into this repo's own
+directory.** `runMutationCheck.ts`'s `runVitestOnce` passed `--root scratchDir` to the vitest
+subprocess but never set the subprocess's own `cwd` — and `--root` only tells vitest where to
+resolve test files/config from, it does not change `process.cwd()` for code running inside that
+process. `fieldnotes/src/lib/db.ts` opens its SQLite file via a bare `path.join(process.cwd(),
+'fieldnotes.db')` at module-import time (a completely ordinary thing for a small app to do), so
+merely importing the route module during a scratch-copy mutation check wrote a real
+`fieldnotes.db` file into `rebuild-dossier`'s own working directory — not the isolated scratch
+copy the whole mechanism exists to contain side effects to. Caught by literally seeing the file
+appear via `git status` after a real `generate_spec` run, not by inspection. Fixed by adding `cwd:
+scratchDir` to the `execFileSync` call. Re-ran the same `fieldnotes` pipeline after the fix and
+confirmed the file no longer appears anywhere outside the (still-deleted-after-use) scratch
+directory. This is a real, generalizable isolation gap that any real app's normal top-level
+side effects (log files, cache files, lockfiles, anything else opened via a relative path) could
+have hit — `fieldnotes` is simply the first test app in this whole project with any such
+side-effecting code at all.
+
+**Why both of these went undetected across two prior full experimental runs:** neither is a
+methodology gap in the screenshot-fidelity experiments above — they're gaps in the *generator*
+and *mutation-check* that nothing before now happened to exercise. `novafolio` and
+`emberandrust`'s single API routes were both trivial `GET`-only stat endpoints with no request
+body and no filesystem side effects; the first app built with a real, persistent backend is what
+finally exercised these code paths. Both fixes are covered by new unit tests
+(`test/unit/spec/generateNextApiTests.spec.ts`: body/header present for `POST`/`PUT`/`PATCH`,
+absent for `GET`/`DELETE`) and confirmed against the real running app, not just hand-traced —
+`npm run typecheck && npm test` (334 tests, 72 files) pass, and a full `generate_spec` re-run
+against `fieldnotes` was inspected directly (the generated `POST-api-notes.spec.ts` file's actual
+content, the response JSON's `unrunnableTests`/`mutationsChecked` fields, and the absence of any
+leaked file) rather than trusted from a self-report.
+
+## Blind rebuild of a real backend: visual and status-code parity are achievable; response-body-shape parity is not
+
+The three prior blind-rebuild runs (`novafolio`, `emberandrust` ×2) only ever tested visual
+fidelity and layout — none of those apps had a real, stateful backend, so none of them could
+answer the question this session was actually asked: does a blind rebuild reproduce an app's
+*functional* behavior, not just its appearance? `fieldnotes` (a guestbook with a real
+`better-sqlite3`-backed database and full `GET`/`POST /api/notes` + `DELETE /api/notes/[id]`
+CRUD, manually curl-verified correct beforehand) was built specifically to test this. The original
+source was physically relocated out of the filesystem (not just "instructed to ignore"), and a
+fresh agent was handed the locked spec and kickoff prompt to rebuild it blind, the same protocol
+as every prior run this session.
+
+**The rebuild agent itself stalled and failed** — the background task hit a 600-second
+no-progress watchdog and never finished its own manual verification pass. Its last self-report
+claimed the dev server was up and `GET /api/notes` returned 200, with POST/DELETE checks still
+pending. Consistent with this session's standing discipline, that self-report was not treated as
+a result — the actual filesystem and running app were checked directly instead.
+
+**What was actually there, verified directly:** all source files existed, dependencies were
+installed, and `npx vitest run tests/visible` / `tests/weak` both passed in full (1/1 visible, 0
+held-out — this app's single-page/single-route-file shape happened not to produce any held-out
+split, 3/3 weak, including `POST-api-notes.spec.ts` — a live confirmation that yesterday's
+request-body fix works correctly against a genuinely different app, not just the one it was
+debugged against). So by every test-passing signal, the rebuild looked complete and correct.
+
+**Running the identical real-HTTP-request flow against both apps side by side found two real,
+distinct functional divergences that no test in either app's suite would ever catch, because
+neither app's generated tests assert on response body content — only HTTP status codes:**
+
+1. **Request/response field name.** The original app's real API expects and returns a field
+   called `message` (`POST /api/notes` with `{"name":"Parker","message":"..."}`, echoed back as
+   `{"id":1,"name":"Parker","message":"...","created_at":"..."}`). The rebuild independently
+   invented a different, equally plausible field name: `note`
+   (`{"id":2,"name":"Parker","note":"...","created_at":"..."}`) — consistently, across its own
+   request body, response body, and SQLite column name, so the rebuild is entirely
+   self-consistent, just diverged from the real original contract. Posting to the rebuild using
+   the original's actual field name (`message`) fails its own validation
+   (`{"error":"name and note are both required"}`).
+2. **Timestamp format.** The original's `created_at` is `"2026-07-27T20:51:55.120Z"` — ISO 8601
+   with milliseconds, produced by application-layer `new Date().toISOString()`. The rebuild's is
+   `"2026-07-27 20:51:55"` — SQLite's own `datetime('now')` default expression, invoked at the
+   schema level instead. Both are reasonable, working implementations of "record when this note
+   was created" — they just don't produce byte-identical output.
+
+**Confirmed as a clean control case, not just an absence of testing:** `DELETE /api/notes/:id`
+matched exactly on both response shape (`{"success":true}` on both apps) and 404-on-nonexistent-id
+behavior on both. That route has no free-form request or response fields to diverge on — nothing
+for either implementation to invent independently — which is exactly why it didn't diverge, not
+evidence the pipeline generally achieves body-level parity.
+
+**Root cause, confirmed by reading the actual generated contract, not inferred:** the API contract
+written for `POST /api/notes` (`spec/contracts/POST-api-notes.md`) records only the route
+handler's outer TypeScript signature verbatim — `export async function POST(request: NextRequest)
+{` — which is identical for every Next.js POST handler in existence regardless of what it does
+internally. Nothing anywhere in the spec captures the expected JSON body shape, required field
+names, or response field names, because `generateNextApiTests.ts`'s generated assertions only ever
+check `res.status`, never response body content. A rebuild agent working from this spec alone —
+even a careful one, converging cleanly on every test — has no source of truth for either finding
+in this section, and both are things it had to invent, not things it got wrong through carelessness.
+
+**What this means, stated plainly:** this pipeline's current spec generation can get a blind
+rebuild agent to visual parity (prior runs) and HTTP-status-code-level API parity (this run,
+verified: 200/201/400/404 all matched across every route), but **not** request/response body
+schema parity for routes that read or return free-form JSON. That's a real, previously-unknown
+boundary on what "functional parity" this tool can currently deliver — not a bug to patch
+reactively, but a capability gap worth naming honestly before claiming this tool clones "the
+functionality," not just the look, of a real backend. A natural next step — capturing a sample
+real request/response body pair per API route during ingest and asserting field-name-level shape
+in the generated test, not just status — is worth naming as future work here rather than
+building speculatively before confirming (via a case like this one) that it's actually the
+bottleneck.
 
 ## Bottom line
 

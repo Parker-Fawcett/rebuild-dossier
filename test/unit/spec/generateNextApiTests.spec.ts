@@ -129,4 +129,35 @@ describe('generateNextApiTests', () => {
     expect(visible).toEqual([]);
     expect(heldOut).toEqual([]);
   });
+
+  it('sends a JSON body for POST/PUT/PATCH so a handler calling request.json() does not crash on missing input', () => {
+    const evidence = minimalEvidence({
+      routes: [
+        { path: '/api/notes', method: 'POST', file: 'src/app/api/notes/route.ts', kind: 'api', startLine: 1 },
+        { path: '/api/notes/:id', method: 'PUT', file: 'src/app/api/notes/[id]/route.ts', kind: 'api', startLine: 1 },
+        { path: '/api/notes/:id', method: 'PATCH', file: 'src/app/api/notes/[id]/route.ts', kind: 'api', startLine: 1 }
+      ]
+    });
+
+    const { visible, heldOut } = generateNextApiTests('irrelevant', evidence, []);
+    for (const file of [...visible, ...heldOut]) {
+      expect(file.content).toContain("body: JSON.stringify({})");
+      expect(file.content).toContain("'Content-Type': 'application/json'");
+    }
+  });
+
+  it('does not send a body for GET/DELETE', () => {
+    const evidence = minimalEvidence({
+      routes: [
+        { path: '/api/notes', method: 'GET', file: 'src/app/api/notes/route.ts', kind: 'api', startLine: 1 },
+        { path: '/api/notes/:id', method: 'DELETE', file: 'src/app/api/notes/[id]/route.ts', kind: 'api', startLine: 1 }
+      ]
+    });
+
+    const { visible, heldOut } = generateNextApiTests('irrelevant', evidence, []);
+    for (const file of [...visible, ...heldOut]) {
+      expect(file.content).not.toContain('body:');
+      expect(file.content).not.toContain('Content-Type');
+    }
+  });
 });

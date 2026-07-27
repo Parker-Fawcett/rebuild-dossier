@@ -29,15 +29,36 @@ function paramsObjectLiteral(path: string): string {
   return `{ params: { ${entries} } }`;
 }
 
+// Real, live-triggered finding: a NextRequest constructed with no body at
+// all makes any handler that unconditionally calls request.json() throw
+// (SyntaxError: Unexpected end of JSON input) on this exact smoke test —
+// every time, regardless of whether the route's actual logic is correct.
+// That's not a signal about the target app; it's the generated test never
+// having sent something for `request.json()` to parse. Scoped to the HTTP
+// methods that conventionally carry a body — GET/DELETE requests with a
+// body are unusual and left alone, matching real REST conventions. `{}` is
+// a deliberately minimal, generic placeholder (no attempt to infer the
+// route's real expected shape, which isn't available from static analysis
+// alone) — a handler's own validation logic then runs and correctly
+// returns its own 4xx for missing fields, which still satisfies
+// `toBeLessThan(500)`, rather than crashing before any of that logic runs.
+const METHODS_WITH_BODY = new Set(['POST', 'PUT', 'PATCH']);
+
+function requestInitFor(method: string): string {
+  if (!METHODS_WITH_BODY.has(method)) return `{ method: '${method}' }`;
+  return `{ method: '${method}', body: JSON.stringify({}), headers: { 'Content-Type': 'application/json' } }`;
+}
+
 function testFileFor(route: RouteEntry, importPath: string, cases: Case[]): string {
   const method = route.method ?? 'GET';
   const concrete = concretePath(route.path);
   const reconciliation = reconciliationAssertion(route, cases);
   const paramsArg = paramsObjectLiteral(route.path);
+  const requestInit = requestInitFor(method);
 
   const tests = [
     `  it('responds without crashing (from-repo contract)', async () => {
-    const request = new NextRequest('http://localhost:3000${concrete}', { method: '${method}' });
+    const request = new NextRequest('http://localhost:3000${concrete}', ${requestInit});
     const res = await ${method}(request, ${paramsArg});
     expect(res.status).toBeLessThan(500);
   });`
@@ -46,7 +67,7 @@ function testFileFor(route: RouteEntry, importPath: string, cases: Case[]): stri
   if (reconciliation) {
     tests.push(
       `  it(${JSON.stringify(`${reconciliation.claim} (from-reconciliation)`)}, async () => {
-    const request = new NextRequest('http://localhost:3000${concrete}', { method: '${method}' });
+    const request = new NextRequest('http://localhost:3000${concrete}', ${requestInit});
     const res = await ${method}(request, ${paramsArg});
     expect(res.status).toBe(${reconciliation.status});
   });`

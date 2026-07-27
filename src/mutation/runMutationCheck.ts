@@ -193,6 +193,15 @@ function runVitestOnce(scratchDir: string, testFilePath: string): boolean {
   try {
     const output = execFileSync('node', [VITEST_ENTRY, 'run', testFilePath, '--root', scratchDir, '--reporter=json', '--no-color'], {
       encoding: 'utf-8',
+      // `--root` only tells vitest where to resolve test files/config from —
+      // it does NOT change the child process's own process.cwd(). Without
+      // this, any target-app module that does something relative to
+      // process.cwd() at import time (e.g. opening a database file by a
+      // bare relative path) writes into wherever this server process
+      // itself happens to be running, not the isolated scratch copy —
+      // confirmed for real via a stray fieldnotes.db file left behind in
+      // rebuild-dossier's own directory before this was added.
+      cwd: scratchDir,
       timeout: VITEST_RUN_TIMEOUT_MS,
       // execFileSync's `timeout` option defaults to SIGTERM, which vitest
       // (or whatever it's awaiting inside a hung `beforeAll`) can simply not
