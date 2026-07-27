@@ -221,6 +221,32 @@ the target's own real dependencies (`next`, `@prisma/client`, whatever the app a
 and every generated test fails to even import them. `generate_spec` checks for this directly and
 says so, rather than leaving you to debug a confusing all-unrunnable result.
 
+#### Optional: vision-assisted page-content classification
+
+For a Next.js target, page routes get real Playwright-captured tests (a screenshot plus DOM-text
+assertions) alongside the API-route tests described above. Whether a piece of captured text gets
+an exact-match assertion (`static`) or a loose shape check (`dynamic`) is decided by a small
+regex classifier by default — reliable most of the time, but confirmed capable of getting it
+backwards in both directions on a real app (a hardcoded dropdown legend read as live data; a
+live, comma-formatted database count read as fixed).
+
+Setting **both** `GROQ_API_KEY` and `REBUILD_DOSSIER_ENABLE_VISION_CLASSIFICATION=1` before
+calling `generate_spec` sends each captured page's screenshot and (secret-redacted) source code
+to a Groq vision model instead, which can see *where* a value actually comes from — a literal
+array in the source vs. a `fetch`/`useState` call — rather than only guessing from what the
+rendered string looks like. Both variables are required together on purpose: an ambient
+`GROQ_API_KEY` left over from some unrelated tool must never silently start sending this target
+repo's code to a third party. Neither variable set (the default) means zero behavior change and
+zero network calls beyond what `generate_spec` already does.
+
+This is real added cost, not free: one Groq API call per captured page, plus a deliberate ~20s
+pacing delay between pages (Groq's free tier has a tight per-minute token budget, and firing
+requests back to back exhausts it fast) — `generate_spec`'s own response states the exact added
+time for that run. A page that can't be classified this way for any reason (rate limit, network
+issue, an invalid response) falls back to the regex classifier for that page only, reported in
+`pageVisionFallbacks` — never a silent gap or a failed run. Groq's free tier (no credit card
+required, at [console.groq.com](https://console.groq.com)) is enough to try this.
+
 ### 6. Hand it off
 
 ```bash

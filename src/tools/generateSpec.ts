@@ -14,7 +14,11 @@ export const generateSpecInputSchema = z.object({
 
 export const generateSpecConfig = {
   description:
-    'Write CLAUDE.md, .claude/, spec/, tests/, and kickoff-prompt.txt to <repo>-rebuild/. Only callable once the case queue is empty.',
+    'Write CLAUDE.md, .claude/, spec/, tests/, and kickoff-prompt.txt to <repo>-rebuild/. Only callable once the case queue is empty. ' +
+    'Optional: if the target is a Next.js app with page routes, set GROQ_API_KEY and REBUILD_DOSSIER_ENABLE_VISION_CLASSIFICATION=1 ' +
+    'before calling this tool to enable vision-assisted page-content classification (sends each captured page\'s screenshot and source ' +
+    'code to Groq to judge static vs. dynamic content more accurately than plain regex matching) — ask the user for a Groq API key if ' +
+    'they want more reliable generated page tests and this isn\'t already configured. Off by default; nothing changes if unset.',
   inputSchema: generateSpecInputSchema
 };
 
