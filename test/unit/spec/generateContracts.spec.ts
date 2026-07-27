@@ -103,4 +103,69 @@ describe('generateContracts', () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it('adds an inferred-request-body-fields section for a POST route whose handler reads the body', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(
+        join(dir, 'server.ts'),
+        [
+          "import express from 'express';",
+          '',
+          "app.post('/api/notes', (req, res) => {",
+          '  const { message } = req.body;',
+          '  res.json({ message });',
+          '});'
+        ].join('\n')
+      );
+      const routes: RouteEntry[] = [{ path: '/api/notes', method: 'POST', file: 'server.ts', kind: 'api', startLine: 3 }];
+
+      const files = generateContracts(dir, routes);
+
+      expect(files[0]?.content).toContain('Inferred request body fields');
+      expect(files[0]?.content).toContain('`message`');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('omits the inferred-request-body-fields section for a GET route', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(
+        join(dir, 'server.ts'),
+        ["import express from 'express';", '', "app.get('/api/users/:id', (req, res) => {});"].join('\n')
+      );
+      const routes: RouteEntry[] = [{ path: '/api/users/:id', method: 'GET', file: 'server.ts', kind: 'api', startLine: 3 }];
+
+      const files = generateContracts(dir, routes);
+
+      expect(files[0]?.content).not.toContain('Inferred request body fields');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('omits the inferred-request-body-fields section for a POST route whose handler never touches the body', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(
+        join(dir, 'server.ts'),
+        [
+          "import express from 'express';",
+          '',
+          "app.post('/api/notes', (req, res) => {",
+          '  res.json({ ok: true });',
+          '});'
+        ].join('\n')
+      );
+      const routes: RouteEntry[] = [{ path: '/api/notes', method: 'POST', file: 'server.ts', kind: 'api', startLine: 3 }];
+
+      const files = generateContracts(dir, routes);
+
+      expect(files[0]?.content).not.toContain('Inferred request body fields');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });

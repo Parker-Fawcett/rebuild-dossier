@@ -3,6 +3,8 @@ import { join } from 'node:path';
 import type { RouteEntry } from '../ingest/evidenceSchema.js';
 import type { AssetManifestEntry } from './assetManifestSchema.js';
 import type { SkippedPage } from './generatePageTests.js';
+import { inferRequestBodyFields } from './inferRequestBodyFields.js';
+import { METHODS_WITH_BODY } from './routeTestAssertions.js';
 
 export interface GeneratedFile {
   filename: string;
@@ -22,11 +24,41 @@ export function contractFilename(method: string | undefined, path: string): stri
   return `${prefix}-${pathPart || 'root'}.md`;
 }
 
+// Unguarded, deliberately: writeSpecTree.ts relies on a route pointing at a
+// nonexistent file throwing a real error partway through generation (see its
+// "never leaves a partial output directory behind" test) — this function
+// must keep propagating a real read failure, not swallow it.
 function sourceLine(repoPath: string, route: RouteEntry): string {
   if (route.startLine === undefined) return '(source line unavailable)';
   const text = readFileSync(join(repoPath, route.file), 'utf-8');
   const line = text.split('\n')[route.startLine - 1];
   return line?.trim() ?? '(source line unavailable)';
+}
+
+// Best-effort documentation only — see inferRequestBodyFields.ts's own
+// header for the full accepted-risk list. Never asserted against; a blind
+// rebuild agent reads this section directly instead of guessing a field
+// name, which is the real gap this closes (see docs/v0-findings.md's
+// "Blind rebuild of a real backend" finding). Same unguarded-read
+// philosophy as sourceLine above, for the same reason — a route whose file
+// genuinely can't be read should surface as a real failure here, not a
+// silently-empty section.
+function inferredFieldsSection(repoPath: string, route: RouteEntry): string | undefined {
+  if (!METHODS_WITH_BODY.has(route.method ?? '')) return undefined;
+  const text = readFileSync(join(repoPath, route.file), 'utf-8');
+  const fields = inferRequestBodyFields(text, route);
+  if (fields.length === 0) return undefined;
+  return [
+    '## Inferred request body fields (best-effort, not verified)',
+    '',
+    'Static analysis of the handler found these field names read from the request body. This is',
+    'a v1, regex-based heuristic — it can miss renamed destructuring, computed keys, and spread',
+    'patterns, and is not a guarantee of the complete or exact shape. Response-body field names',
+    'are not yet inferred.',
+    '',
+    fields.map((f) => `- \`${f}\``).join('\n'),
+    ''
+  ].join('\n');
 }
 
 // Extracts the real interface shape verbatim from the source — never a
@@ -65,6 +97,8 @@ export function generateContracts(
       '```',
       sourceLine(repoPath, route),
       '```',
+      '',
+      inferredFieldsSection(repoPath, route),
       '',
       asset
         ? [

@@ -3,7 +3,14 @@ import { join } from 'node:path';
 import type { EvidenceBundle, RouteEntry } from '../ingest/evidenceSchema.js';
 import type { Case } from '../reconciliation/types.js';
 import type { GeneratedFile } from './generateContracts.js';
-import { concretePath, reconciliationAssertion, sanitizeFilenameBase } from './routeTestAssertions.js';
+import { inferRequestBodyFields } from './inferRequestBodyFields.js';
+import {
+  concretePath,
+  METHODS_WITH_BODY,
+  placeholderBodyLiteral,
+  reconciliationAssertion,
+  sanitizeFilenameBase
+} from './routeTestAssertions.js';
 
 const HELD_OUT_EVERY = 3; // deterministic split, not random — see generateTests below
 
@@ -24,14 +31,39 @@ function importPathFor(appFile: string): string {
   return `../../${appFile.replace(/\.tsx?$/, '.js')}`;
 }
 
-function testFileFor(route: RouteEntry, importPath: string, cases: Case[]): string {
+// Same class of bug as generateNextApiTests.ts's real, live-triggered
+// finding: a fetch() call with no body at all makes any handler that
+// unconditionally reads req.body throw on this exact smoke test, regardless
+// of whether the route's actual logic is correct. `fields` (best-effort
+// static analysis of the handler's own source) drives a more realistic
+// placeholder body; falls back to `{}` when nothing could be inferred.
+function requestInitFor(method: string, fields: string[]): string {
+  if (!METHODS_WITH_BODY.has(method)) return `{ method: '${method}' }`;
+  return `{ method: '${method}', body: JSON.stringify(${placeholderBodyLiteral(fields)}), headers: { 'Content-Type': 'application/json' } }`;
+}
+
+// A route's file can legitimately be unreadable here (a placeholder repoPath
+// in a test, or a route's source having gone missing between ingest and
+// generation) — falling back to [] reproduces the `{}` placeholder rather
+// than crashing the whole generator over one route's missing source.
+function inferFieldsSafely(repoPath: string, route: RouteEntry): string[] {
+  try {
+    const text = readFileSync(join(repoPath, route.file), 'utf-8');
+    return inferRequestBodyFields(text, route);
+  } catch {
+    return [];
+  }
+}
+
+function testFileFor(route: RouteEntry, importPath: string, cases: Case[], fields: string[]): string {
   const method = route.method ?? 'GET';
   const concrete = concretePath(route.path);
   const reconciliation = reconciliationAssertion(route, cases);
+  const requestInit = requestInitFor(method, fields);
 
   const tests = [
     `  it('responds without crashing (from-repo contract)', async () => {
-    const res = await fetch(\`\${baseUrl}${concrete}\`, { method: '${method}' });
+    const res = await fetch(\`\${baseUrl}${concrete}\`, ${requestInit});
     expect(res.status).toBeLessThan(500);
   });`
   ];
@@ -39,7 +71,7 @@ function testFileFor(route: RouteEntry, importPath: string, cases: Case[]): stri
   if (reconciliation) {
     tests.push(
       `  it(${JSON.stringify(`${reconciliation.claim} (from-reconciliation)`)}, async () => {
-    const res = await fetch(\`\${baseUrl}${concrete}\`, { method: '${method}' });
+    const res = await fetch(\`\${baseUrl}${concrete}\`, ${requestInit});
     expect(res.status).toBe(${reconciliation.status});
   });`
     );
@@ -102,9 +134,10 @@ export function generateTests(
   const heldOut: GeneratedTestFile[] = [];
 
   apiRoutes.forEach((route, index) => {
+    const fields = inferFieldsSafely(repoPath, route);
     const file: GeneratedTestFile = {
       filename: `${sanitizeFilenameBase(route.method, route.path)}.spec.ts`,
-      content: testFileFor(route, importPath, cases),
+      content: testFileFor(route, importPath, cases, fields),
       sourceFile: route.file
     };
     if (index % HELD_OUT_EVERY === HELD_OUT_EVERY - 1) {

@@ -141,6 +141,85 @@ describe('generateTests', () => {
     }
   });
 
+  it('sends a JSON body for POST/PUT/PATCH using inferred field names, so a handler reading req.body does not crash', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-gentests-'));
+    try {
+      writeFileSync(
+        join(dir, 'server.ts'),
+        [
+          "import express from 'express';",
+          'const app = express();',
+          "app.post('/api/notes', (req, res) => {",
+          '  const { message } = req.body;',
+          '  res.json({ id: 1, message });',
+          '});',
+          'export default app;'
+        ].join('\n')
+      );
+      const evidence = minimalEvidence({
+        routes: [{ path: '/api/notes', method: 'POST', file: 'server.ts', kind: 'api', startLine: 3 }]
+      });
+
+      const { visible, heldOut } = generateTests(dir, evidence, []);
+      const content = [...visible, ...heldOut][0]?.content ?? '';
+
+      expect(content).toContain("body: JSON.stringify({ message: 'test-value-123' })");
+      expect(content).toContain("'Content-Type': 'application/json'");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('does not send a body for GET/DELETE (Express)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-gentests-'));
+    try {
+      writeFileSync(
+        join(dir, 'server.ts'),
+        [
+          "import express from 'express';",
+          'const app = express();',
+          "app.delete('/api/notes/:id', (req, res) => { res.json({ success: true }); });",
+          'export default app;'
+        ].join('\n')
+      );
+      const evidence = minimalEvidence({
+        routes: [{ path: '/api/notes/:id', method: 'DELETE', file: 'server.ts', kind: 'api', startLine: 3 }]
+      });
+
+      const { visible, heldOut } = generateTests(dir, evidence, []);
+      const content = [...visible, ...heldOut][0]?.content ?? '';
+
+      expect(content).not.toContain('body:');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('falls back to an empty-object body when extraction finds nothing (Express)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-gentests-'));
+    try {
+      writeFileSync(
+        join(dir, 'server.ts'),
+        [
+          "import express from 'express';",
+          'const app = express();',
+          "app.post('/api/notes', (req, res) => { res.json({ ok: true }); });",
+          'export default app;'
+        ].join('\n')
+      );
+      const evidence = minimalEvidence({
+        routes: [{ path: '/api/notes', method: 'POST', file: 'server.ts', kind: 'api', startLine: 3 }]
+      });
+
+      const { visible, heldOut } = generateTests(dir, evidence, []);
+      const content = [...visible, ...heldOut][0]?.content ?? '';
+
+      expect(content).toContain('body: JSON.stringify({})');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('returns no generated tests when express is not a dependency or no app export is found', () => {
     const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-gentests-'));
     try {

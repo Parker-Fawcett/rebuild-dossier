@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { generateNextApiTests } from '../../../src/spec/generateNextApiTests.js';
 import type { EvidenceBundle } from '../../../src/ingest/evidenceSchema.js';
 import type { Case } from '../../../src/reconciliation/types.js';
@@ -143,6 +146,32 @@ describe('generateNextApiTests', () => {
     for (const file of [...visible, ...heldOut]) {
       expect(file.content).toContain("body: JSON.stringify({})");
       expect(file.content).toContain("'Content-Type': 'application/json'");
+    }
+  });
+
+  it('uses inferred field names to build a realistic placeholder body when the real source is readable', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-nextapi-'));
+    try {
+      mkdirSync(join(dir, 'src/app/api/notes'), { recursive: true });
+      writeFileSync(
+        join(dir, 'src/app/api/notes/route.ts'),
+        [
+          "export async function POST(request) {",
+          '  const { message } = await request.json();',
+          '  return NextResponse.json({ message });',
+          '}'
+        ].join('\n')
+      );
+      const evidence = minimalEvidence({
+        routes: [{ path: '/api/notes', method: 'POST', file: 'src/app/api/notes/route.ts', kind: 'api', startLine: 1 }]
+      });
+
+      const { visible, heldOut } = generateNextApiTests(dir, evidence, []);
+      const content = [...visible, ...heldOut][0]?.content ?? '';
+
+      expect(content).toContain("body: JSON.stringify({ message: 'test-value-123' })");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
     }
   });
 

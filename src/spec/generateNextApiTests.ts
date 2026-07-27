@@ -1,7 +1,16 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { EvidenceBundle, RouteEntry } from '../ingest/evidenceSchema.js';
 import type { Case } from '../reconciliation/types.js';
 import type { GeneratedTestFile } from './generateTests.js';
-import { concretePath, reconciliationAssertion, sanitizeFilenameBase } from './routeTestAssertions.js';
+import { inferRequestBodyFields } from './inferRequestBodyFields.js';
+import {
+  concretePath,
+  METHODS_WITH_BODY,
+  placeholderBodyLiteral,
+  reconciliationAssertion,
+  sanitizeFilenameBase
+} from './routeTestAssertions.js';
 
 const HELD_OUT_EVERY = 3; // same deterministic split as the Express generator
 
@@ -36,25 +45,38 @@ function paramsObjectLiteral(path: string): string {
 // That's not a signal about the target app; it's the generated test never
 // having sent something for `request.json()` to parse. Scoped to the HTTP
 // methods that conventionally carry a body — GET/DELETE requests with a
-// body are unusual and left alone, matching real REST conventions. `{}` is
-// a deliberately minimal, generic placeholder (no attempt to infer the
-// route's real expected shape, which isn't available from static analysis
-// alone) — a handler's own validation logic then runs and correctly
-// returns its own 4xx for missing fields, which still satisfies
-// `toBeLessThan(500)`, rather than crashing before any of that logic runs.
-const METHODS_WITH_BODY = new Set(['POST', 'PUT', 'PATCH']);
-
-function requestInitFor(method: string): string {
+// body are unusual and left alone, matching real REST conventions.
+// `fields` (from inferRequestBodyFields, best-effort static analysis of the
+// handler's own source) drives a more realistic placeholder — falls back
+// to `{}` when nothing could be inferred. Either way, a handler's own
+// validation logic then runs and correctly returns its own 4xx for missing
+// fields, which still satisfies `toBeLessThan(500)`, rather than crashing
+// before any of that logic runs.
+function requestInitFor(method: string, fields: string[]): string {
   if (!METHODS_WITH_BODY.has(method)) return `{ method: '${method}' }`;
-  return `{ method: '${method}', body: JSON.stringify({}), headers: { 'Content-Type': 'application/json' } }`;
+  return `{ method: '${method}', body: JSON.stringify(${placeholderBodyLiteral(fields)}), headers: { 'Content-Type': 'application/json' } }`;
 }
 
-function testFileFor(route: RouteEntry, importPath: string, cases: Case[]): string {
+// A route's file can legitimately be unreadable here (some existing tests
+// pass a placeholder repoPath with no real file behind it; in real runs a
+// route's file could disappear between ingest and generation) — falling
+// back to [] reproduces the pre-existing `{}` placeholder exactly, rather
+// than crashing the whole generator over one route's missing source.
+function inferFieldsSafely(repoPath: string, route: RouteEntry): string[] {
+  try {
+    const text = readFileSync(join(repoPath, route.file), 'utf-8');
+    return inferRequestBodyFields(text, route);
+  } catch {
+    return [];
+  }
+}
+
+function testFileFor(route: RouteEntry, importPath: string, cases: Case[], fields: string[]): string {
   const method = route.method ?? 'GET';
   const concrete = concretePath(route.path);
   const reconciliation = reconciliationAssertion(route, cases);
   const paramsArg = paramsObjectLiteral(route.path);
-  const requestInit = requestInitFor(method);
+  const requestInit = requestInitFor(method, fields);
 
   const tests = [
     `  it('responds without crashing (from-repo contract)', async () => {
@@ -85,7 +107,7 @@ ${tests.join('\n\n')}
 }
 
 export function generateNextApiTests(
-  _repoPath: string,
+  repoPath: string,
   evidence: EvidenceBundle,
   cases: Case[]
 ): { visible: GeneratedTestFile[]; heldOut: GeneratedTestFile[] } {
@@ -98,9 +120,10 @@ export function generateNextApiTests(
   const heldOut: GeneratedTestFile[] = [];
 
   apiRoutes.forEach((route, index) => {
+    const fields = inferFieldsSafely(repoPath, route);
     const file: GeneratedTestFile = {
       filename: `${sanitizeFilenameBase(route.method, route.path)}.spec.ts`,
-      content: testFileFor(route, importPathFor(route.file), cases),
+      content: testFileFor(route, importPathFor(route.file), cases, fields),
       sourceFile: route.file
     };
     if (index % HELD_OUT_EVERY === HELD_OUT_EVERY - 1) {
