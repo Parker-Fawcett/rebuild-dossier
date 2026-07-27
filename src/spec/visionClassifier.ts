@@ -24,11 +24,40 @@ import { dynamicShapeSchema, type DomTextNode } from './pageCaptureSchema.js';
 // the input back is a no-op (regex baseline preserved), not active
 // misclassification.
 
-export const MAX_SOURCE_CHARS_FOR_VISION = 60_000; // Groq's 131K-token context window leaves enormous headroom; this was 8,000 in an earlier draft and was needlessly conservative — see the plan.
+// Real, live-triggered correction: an earlier draft sized this at 60,000
+// against Groq's 131K-token *context window* — the wrong constraint. The
+// free tier's real limit is a separate, far tighter one: 8,000 tokens per
+// MINUTE, across every request combined (confirmed live: a single real
+// classification request against a real page used 5,967 of that 8,000
+// before even finishing). A large context window says nothing about
+// per-minute throughput; conflating the two was the actual mistake, not the
+// number itself. Kept deliberately small so one page's request leaves real
+// headroom under the whole account's per-minute budget, not just under one
+// request's own context limit.
+export const MAX_SOURCE_CHARS_FOR_VISION = 6_000;
 export const DEFAULT_GROQ_VISION_MODEL = 'qwen/qwen3.6-27b'; // Groq's own docs note this catalog "changes frequently" — REBUILD_DOSSIER_GROQ_VISION_MODEL overrides this without a code change.
 export const VISION_CLASSIFICATION_TIMEOUT_MS = 30_000; // matches page.goto's existing 30000ms convention elsewhere in this module's sibling, generatePageTests.ts
-export const MAX_RETRIES_ON_RATE_LIMIT = 1; // one retry, honoring Retry-After, before falling back — Groq's free-tier rate limits are a real, expected condition, not a bug
+export const MAX_RETRIES_ON_RATE_LIMIT = 1; // one retry — but honoring the REAL suggested wait time (see classifyPageWithVision), not a short fixed default
 const MAX_SCREENSHOT_BYTES_FOR_VISION = 15 * 1024 * 1024; // safety margin under Groq's 20MB request cap (base64 adds ~33% overhead on top of this)
+
+// Real, live-triggered motivation: a real 19-page run fired one classification
+// request per page in immediate succession, with no pacing between them —
+// against an 8,000-tokens-per-minute account cap, this repeatedly exhausted
+// the budget after only the first request or two, regardless of how cheap any
+// individual request was made. Retrying a single already-rate-limited request
+// (see rateLimitWaitMs) helps that one page, but doesn't stop the *next*
+// page's request from immediately colliding with the same still-recovering
+// budget. A deliberate delay between consecutive pages' calls (applied by the
+// caller, generatePageTests.ts — this module has no notion of "the next
+// page") spreads requests out so the per-minute window has time to refill.
+// A fixed, conservative value, not an adaptive one that reads real token
+// usage back from each response — matches this codebase's existing style for
+// this kind of cost knob (see MAX_MUTATION_SITES_PER_PAGE, MAX_DOM_TEXT_NODES:
+// simple, well-reasoned constants, not adaptive systems) and is simpler to
+// reason about and test. The retry-and-fallback path already in place remains
+// the real safety net for whatever this conservative default doesn't fully
+// prevent — this reduces how often that path is needed, it doesn't replace it.
+export const VISION_PAGE_PACING_DELAY_MS = 20_000;
 
 // Best-effort, regex-based redaction of obvious hardcoded secrets before
 // source code is sent to a third party. Real source files sometimes contain
@@ -116,6 +145,23 @@ export function buildVisionClassificationRequest(
     model,
     temperature: 0, // best-effort determinism — reduces, doesn't fully eliminate, run-to-run variance
     response_format: { type: 'json_object' },
+    // Real, live-triggered finding: qwen/qwen3.6-27b is a reasoning model —
+    // by default it emits a substantial chain-of-thought in a separate
+    // `reasoning` field before ever producing the final answer. On a real
+    // page with more than a handful of text nodes, that reasoning trace
+    // alone consumed most of the request's token budget, truncating the
+    // actual `classifications` JSON before it could finish — a genuine
+    // response, correctly rejected by parseVisionClassificationResponse's
+    // length check (not a validation bug). `reasoning_effort: 'none'`
+    // disables the chain-of-thought entirely for this specific model
+    // (confirmed via Groq's docs — this parameter is documented as
+    // Qwen-3.6-27B-specific), which is what this task actually needs: a
+    // bounded classification decision, not open-ended reasoning. Only set
+    // for the default model; an overridden REBUILD_DOSSIER_GROQ_VISION_MODEL
+    // may not support this parameter, and sending it to a model that
+    // doesn't recognize it risks an outright request rejection rather than
+    // the graceful degradation this feature is built around elsewhere.
+    ...(model === DEFAULT_GROQ_VISION_MODEL ? { reasoning_effort: 'none' } : {}),
     messages: [
       {
         role: 'user',
@@ -191,6 +237,32 @@ export function parseVisionClassificationResponse(
   return result;
 }
 
+const DEFAULT_RATE_LIMIT_WAIT_MS = 5_000;
+const MAX_RATE_LIMIT_WAIT_MS = 60_000;
+
+// Real, live-triggered finding: a real 429 from Groq did not carry a usable
+// Retry-After header — the suggested wait ("Please try again in 34.0875s")
+// only appeared in the JSON error body's own message text. Checks the
+// header first regardless (cheap, and correct if a future response does set
+// it), then falls back to parsing it out of the body, then a conservative
+// fixed default if neither is present.
+export async function rateLimitWaitMs(response: Response): Promise<number> {
+  const header = response.headers.get('retry-after');
+  const headerMs = header ? Number(header) * 1000 : NaN;
+  if (Number.isFinite(headerMs) && headerMs > 0) return Math.min(headerMs, MAX_RATE_LIMIT_WAIT_MS);
+
+  try {
+    const bodyText = await response.clone().text();
+    const match = bodyText.match(/try again in ([\d.]+)\s*s/i);
+    const bodyMs = match ? Number(match[1]) * 1000 : NaN;
+    if (Number.isFinite(bodyMs) && bodyMs > 0) return Math.min(bodyMs, MAX_RATE_LIMIT_WAIT_MS);
+  } catch {
+    // body unreadable — fall through to the default
+  }
+
+  return DEFAULT_RATE_LIMIT_WAIT_MS;
+}
+
 // The real fetch() call — left untested at the unit level (matching
 // generatePageTests.ts's own capturePage precedent for real I/O), except for
 // the request/response wiring itself, which is exercised via a mocked
@@ -224,9 +296,8 @@ export async function classifyPageWithVision(
     }
 
     if (response.status === 429 && attempt < MAX_RETRIES_ON_RATE_LIMIT) {
-      const retryAfterHeader = response.headers.get('retry-after');
-      const retryAfterMs = retryAfterHeader ? Number(retryAfterHeader) * 1000 : 1000;
-      await new Promise((resolve) => setTimeout(resolve, Number.isFinite(retryAfterMs) ? retryAfterMs : 1000));
+      const waitMs = await rateLimitWaitMs(response);
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
       continue;
     }
 

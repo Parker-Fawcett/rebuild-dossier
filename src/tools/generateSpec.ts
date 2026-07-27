@@ -6,6 +6,7 @@ import { loadEvidenceBundle } from '../state/evidenceStore.js';
 import { writeSpecTree } from '../spec/writeSpecTree.js';
 import { enforcePathAllowlist } from '../security/pathAllowlist.js';
 import { findCandidateAppDirs } from '../ingest/detectMonorepoHint.js';
+import { VISION_PAGE_PACING_DELAY_MS } from '../spec/visionClassifier.js';
 
 export const generateSpecInputSchema = z.object({
   repoPath: z.string().describe('Repo path that was ingested; output is written to a sibling <repoPath>-rebuild/ directory')
@@ -19,6 +20,16 @@ export const generateSpecConfig = {
 
 function siblingRebuildDir(repoPath: string): string {
   return join(dirname(repoPath), `${basename(repoPath)}-rebuild`);
+}
+
+// Pure, exported so the computed pacing estimate is unit-testable without a
+// real browser or writeSpecTree call (matches this codebase's convention of
+// extracting anything with actual logic — see applyVisionClassification,
+// redactObviousSecrets — for exactly this reason).
+export function buildVisionClassificationNote(capturedPageCount: number): string {
+  const pacingSeconds = VISION_PAGE_PACING_DELAY_MS / 1000;
+  const estimatedAddedSeconds = Math.round((Math.max(0, capturedPageCount - 1) * VISION_PAGE_PACING_DELAY_MS) / 1000);
+  return `Vision-assisted DOM-text classification is enabled — each captured page's screenshot and (redacted) source code is sent to the configured Groq model. This adds one API call per page, plus a deliberate ${pacingSeconds}s pacing delay between pages (to stay under the free tier's per-minute token budget) — roughly ${estimatedAddedSeconds}s of added time for this run's ${capturedPageCount} captured page(s), on top of the existing capture cost. Page content leaves this machine when this is enabled.`;
 }
 
 export async function generateSpecHandler(args: z.infer<typeof generateSpecInputSchema>) {
@@ -120,12 +131,7 @@ export async function generateSpecHandler(args: z.infer<typeof generateSpecInput
                     'One or more page routes could not be captured (see skippedPages) — those pages have no generated test and stay in spec/untested-contracts.json. Note that page-test generation also spawns a real `next dev` + Chromium instance, which makes generate_spec noticeably slower for apps with many pages.'
                 }
               : {}),
-            ...(visionClassificationEnabled
-              ? {
-                  visionClassificationNote:
-                    'Vision-assisted DOM-text classification is enabled — each captured page\'s screenshot and (redacted) source code is sent to the configured Groq model. This adds one API call per page, real latency/cost on top of the existing capture cost, and means page content leaves this machine.'
-                }
-              : {}),
+            ...(visionClassificationEnabled ? { visionClassificationNote: buildVisionClassificationNote(capturedPages.length) } : {}),
             ...(pageVisionFallbacks.length > 0
               ? {
                   pageVisionFallbacks,

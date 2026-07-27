@@ -12,7 +12,7 @@ import type { AssetManifestEntry } from './assetManifestSchema.js';
 import { classifyDomText } from './classifyDomText.js';
 import { concretePath, sanitizeFilenameBase } from './routeTestAssertions.js';
 import { devServerBoilerplate } from './nextDevServerBoilerplate.js';
-import { classifyPageWithVision, DEFAULT_GROQ_VISION_MODEL } from './visionClassifier.js';
+import { classifyPageWithVision, DEFAULT_GROQ_VISION_MODEL, VISION_PAGE_PACING_DELAY_MS } from './visionClassifier.js';
 
 // Complements generateGateTests.ts/generateTests.ts for page/component routes
 // with real Playwright-driven capture (see the plan this module implements:
@@ -375,6 +375,12 @@ export async function generatePageTests(
           routeFile: route.file,
           reason: 'vision classification unavailable or returned an invalid response; used the regex classifier for this page'
         });
+      }
+      // Paces consecutive pages' vision calls (see VISION_PAGE_PACING_DELAY_MS's
+      // own doc comment) — skipped after the last page, since there's nothing
+      // left to wait for.
+      if (index < captures.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, VISION_PAGE_PACING_DELAY_MS));
       }
     }
 

@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { generateSpecHandler } from '../../../src/tools/generateSpec.js';
+import { generateSpecHandler, buildVisionClassificationNote } from '../../../src/tools/generateSpec.js';
+import { VISION_PAGE_PACING_DELAY_MS } from '../../../src/spec/visionClassifier.js';
 import { evidencePath } from '../../../src/state/dossierPaths.js';
 import { atomicWriteFile } from '../../../src/state/atomicWrite.js';
 import { saveCases } from '../../../src/state/caseStore.js';
@@ -167,5 +168,27 @@ describe('generate_spec tool', () => {
       rmSync(dir, { recursive: true, force: true });
       rmSync(outputDir, { recursive: true, force: true });
     }
+  });
+});
+
+describe('buildVisionClassificationNote', () => {
+  it('estimates zero added pacing time for a single captured page (no "next page" to pace against)', () => {
+    expect(buildVisionClassificationNote(1)).toContain('roughly 0s of added time');
+    expect(buildVisionClassificationNote(1)).toContain('this run\'s 1 captured page(s)');
+  });
+
+  it('estimates (n - 1) pacing delays for n captured pages', () => {
+    const note = buildVisionClassificationNote(19);
+    const expectedSeconds = (18 * VISION_PAGE_PACING_DELAY_MS) / 1000;
+    expect(note).toContain(`roughly ${expectedSeconds}s of added time`);
+    expect(note).toContain('this run\'s 19 captured page(s)');
+  });
+
+  it('never estimates negative added time for zero captured pages', () => {
+    expect(buildVisionClassificationNote(0)).toContain('roughly 0s of added time');
+  });
+
+  it('states plainly that page content leaves the machine', () => {
+    expect(buildVisionClassificationNote(5)).toContain('Page content leaves this machine');
   });
 });

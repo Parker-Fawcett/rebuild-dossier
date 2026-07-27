@@ -4,6 +4,7 @@ import {
   buildVisionClassificationRequest,
   parseVisionClassificationResponse,
   classifyPageWithVision,
+  rateLimitWaitMs,
   MAX_SOURCE_CHARS_FOR_VISION
 } from '../../../src/spec/visionClassifier.js';
 import type { DomTextNode } from '../../../src/spec/pageCaptureSchema.js';
@@ -177,6 +178,46 @@ describe('parseVisionClassificationResponse', () => {
   });
 });
 
+describe('rateLimitWaitMs', () => {
+  it('uses the Retry-After header when present and positive', async () => {
+    const response = { headers: new Headers({ 'retry-after': '2' }) } as unknown as Response;
+    expect(await rateLimitWaitMs(response)).toBe(2000);
+  });
+
+  it('falls back to parsing the wait time out of the response body when no usable header is present — the real shape Groq actually returns', async () => {
+    // Confirmed live: a real 429 from Groq carried no usable Retry-After
+    // header; the suggested wait only appeared in the JSON error message.
+    const response = {
+      headers: new Headers(),
+      clone: () => ({
+        text: async () =>
+          JSON.stringify({
+            error: {
+              message:
+                'Rate limit reached for model `qwen/qwen3.6-27b` in organization `org_123` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 5967, Requested 6578. Please try again in 34.0875s.',
+              type: 'tokens',
+              code: 'rate_limit_exceeded'
+            }
+          })
+      })
+    } as unknown as Response;
+    expect(await rateLimitWaitMs(response)).toBeCloseTo(34087.5, -1);
+  });
+
+  it('falls back to a fixed default when neither header nor body yields a usable wait time', async () => {
+    const response = {
+      headers: new Headers(),
+      clone: () => ({ text: async () => 'not a parseable body' })
+    } as unknown as Response;
+    expect(await rateLimitWaitMs(response)).toBe(5000);
+  });
+
+  it('caps an unusually large suggested wait rather than waiting indefinitely', async () => {
+    const response = { headers: new Headers({ 'retry-after': '99999' }) } as unknown as Response;
+    expect(await rateLimitWaitMs(response)).toBe(60000);
+  });
+});
+
 describe('classifyPageWithVision', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -231,7 +272,7 @@ describe('classifyPageWithVision', () => {
   it('retries exactly once on a 429, honoring Retry-After, then succeeds', async () => {
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce({ ok: false, status: 429, headers: new Headers({ 'retry-after': '0' }) })
+      .mockResolvedValueOnce({ ok: false, status: 429, headers: new Headers({ 'retry-after': '0.01' }) })
       .mockResolvedValueOnce({
         ok: true,
         status: 200,
@@ -246,7 +287,7 @@ describe('classifyPageWithVision', () => {
   });
 
   it('falls back to null if still rate-limited after the one retry', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 429, headers: new Headers({ 'retry-after': '0' }) });
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 429, headers: new Headers({ 'retry-after': '0.01' }) });
     vi.stubGlobal('fetch', fetchMock);
 
     expect(await classifyPageWithVision(screenshot, nodes, '', 'key', 'model')).toBeNull();
