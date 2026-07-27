@@ -57,6 +57,20 @@ original's `message`) and a different timestamp format, because the generated AP
 records only the route handler's outer signature, never the JSON body shape, since the generated
 tests assert status codes only. See "Blind rebuild of a real backend," below.
 
+A fifth test app, `driftlight`, was built specifically to test animated content — a fresh clone of
+the actual pushed GitHub repo was confirmed to build and pass all 334 tests standalone first, then
+`driftlight`'s pipeline run showed the screenshot and DOM-text captures from a single
+`generate_spec` call disagreeing with each other over an animated stat counter's value (`"0"` vs.
+`"104+"`, neither the true settled `"12,400+"`), and a staggered card-entrance animation leaving
+half the reference screenshot's product grid invisible. A blind rebuild by Haiku (not Sonnet,
+specifically to test whether this pipeline's strict rails let a weaker model succeed without its
+own judgment) converged cleanly on every test — but hardcoded the screenshot's own mid-animation
+artifact (`"104+"`) as permanent static content, reproduced zero of the three real animations
+(nothing in the spec encodes motion at all), and got the three screenshot-invisible product cards'
+colors wrong while getting the three visible ones close — confirming that model capability only
+matters for what the harness actually checks, and motion is currently a complete, unaddressed
+blind spot regardless of which model does the rebuild. See "Animated content," below.
+
 ## The hypothesis being tested
 
 Prior research (AgentModernize, arXiv:2605.17535) found a rebuild pipeline scores 0%
@@ -1155,6 +1169,86 @@ real request/response body pair per API route during ingest and asserting field-
 in the generated test, not just status — is worth naming as future work here rather than
 building speculatively before confirming (via a case like this one) that it's actually the
 bottleneck.
+
+## Animated content: the capture pipeline actively produces misleading fixtures, and a weak model faithfully rebuilds them anyway
+
+**First, a standalone sanity check, not part of the animation experiment:** the actual pushed
+GitHub repository (not this local working copy, which has been mutated all session) was cloned
+fresh into an empty directory and put through `npm install`, `npm run build`, `npm run typecheck`,
+and `npm test` with zero prior state. All green — 334 tests, 72 files, no local-only fixes or
+artifacts required. The tool works for a real external user pulling it cold, not just in this
+session's environment.
+
+**The experiment:** every prior test app tested visual fidelity on essentially static content —
+nothing with real, on-page motion. `driftlight`, a small ambient-lighting product site, was built
+specifically to test this, with three deliberately different kinds of animation: a one-time CSS
+entrance fade/slide on the hero content (`@keyframes hero-rise`, 900ms), an infinite looping glow
+pulse on the CTA button (`@keyframes glow-pulse`, no settled frame at all), a staggered per-card
+entrance on the collection grid (same `hero-rise` keyframe, `animation-delay` scaled by index), and
+a `requestAnimationFrame`-driven stat counter that ticks from 0 to 12,400 over 1.4 seconds. Manually
+verified working in a real browser before running the pipeline.
+
+**The capture pipeline's own outputs disagreed with each other from a single run.** The generated
+test's DOM-text capture recorded the counter frozen at literally `"0"` — Playwright's `page.goto` +
+immediate DOM read landed before `requestAnimationFrame` had painted a single tick. The *reference
+screenshot* from that same `generate_spec` call shows a third, different value: `"104+"` — neither
+the DOM-captured `"0"` nor the true settled `"12,400+"`. Screenshot capture and DOM-outline capture
+evidently don't happen at the same instant relative to a running animation, so a single
+`generate_spec` call produced two internally-inconsistent ground truths for the same page load.
+
+**The reference screenshot for the collection page is missing half its content.** The staggered
+card-entrance animation means cards 4–6 (`Ash`, `Tallow`, `Rue`) were still at their base
+`opacity: 0` when the screenshot was taken — they are simply not visible in the image, even though
+the generated test correctly asserts all six product names via `textContent` (which doesn't care
+about CSS visibility, so this specific gap didn't propagate into the test itself). The hero content
+in the other screenshot is also visibly faded relative to its settled appearance — caught mid
+fade-in, not after it.
+
+**A blind rebuild — this time by Haiku, not Sonnet, specifically to test whether this pipeline's
+enforced rails let a weaker model succeed without needing its own judgment — converged cleanly on
+every test, and every claim below was checked directly against its actual output, not the agent's
+self-report (which claimed a clean pass and nothing more, correctly but incompletely):**
+
+- **2/2 visible+weak tests pass, 0 held-out tests exist for this app** — independently re-run, not
+  just re-quoted.
+- **The `"104+"` screenshot artifact was hardcoded as permanent static text** — `<div
+  className="stat">104+ lamps lighting up homes worldwide</div>`, no state, no client component, no
+  counting logic at all. The rebuild didn't just fail to reproduce the counting animation; it
+  faithfully reproduced the *capture bug's own artifact* as if it were real, intended content —
+  the single cleanest demonstration in this document of a static-capture pipeline actively
+  misleading a downstream rebuild, not merely failing to help it.
+- **Zero of the three animations were reproduced.** No `@keyframes` anywhere in the rebuilt CSS,
+  no glow on the button (a plain `background-color` hover swap the model invented on its own, not
+  matching the original's pulsing box-shadow), no entrance transitions, no staggered card reveal.
+  Unsurprising and not a model failure: nothing in the generated tests or spec ever encodes motion
+  — there was no signal to reproduce, for Haiku or any model.
+- **All six products were correctly present** (rescued by the text-based assertions, which don't
+  care that three of them were invisible in the reference image) **but the three
+  invisible-in-screenshot cards' colors were plausible, wrong guesses** — `Ash`/`Tallow`/`Rue` came
+  out a generic muted brown/tan/olive, nothing like the real `#4a4640`/`#b3893f`/`#405248`. The
+  three cards that *were* visible in the screenshot fared much better — `Hollow`'s guessed
+  `#5a6b5a` is nearly pixel-identical to the real `#5c6b57` — a clean, direct confirmation that
+  screenshot-derived color accuracy tracks whether the content was actually visible in the
+  screenshot, not some general property of the model or the pipeline.
+- **A real, separate deviation, unrelated to animations:** `CLAUDE.md`'s stack line says
+  "TypeScript / Next.js," but the rebuild is plain `.jsx` with no `tsconfig.json` at all — it
+  added `typescript@7.0.2` and mismatched-major-version `@types/react@19.2.17` (against an actual
+  `react@18.3.1` dependency) to `package.json` and then abandoned TypeScript entirely, leaving
+  those now-unused packages behind. Nothing in `CLAUDE.md`'s enumerated non-negotiable rules
+  explicitly bars this (the locked-dependency-versions rule is about *not changing* pinned
+  versions, and no language-file-extension rule exists), so this isn't a rails violation in the
+  same sense as gaming a test fixture — but it is a real, unprompted departure from the stated
+  stack that a stricter rule set would need to catch explicitly, since nothing currently does.
+
+**What this confirms and what it doesn't:** the hypothesis behind using Haiku here — that a
+strict, mechanically-enforced TDD harness shouldn't require a highly capable model to reach a
+green, functionally-plausible result — held for everything the harness actually checks: text
+content, status-level behavior, structural completion. It does not and cannot extend to anything
+the harness has no assertions for, and motion is currently a total blind spot: not weakly covered,
+not partially covered, absent. A model choice only matters for what the spec gives it something to
+be judged against — the ceiling here is the spec's coverage, not the model's competence, which is
+exactly the strong-rails hypothesis this run set out to test, just demonstrated from the opposite
+direction (a real, current gap) rather than a success.
 
 ## Bottom line
 
