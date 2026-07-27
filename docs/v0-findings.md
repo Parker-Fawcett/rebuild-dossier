@@ -1,6 +1,6 @@
 # rebuild-dossier v0: findings
 
-**Status:** v0 built (6 MCP tools, 295 unit tests), validated end-to-end against **two real,
+**Status:** v0 built (6 MCP tools, 332 unit tests), validated end-to-end against **two real,
 structurally different apps** (Madeline — Next.js client-side gate pattern; catchandtrade — a
 real Prisma+Postgres+Stripe+eBay-backed API app), across **two model tiers** (Sonnet, Haiku),
 with a precisely-characterized weak-model failure boundary and a security-hardening pass
@@ -23,6 +23,14 @@ of the DOM-text classifier's known, accepted risk — one of which recurred on a
 non-deterministically, between two runs of the identical app. See "Real page-test generation,"
 below, including one design tension (weak/unrunnable tests still unblock a page) left explicitly
 open rather than resolved.
+
+A first, n=1 look at whether the reference screenshots in page contracts actually help a fresh
+rebuild agent's *visual* fidelity (not just its test-passing) found something more precise than
+"mostly": color scheme and typography transferred correctly from the screenshot with no other
+source that could explain it, but layout structure (grid column count, content centering) did not,
+despite being at least as visually obvious in the same image. See "Do reference screenshots
+actually help," below — a real, useful observation on one self-built app, explicitly not yet a
+general result.
 
 ## The hypothesis being tested
 
@@ -395,6 +403,77 @@ better has no answer yet — that, plus reconsidering the weak/unrunnable-still-
 above, are the next real steps, not a restatement of this one.
 
 295 tests passing, typecheck clean.
+
+## Do reference screenshots actually help a rebuild agent's visual fidelity? A first, n=1 look
+
+Every real-app validation so far checked whether generated *tests* pass. None of them checked
+whether a fresh rebuild agent, given the kickoff prompt plus contracts that reference screenshots,
+actually produces something that *looks* like the original — the generated tests only assert DOM
+text content, so a rebuild could pass every one of them while looking nothing like the source app.
+This is a first attempt at answering that, and it should be read as exactly the size of evidence it
+is: one run, against one small app, built specifically for this test.
+
+**Setup, and the one methodological point worth stating precisely.** A small, 4-route Next.js app
+(`novafolio` — 3 pages, 1 API route) was built for this run, then put through the real pipeline
+(`ingest_repo` → `generate_spec`, vision classification off — not what's being tested here). Before
+handing the kickoff prompt to a fresh agent, the *original* source directory was physically moved
+out of the filesystem tree entirely for the duration of the build, not just left in place with an
+instruction to ignore it — the two directories would otherwise have sat as siblings, one `cp`/`cat`
+away from a genuinely blind test becoming an accidental peek. Restored afterward for the visual
+comparison.
+
+**Result: 3/3 visible tests passed, 1/1 held-out passed, run once at the end as designed.** Worth
+calling out on its own, a third distinct confirmation of this project's central rail
+(`writeSpecTree.spec.ts`/Madeline/catchandtrade being the first two): the agent had the literal
+captured values (`2026`, `10`) sitting directly in the test assertions it needed to satisfy, and
+instead of hardcoding them, it built a small shared `lib/stats.ts` computing both from a fixed
+anchor year (`CAREER_START_YEAR = 2016`) — the values are only correct today because the
+computation is correct, not because they were copied from the fixture. "Build the general case,
+not the literal one" held again, on a fresh app, first try, blind.
+
+**The visual result: real, but with a precise and more useful shape than "not pixel-perfect."**
+Comparing real screenshots of the rebuild against the original's captured reference screenshots:
+color scheme (navy background, amber accent) and typographic conventions (uppercase tracked nav,
+bold accent headings) came through correctly on every page — information that exists nowhere in
+the text-only contract signature or the DOM-content assertions, so the reference screenshot is the
+only place it could have come from. But layout structure did not transfer with the same fidelity:
+the original's About page centers its content column (`max-w-3xl mx-auto`); the rebuild left-aligned
+it. The original's Projects page uses a 2-column grid for 4 cards; the rebuild used 3-column
+(3-then-1). Both misses are properties a screenshot shows as plainly as color does — arguably more
+plainly, since grid arrangement is one of the most visually obvious things in the image — yet they
+didn't transfer the way color and type did.
+
+**That asymmetry, not "imperfect fidelity," is the actual finding worth carrying forward**, because
+it points at two different possible fixes that would otherwise just be guessed between: if a
+reference image genuinely conveys color/type more reliably than spatial/layout information to a
+rebuild agent, the fix is encoding layout properties explicitly in the contract (something no amount
+of "look at the screenshot harder" would solve); if instead the screenshot has the layout information
+and it's just not being extracted or enforced, the fix is closer to a stricter visual-diff check.
+This one run cannot distinguish between those — it only establishes that the asymmetry exists once.
+
+**Two honesty caveats, stated as precisely as every other partial result in this document:**
+
+- **Confound risk, not resolved by this run.** `novafolio`'s visual identity (navy/amber, uppercase
+  nav, card grid) is a conventional, guessable aesthetic — the kind of thing a competent agent might
+  land reasonably close to from "professional portfolio site" alone, screenshot or not. Because the
+  app was designed and built *for* this test rather than found already existing, there was no
+  independent check on how forgiving its look actually was before it went through the pipeline. This
+  run cannot separate "the screenshot did real work" from "the aesthetic was easy to guess anyway" —
+  a harder, more distinctive design (an unusual color, a non-default font, an image-based logo,
+  a deliberately unconventional layout rhythm) is needed to know which one this was.
+- **`mutationsChecked: 0` on this run — real, correctly explained, but scoped.** `novafolio`'s pages
+  are almost pure static JSX with no comparisons, null checks, or loop bounds for the 3 mutators to
+  touch, so nothing here exercises the mutation-check/test-strength machinery at all. This finding is
+  evidence about the screenshot-reference question only, not additional evidence about mutation
+  testing's reliability one way or the other.
+
+**Sampling posture, named rather than left implicit:** this is n=1, and the app was self-built for
+the test, a weaker posture than Madeline or catchandtrade, both of which were pre-existing, messy,
+real apps found rather than constructed. "Screenshots help with color/type, miss on layout" is a
+real, useful observation that motivates a hypothesis — it is not yet an established general result.
+The next real step, before committing engineering to either candidate fix, is a second run against
+a deliberately less-forgiving app, watching specifically for whether the same color-transfers/
+layout-doesn't asymmetry reproduces — not building a fix for a pattern seen exactly once.
 
 ## Weak-model diagnostic experiment: what Haiku actually did with a real, unscripted bug
 
@@ -832,9 +911,18 @@ latter recurring non-deterministically on a second page — and one real design 
 deliberately unresolved: weak/unrunnable page tests unblock a page's write-permission the same way
 weak API-route tests already do, at a notably higher rate (79% vs. 50% in this run), which is a
 real erosion of the untested-contracts hook's guarantee worth reconsidering, not a settled
-decision just because it matches existing behavior. Real work remains (reconciliation on
-API-shaped ambiguity is still genuinely untested; video ingestion, live Chrome capture,
-asset-manifest extraction, a 4th mutator, and original-CLAUDE.md-as-evidence are all correctly
-still backlogged; the weak/unrunnable-unblocks-a-page tension and a second, less auth-gated real
-app to test page-generation against are the natural next steps) — but the core hypothesis itself
-is no longer resting on one validated example.
+decision just because it matches existing behavior. A separate, first look at whether the
+reference screenshots those contracts carry actually improve a rebuild agent's *visual* fidelity —
+not just its test-passing — found a precise, useful asymmetry rather than a vague "helps somewhat":
+color and typography transferred from the screenshot with no other explanation available, but
+layout structure (grid arrangement, content centering) did not, on a small, self-built app where a
+third distinct real app confirmed the "build the general case, not the literal fixture value" rail
+holds blind, first try. Explicitly labeled as n=1 on a deliberately-forgiving, self-built app, not
+a general result — a second run against a harder, less-guessable design is the natural next step
+before deciding whether the fix is explicit layout properties in contracts or stricter visual
+enforcement. Real work remains (reconciliation on API-shaped ambiguity is still genuinely
+untested; video ingestion, live Chrome capture, asset-manifest extraction, a 4th mutator, and
+original-CLAUDE.md-as-evidence are all correctly still backlogged; the weak/unrunnable-unblocks-a-
+page tension, a second less auth-gated real app for page-generation, and the harder-app screenshot
+follow-up are the natural next steps) — but the core hypothesis itself is no longer resting on one
+validated example.
