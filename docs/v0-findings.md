@@ -1,6 +1,6 @@
 # rebuild-dossier v0: findings
 
-**Status:** v0 built (6 MCP tools, 334 unit tests), validated end-to-end against **two real,
+**Status:** v0 built (6 MCP tools, 357 unit tests), validated end-to-end against **two real,
 structurally different apps** (Madeline — Next.js client-side gate pattern; catchandtrade — a
 real Prisma+Postgres+Stripe+eBay-backed API app), across **two model tiers** (Sonnet, Haiku),
 with a precisely-characterized weak-model failure boundary and a security-hardening pass
@@ -70,6 +70,20 @@ artifact (`"104+"`) as permanent static content, reproduced zero of the three re
 colors wrong while getting the three visible ones close — confirming that model capability only
 matters for what the harness actually checks, and motion is currently a complete, unaddressed
 blind spot regardless of which model does the rebuild. See "Animated content," below.
+
+The request-body-shape half of the `note`-vs-`message` gap is now closed:
+`inferRequestBodyFields.ts` statically extracts a route's real request-body field names and feeds
+them into both the generated contract doc and a realistic (no longer empty-`{}`) placeholder body
+in generated smoke tests, for both the Next.js and Express generators — the Express generator's
+identical missing-body crash bug got fixed in the same pass. Two separate disciplines each caught
+a real design flaw before it shipped: tracing the regex design directly against the real app's
+actual source (not toy examples) found the first three patterns matched **nothing** on it, since
+its idiomatic strict-TypeScript body access never puts `body` immediately before a `.`; and
+building a live Express fixture to verify the fix found a second, related miss on `req.body` cast
+directly (no intermediate variable). Both fixed, re-traced, and verified live end-to-end in both
+frameworks — not just via unit tests — confirming the generated placeholder body now drives the
+real handler to an actual `201`, not a `400` from an always-empty body. See "Closing the
+request-body-shape gap," below.
 
 ## The hypothesis being tested
 
@@ -1249,6 +1263,66 @@ not partially covered, absent. A model choice only matters for what the spec giv
 be judged against — the ceiling here is the spec's coverage, not the model's competence, which is
 exactly the strong-rails hypothesis this run set out to test, just demonstrated from the opposite
 direction (a real, current gap) rather than a success.
+
+## Closing the request-body-shape gap: tracing against real code caught two real design flaws before they shipped
+
+The "Blind rebuild of a real backend" finding above left one concrete, well-scoped gap: the
+generated contract for an API route records only the handler's outer signature line, never
+anything about the request/response body shape, and the generated tests only assert HTTP status
+codes — so a blind rebuild agent has no signal about expected field names and has to guess (which
+is exactly how `note` ended up standing in for the real `message`). This section closes the
+request-body half of that gap: a new, regex-based `inferRequestBodyFields.ts` reads a route
+handler's own source, and the extracted field names feed (a) a new "Inferred request body fields"
+section in the generated contract `.md`, and (b) a more realistic, non-empty placeholder body in
+generated smoke tests for both the Next.js and Express generators — replacing the `{}` placeholder
+that previously guaranteed every generated POST/PUT/PATCH test only ever exercised a route's
+empty-body validation-failure path, never its real success path. Response-body field-name
+inference and any new strict assertion on extracted names were deliberately scoped out: extracted
+names are documentation and test-realism aids only, never enforcement — a bad extraction must
+never be able to fail a genuinely correct rebuild.
+
+**Bonus fix, same root cause:** the Express test generator (`generateTests.ts`) had the identical
+missing-request-body crash bug already fixed on the Next.js side in the previous session — never
+sending a body for any HTTP method, so any Express POST/PUT/PATCH handler reading `req.body`
+unconditionally would crash this generator's own smoke test. Fixed in the same pass.
+
+**Tracing the design against the real motivating code, before writing a single line of the
+module, caught a fatal flaw the plan's own toy examples had missed.** The initial three regex
+patterns (destructuring from `await request.json()`, destructuring from `req.body`, plain
+`body.field` property access) were validated only against clean textbook examples during design.
+Directly tracing them against the *actual* source of the real app that motivated this whole
+feature —
+
+```ts
+const name =
+  typeof (body as Record<string, unknown> | null)?.name === 'string'
+    ? ((body as Record<string, unknown>).name as string).trim()
+    : '';
+```
+
+— found **zero matches**. `body` is never immediately followed by `.`/`?.` in this code; it's
+always followed by ` as Record<...>` first — the standard strict-TypeScript idiom for narrowing an
+`unknown` value before touching a property. Had this shipped as originally designed, the whole
+feature would have been a silent no-op on precisely the case it was built to fix, likely without
+anyone noticing for a long time (a missing contract section fails safe, not loud). A fourth
+pattern, added and re-traced against the same real snippet before being accepted, fixed this.
+
+**Live end-to-end testing (not just unit tests) caught a second, related gap the same day.**
+Building a live Express fixture to verify the crash fix used a natural Express idiom —
+`(req.body as Record<string, unknown> | null)?.name`, casting `req.body` directly rather than
+through an intermediate `body` variable — and the same pattern missed it again, for the same
+underlying reason (the pattern required a literal `body` token immediately inside the parens).
+One-character fix (`(?:req\.)?body`), re-traced, regression test added. Two related failures found
+by two different disciplines — designing against a known real example, then testing against a
+freshly-built one — neither of which the other would have caught on its own.
+
+**Verified live, both frameworks, not just via unit tests:** for each of Next.js and Express, a
+small fixture app was built with the real type-assertion idiom, manually curl/fetch-verified
+correct first, then run through the actual `ingest_repo` → `generate_spec` pipeline. In both
+cases: the generated contract doc listed the real field names (`name`, `message`) instead of
+nothing; `unrunnableTests` was empty (confirming the crash fix); and — the concrete, load-bearing
+check — issuing the exact request the generated test now sends returned a real `201` from the
+real handler, not a `400` from hitting the previously-always-empty-body validation path.
 
 ## Bottom line
 
