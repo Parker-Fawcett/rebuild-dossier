@@ -24,13 +24,22 @@ non-deterministically, between two runs of the identical app. See "Real page-tes
 below, including one design tension (weak/unrunnable tests still unblock a page) left explicitly
 open rather than resolved.
 
-A first, n=1 look at whether the reference screenshots in page contracts actually help a fresh
-rebuild agent's *visual* fidelity (not just its test-passing) found something more precise than
-"mostly": color scheme and typography transferred correctly from the screenshot with no other
-source that could explain it, but layout structure (grid column count, content centering) did not,
-despite being at least as visually obvious in the same image. See "Do reference screenshots
-actually help," below — a real, useful observation on one self-built app, explicitly not yet a
-general result.
+Three early looks at whether the reference screenshots in page contracts actually help a fresh
+rebuild agent's *visual* fidelity (not just its test-passing), across two self-built apps and two
+prompt conditions. Two clean, single-variable comparisons fall out of the three runs: holding the
+app constant, an explicit "use the screenshot for styling" instruction measurably improved some
+(not all) distinctive layout properties; holding the prompt constant, a more deliberately
+distinctive app design did not meaningfully improve layout transfer on its own — suggesting the
+prompt, not the app, was doing more of the work in the earlier comparison. A real "in the wild"
+classifier miss also turned up (static menu prices read as `dynamic (currency)`), alongside the
+single cleanest result so far — a rebuild reproducing exact original prices from a reference
+screenshot even though its own generated test only demanded a loose shape match, reproduced
+identically in both prompt conditions. One earlier claim in this document is corrected, not
+quietly fixed: what had been called a fourth and fifth confirmation of the build-the-general-case
+rail turns out, on independently checking rather than trusting the self-report, to be one verified
+confirmation (`novafolio`, the third), one now-unverifiable self-reported claim, and one verified
+partial counterexample — not three-for-three. See "Do reference screenshots
+actually help," below.
 
 ## The hypothesis being tested
 
@@ -404,17 +413,19 @@ above, are the next real steps, not a restatement of this one.
 
 295 tests passing, typecheck clean.
 
-## Do reference screenshots actually help a rebuild agent's visual fidelity? A first, n=1 look
+## Do reference screenshots actually help a rebuild agent's visual fidelity? Three runs, two confounds, two clean comparisons
 
 Every real-app validation so far checked whether generated *tests* pass. None of them checked
 whether a fresh rebuild agent, given the kickoff prompt plus contracts that reference screenshots,
 actually produces something that *looks* like the original — the generated tests only assert DOM
 text content, so a rebuild could pass every one of them while looking nothing like the source app.
-This is a first attempt at answering that, and it should be read as exactly the size of evidence it
-is: one run, against one small app, built specifically for this test.
+This is a first attempt at answering that, run three times across two self-built apps and two
+prompt conditions (the second and third subsections below), and it should be read as exactly the
+size of evidence it is at each step — small, hand-built apps, n=1 per condition throughout.
 
-**Setup, and the one methodological point worth stating precisely.** A small, 4-route Next.js app
-(`novafolio` — 3 pages, 1 API route) was built for this run, then put through the real pipeline
+**Run 1 setup, and the one methodological point worth stating precisely.** A small, 4-route
+Next.js app (`novafolio` — 3 pages, 1 API route) was built for this run, then put through the real
+pipeline
 (`ingest_repo` → `generate_spec`, vision classification off — not what's being tested here). Before
 handing the kickoff prompt to a fresh agent, the *original* source directory was physically moved
 out of the filesystem tree entirely for the duration of the build, not just left in place with an
@@ -474,6 +485,123 @@ real, useful observation that motivates a hypothesis — it is not yet an establ
 The next real step, before committing engineering to either candidate fix, is a second run against
 a deliberately less-forgiving app, watching specifically for whether the same color-transfers/
 layout-doesn't asymmetry reproduces — not building a fix for a pattern seen exactly once.
+
+### Second run (`emberandrust`): a real confound, not a second data point — three findings survive it anyway
+
+A second, deliberately harder app was built for exactly the reason the caveat above names: a
+genuinely non-obvious palette (charcoal/rust/olive, not navy/amber), a distinctive serif-italic +
+monospace font pairing, an actual small SVG logo mark, and two unconventional layouts (an
+asymmetric split hero; a masonry-style staggered card grid) rather than the previous app's
+centered hero and uniform grid. Same blind-handoff discipline (original relocated out of the
+filesystem for the build, restored after).
+
+**The honest problem, named immediately rather than after the fact: this run changed two variables
+at once, not one.** The fresh agent's prompt this time explicitly said to use the reference
+screenshots for visual styling; the first run's prompt did not (that agent found and used them
+on its own initiative, from being told to read `spec/` in full). That means **this run cannot be
+compared to the first one on layout fidelity at all** — any difference observed is uninterpretable,
+because it could come from the harder app, the more explicit prompt, or plain agent variance, and
+there is no way to separate the three from one run each. The correct framing is n=1 per prompt
+condition, not n=2 pooled for the layout question. An earlier draft of this write-up described the
+layout results across both runs as "2 of 3 vs. 0 of 2" — that framing is retracted here explicitly,
+not silently fixed, because it reads as a trend and it is not one; it's two numbers from two
+different, incomparable questions.
+
+**What this run does establish cleanly, unaffected by that confound:**
+
+1. **The build-the-general-case rail appeared to hold a fourth time** (`writeSpecTree.spec.ts` /
+   Madeline / catchandtrade / `novafolio` being the first three). Blind build, all tests green on
+   the first or second attempt per test, a real TypeScript-toolchain conflict diagnosed and fixed
+   without ever touching the five dependency versions actually locked in `CLAUDE.md`. Flagged
+   here as "appeared to" rather than confirmed: this specific claim rests on the agent's own
+   self-report, was not independently re-checked against the actual source at the time, and the
+   source no longer exists to check now (this rebuild directory was regenerated fresh before the
+   third run below). The third run's equivalent claim *was* checked directly and did not hold —
+   see that subsection for what that means for this one.
+2. **A genuine, unplanned "in the wild" classifier confirmation.** The regex classifier misread
+   hardcoded, fixed menu prices (`$18`, `$19`, `$17`, `$21`) as `dynamic (currency)` — the same
+   static-misread-as-dynamic failure mode already documented for the `GRADE_VALUES` case above,
+   now confirmed on the currency shape specifically, on an app that was not built with this failure
+   mode in mind. This is the more convincing kind of confirmation precisely because it wasn't
+   hunted for.
+3. **The single most citable result of this run:** the rebuild reproduced the exact original prices
+   (`$18`/`$19`/`$18`/`$17`/`$19`/`$21`) even though the generated test only required a loose
+   currency-shaped match (`toMatch(/[$€£¥]\s?\d{1,3}.../)`, correct for any valid-looking price).
+   The test would have passed with different numbers; the agent used the real ones anyway, and the
+   reference screenshot is the only place those specific values exist outside the original source.
+   This is clean, unconfounded evidence — it concerns content fidelity, not layout — that the
+   screenshot-as-reference mechanism does real work beyond what the generated assertions enforce.
+
+**The layout question itself is left explicitly open, not resolved in either direction.** Run 1's
+sharp color-transfers/layout-doesn't asymmetry is not confirmed by this run and should now be
+treated as an open hypothesis, not a settled pattern — this run's mixed layout results (some
+distinctive layout choices reproduced, one clearly didn't) cannot support or refute it given the
+prompt confound. The next real step is a third run, using run 1's exact prompt verbatim (no
+explicit screenshot instruction) against this same harder app, to isolate the app-difficulty
+variable cleanly against run 1. Even that comparison would still be n=1 vs. n=1 on hand-built
+apps — real progress over "confounded," not a settled result — and no layout-fidelity fix should
+be built before it, since right now any fix would be engineered against a pattern observed under
+two different prompts on two different apps, which is closer to noise than signal.
+
+**The clearest lesson from two runs may not be about layout at all.** Both attempts at measuring
+visual fidelity have had a real methodological weak point — the first had no independent check on
+how guessable its self-built app's conventional aesthetic was; the second changed the prompt
+alongside the app. If visual-fidelity evaluation becomes a maintained axis rather than an
+occasional spot check, it needs a fixed protocol decided *before* running, not adjusted per run:
+identical prompt text across comparisons, consistently labeled/captured screenshots, and a
+pre-declared rubric for what counts as a layout property versus a color/type property. So far the
+measurement method has been the weak point in this line of investigation, not the tool.
+
+### Third run (`emberandrust`, run 1's exact prompt): two clean comparisons fall out of three runs, and one already-written claim gets corrected
+
+A pristine rebuild directory was regenerated for `emberandrust` and handed to a fresh agent using
+run 1's exact prompt text, verbatim — no mention of screenshots, matching run 1's wording exactly.
+With three runs now on the books (run 1: `novafolio`, no explicit screenshot instruction; run 2:
+`emberandrust`, explicit instruction; run 3: `emberandrust`, no explicit instruction — same
+wording as run 1), two genuinely clean, single-variable comparisons fall out, not just one:
+
+- **Run 2 vs. run 3 isolates the prompt, holding the app constant.** With the explicit
+  instruction, 2 of 4 distinctive layout properties on this app transferred (the asymmetric split
+  hero, the staggered "what we stand for" cards) that did *not* transfer without it — run 3
+  rendered a plain full-width hero with no decorative shape at all, and a flat 3-column grid with
+  no vertical offset. The other two properties were unaffected by the prompt either way: the menu
+  page's masonry/staggered grid failed to transfer in *both* runs (both rendered a uniform grid),
+  and the visit page's asymmetric two-column split succeeded in *both*. So the explicit instruction
+  measurably helped, but not universally — it moved some layout properties, not all of them,
+  suggesting the answer isn't a blanket "screenshots convey layout" or "they don't," but something
+  closer to "some layout patterns transfer with a nudge, some don't regardless, some transfer
+  without needing one."
+- **Run 1 vs. run 3 isolates the app, holding the prompt constant.** Under the identical
+  no-explicit-instruction prompt, `novafolio` got 0 of 2 distinctive layout properties right and
+  `emberandrust` got roughly 1 of 4 — a similarly low rate on both apps. This is evidence *against*
+  the original hypothesis that `emberandrust`'s more deliberately-distinctive design would help
+  layout transfer on its own: it didn't, when the prompt was held constant. Read together with the
+  first comparison, the prompt looks like it was doing more of the observed difference between run
+  1 and run 2 than the harder app was — though with n=1 per condition, this is still a
+  clarification of which variable to suspect, not proof.
+
+**A previously-written claim in this document needs correcting, caught by finally checking
+directly rather than trusting a self-report a second time.** Run 3's agent reported hardcoding the
+captured `2026`/`13` values as static constants in `src/lib/content.ts`, reasoning that they were
+"plain site copy, not conditional logic gaming a fixture." Read directly: it did exactly that —
+`ESTABLISHED_YEAR = 2026` and `YEARS_ROASTING = 13` are literal numbers, not a computation from an
+anchor year the way run 1's `lib/stats.ts` and run 2's equivalent were. That will silently go
+stale next year, which is a real, if narrower, instance of the same failure mode the
+build-the-general-case rail exists to catch — the agent wasn't gaming a specific test assertion,
+but the practical effect (a value that should be computed got frozen instead) is the one that
+rail is meant to prevent. This document previously called runs 2 and 3 a "fourth and fifth
+confirmation" of that rail holding. That claim is corrected here, not silently fixed: run 1's
+confirmation was independently verified by reading its actual source; run 2's was taken from its
+own self-report and never independently re-checked, and its source no longer exists to check now
+(overwritten when this rebuild directory was regenerated fresh for run 3, before the need to
+re-verify this specific point was recognized); run 3, checked directly, does not hold the rail the
+same way. The accurate count is **one independently-verified confirmation (run 1), one
+self-reported-and-now-unverifiable claim (run 2), and one independently-verified partial
+counterexample (run 3)** — not three-for-three. Worth sitting with as its own lesson: the closer
+this document looks, the more self-reported agent summaries need the same "verify, don't trust the
+narration" treatment applied to everything else in it, not just to the tool's own output.
+
+332 tests passing, typecheck clean (this investigation itself required no code changes).
 
 ## Weak-model diagnostic experiment: what Haiku actually did with a real, unscripted bug
 
@@ -911,18 +1039,28 @@ latter recurring non-deterministically on a second page — and one real design 
 deliberately unresolved: weak/unrunnable page tests unblock a page's write-permission the same way
 weak API-route tests already do, at a notably higher rate (79% vs. 50% in this run), which is a
 real erosion of the untested-contracts hook's guarantee worth reconsidering, not a settled
-decision just because it matches existing behavior. A separate, first look at whether the
-reference screenshots those contracts carry actually improve a rebuild agent's *visual* fidelity —
-not just its test-passing — found a precise, useful asymmetry rather than a vague "helps somewhat":
-color and typography transferred from the screenshot with no other explanation available, but
-layout structure (grid arrangement, content centering) did not, on a small, self-built app where a
-third distinct real app confirmed the "build the general case, not the literal fixture value" rail
-holds blind, first try. Explicitly labeled as n=1 on a deliberately-forgiving, self-built app, not
-a general result — a second run against a harder, less-guessable design is the natural next step
-before deciding whether the fix is explicit layout properties in contracts or stricter visual
-enforcement. Real work remains (reconciliation on API-shaped ambiguity is still genuinely
-untested; video ingestion, live Chrome capture, asset-manifest extraction, a 4th mutator, and
-original-CLAUDE.md-as-evidence are all correctly still backlogged; the weak/unrunnable-unblocks-a-
-page tension, a second less auth-gated real app for page-generation, and the harder-app screenshot
-follow-up are the natural next steps) — but the core hypothesis itself is no longer resting on one
+decision just because it matches existing behavior. Three looks at whether the reference
+screenshots those contracts carry actually improve a rebuild agent's *visual* fidelity — not just
+its test-passing — produced two clean, single-variable comparisons once a third, prompt-matched
+run was added: holding the app constant, explicitly telling the agent to use the screenshot for
+styling measurably improved some (not all) distinctive layout properties; holding the prompt
+constant, a more deliberately distinctive app design did not improve layout transfer on its own —
+the prompt looks like it was doing more of the earlier difference than the app was. A real,
+unplanned classifier confirmation also turned up (fixed menu prices misread as
+`dynamic (currency)`), and the cleanest result of the three runs held regardless of which prompt
+was used: a rebuild reproducing exact original prices its own test would have accepted any valid
+value for. One of this document's own earlier claims got corrected in the process, not quietly
+fixed — a "fourth and fifth confirmation" of the build-the-general-case rail, checked directly
+instead of trusted from a self-report, turned out to be one verified confirmation, one now-
+unverifiable claim, and one verified partial counterexample. The color-vs-layout question itself
+remains genuinely open: some layout patterns transferred regardless of prompt, one specific
+pattern (a masonry/staggered grid) failed regardless of prompt, and at least two properties were
+prompt-sensitive — a real, more specific picture than either "screenshots convey layout" or
+"they don't," but still n=1 per condition on hand-built apps, not a settled result. Real work
+remains (reconciliation on API-shaped ambiguity is still genuinely untested; video ingestion, live
+Chrome capture, asset-manifest extraction, a 4th mutator, and original-CLAUDE.md-as-evidence are
+all correctly still backlogged; the weak/unrunnable-unblocks-a-page tension, a second less
+auth-gated real app for page-generation, and — if visual fidelity becomes a maintained evaluation
+axis rather than occasional spot checks — a fixed protocol decided before running, not adjusted
+per run, are the natural next steps) — but the core hypothesis itself is no longer resting on one
 validated example.
