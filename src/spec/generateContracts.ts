@@ -4,6 +4,7 @@ import type { RouteEntry } from '../ingest/evidenceSchema.js';
 import type { AssetManifestEntry } from './assetManifestSchema.js';
 import type { SkippedPage } from './generatePageTests.js';
 import { inferRequestBodyFields } from './inferRequestBodyFields.js';
+import { inferResponseBodyFields } from './inferResponseBodyFields.js';
 import { METHODS_WITH_BODY } from './routeTestAssertions.js';
 
 export interface GeneratedFile {
@@ -53,8 +54,31 @@ function inferredFieldsSection(repoPath: string, route: RouteEntry): string | un
     '',
     'Static analysis of the handler found these field names read from the request body. This is',
     'a v1, regex-based heuristic — it can miss renamed destructuring, computed keys, and spread',
-    'patterns, and is not a guarantee of the complete or exact shape. Response-body field names',
-    'are not yet inferred.',
+    'patterns, and is not a guarantee of the complete or exact shape.',
+    '',
+    fields.map((f) => `- \`${f}\``).join('\n'),
+    ''
+  ].join('\n');
+}
+
+// Companion to inferredFieldsSection above — see inferResponseBodyFields.ts's
+// own header for the full accepted-risk list, most importantly: this only
+// sees a response literal built directly in this file, not one produced by
+// calling a separate (e.g. data-layer) function. Same unguarded-read
+// philosophy as sourceLine/inferredFieldsSection for the same reason.
+function inferredResponseFieldsSection(repoPath: string, route: RouteEntry): string | undefined {
+  if (route.kind !== 'api') return undefined;
+  const text = readFileSync(join(repoPath, route.file), 'utf-8');
+  const fields = inferResponseBodyFields(text, route);
+  if (fields.length === 0) return undefined;
+  return [
+    '## Inferred response body fields (best-effort, not verified)',
+    '',
+    'Static analysis of the handler found these field names in a literal response object built',
+    'directly in this file. This is a v1, regex-based heuristic scoped to same-file literal',
+    'construction only — a response built by calling a separate function (e.g. a data-layer',
+    'helper) is invisible to it, and fields from different return sites (e.g. an error response',
+    'and a success response) are combined without distinguishing which belongs to which.',
     '',
     fields.map((f) => `- \`${f}\``).join('\n'),
     ''
@@ -99,6 +123,8 @@ export function generateContracts(
       '```',
       '',
       inferredFieldsSection(repoPath, route),
+      '',
+      inferredResponseFieldsSection(repoPath, route),
       '',
       asset
         ? [

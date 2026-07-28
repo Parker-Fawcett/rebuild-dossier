@@ -168,4 +168,65 @@ describe('generateContracts', () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it('adds an inferred-response-body-fields section for an API route with a literal response', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(
+        join(dir, 'server.ts'),
+        [
+          "import express from 'express';",
+          '',
+          "app.post('/api/notes', (req, res) => {",
+          '  res.status(201).json({ id: 1, name, message });',
+          '});'
+        ].join('\n')
+      );
+      const routes: RouteEntry[] = [{ path: '/api/notes', method: 'POST', file: 'server.ts', kind: 'api', startLine: 3 }];
+
+      const files = generateContracts(dir, routes);
+
+      expect(files[0]?.content).toContain('Inferred response body fields');
+      expect(files[0]?.content).toContain('`message`');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('omits the inferred-response-body-fields section when the response is built by calling a separate function', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(
+        join(dir, 'server.ts'),
+        [
+          "import express from 'express';",
+          '',
+          "app.post('/api/notes', (req, res) => {",
+          '  res.status(201).json(createNote(req.body.name, req.body.message));',
+          '});'
+        ].join('\n')
+      );
+      const routes: RouteEntry[] = [{ path: '/api/notes', method: 'POST', file: 'server.ts', kind: 'api', startLine: 3 }];
+
+      const files = generateContracts(dir, routes);
+
+      expect(files[0]?.content).not.toContain('Inferred response body fields');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('omits the inferred-response-body-fields section for a page route', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(join(dir, 'page.tsx'), 'export default function Home() { return null; }');
+      const routes: RouteEntry[] = [{ path: '/', file: 'page.tsx', kind: 'page', startLine: 1 }];
+
+      const files = generateContracts(dir, routes);
+
+      expect(files[0]?.content).not.toContain('Inferred response body fields');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
