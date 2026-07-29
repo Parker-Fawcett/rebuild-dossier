@@ -1,6 +1,6 @@
 # rebuild-dossier v0: findings
 
-**Status:** v0 built (6 MCP tools, 357 unit tests), validated end-to-end against **two real,
+**Status:** v0 built (6 MCP tools, 370 unit tests), validated end-to-end against **two real,
 structurally different apps** (Madeline — Next.js client-side gate pattern; catchandtrade — a
 real Prisma+Postgres+Stripe+eBay-backed API app), across **two model tiers** (Sonnet, Haiku),
 with a precisely-characterized weak-model failure boundary and a security-hardening pass
@@ -84,6 +84,19 @@ directly (no intermediate variable). Both fixed, re-traced, and verified live en
 frameworks — not just via unit tests — confirming the generated placeholder body now drives the
 real handler to an actual `201`, not a `400` from an always-empty body. See "Closing the
 request-body-shape gap," below.
+
+The response-body half is now closed too: `inferResponseBodyFields.ts` extracts field names from a
+route handler's own literal response construction, surfaced as a second contract-doc section —
+closing the part of the gap request-side inference couldn't reach (GET routes with no request
+body to lean on; server-generated fields like `id`/`created_at` that only ever appear in the
+response). This time the consequential scope decision — response construction is very often
+delegated to a separate function, exactly as the real motivating app does, and resolving that
+requires following an import into another file — was surfaced and confirmed with the user *before*
+writing any code, and the honest `[]` result for that case was traced against the real shape before
+finalizing the design, then confirmed live against a fixture built specifically to prove it: one
+route with an inline response gets its fields extracted, a sibling route delegating to an imported
+helper function correctly gets no section at all. See "Closing the response-body-shape gap,"
+below.
 
 ## The hypothesis being tested
 
@@ -1323,6 +1336,56 @@ cases: the generated contract doc listed the real field names (`name`, `message`
 nothing; `unrunnableTests` was empty (confirming the crash fix); and — the concrete, load-bearing
 check — issuing the exact request the generated test now sends returned a real `201` from the
 real handler, not a `400` from hitting the previously-always-empty-body validation path.
+
+## Closing the response-body-shape gap: a scoping decision made explicit, then confirmed live
+
+The request-body fix above deliberately left the response side out of scope, reasoning that
+"fixing the request side transitively fixes the response side too" for routes that echo back what
+they stored. True for field *names* shared between request and response — but it does nothing for
+fields that exist **only** in the response (`id`, `created_at` — exactly the fields behind the
+original finding's timestamp-format divergence), and nothing at all for GET routes, which have no
+request body to lean on in the first place. This increment closes that remaining gap:
+`inferResponseBodyFields.ts` statically extracts field names from a route handler's own literal
+response construction (`NextResponse.json({...})`, `res.json({...})`,
+`res.status(n).json({...})`), surfaced as a second "Inferred response body fields" section in the
+generated contract doc. Value-format inference (e.g. detecting *how* a timestamp is produced, not
+just that the field exists) stays out of scope, named as separate future work, not built here.
+
+**A real, consequential scope decision was surfaced and confirmed before writing any code, not
+discovered painfully afterward this time.** Response construction is very commonly delegated to a
+separate function — the actual motivating app itself does exactly this (`route.ts` calling
+`createNote()`/`listNotes()` from a `lib/db.ts` data layer, which builds and returns the shaped
+object). Extracting field names from that requires resolving an import into another file and
+parsing its return statement or a type declaration — a materially bigger, riskier increment than
+anything built so far. Asked directly rather than assumed: scope this increment to same-file
+literal construction only, and name cross-file resolution as explicit, deferred future work rather
+than attempt it now. Confirmed.
+
+**Traced against that exact shape before finalizing the design, matching the discipline the
+request-side fix learned the hard way:** `NextResponse.json(createNote(name, message), { status:
+201 })` and `NextResponse.json(rows)` (the common GET-list shape) were both run through the
+proposed extraction logic before it was written into the plan — both correctly return `[]`, not a
+wrong guess. Seven other shapes were traced the same way, including a value with nested parens
+(`created_at: new Date().toISOString()`), a nested object value (only the outer key should
+survive), a spread combined with a keyed property, and a handler with two return sites (an error
+response and a success response) — the last of which unions both shapes' fields together rather
+than distinguishing which belongs to which, an explicitly named, accepted limitation rather than
+an oversight.
+
+**Verified live, not just via unit tests, with a fixture built specifically to prove the honest
+limitation is real:** two routes, manually fetch-verified correct first, then run through the
+actual `ingest_repo` → `generate_spec` pipeline. The route with an inline literal response
+(`NextResponse.json({ id, label, created_at: new Date().toISOString() }, { status: 201 })`) got a
+contract doc correctly listing `id`, `label`, `created_at`. The sibling route delegating to an
+imported `createNote()` function got **no response-fields section at all** — the scope boundary
+confirmed for real, not just asserted in a unit test that could quietly drift from the actual
+extraction logic over time.
+
+**A smaller, related cleanup in the same pass:** `isolateHandlerBody` (isolating one route
+handler's function body from its file) was needed by both the request- and response-field
+extractors, and had to keep meaning exactly the same thing for both — so it was pulled out of
+`inferRequestBodyFields.ts` into its own shared module, `isolateHandlerSource.ts`, rather than
+duplicated. A future fix to isolation logic now can't silently diverge between the two consumers.
 
 ## Bottom line
 
