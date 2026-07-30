@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { generatePageTests, buildPageTestContent, applyVisionClassification } from '../../../src/spec/generatePageTests.js';
+import {
+  generatePageTests,
+  buildPageTestContent,
+  applyVisionClassification,
+  hasRealTransition,
+  triggerConditionFor
+} from '../../../src/spec/generatePageTests.js';
 import type { EvidenceBundle, RouteEntry } from '../../../src/ingest/evidenceSchema.js';
 import type { DomTextNode, PageCapture } from '../../../src/spec/pageCaptureSchema.js';
 
@@ -37,7 +43,8 @@ describe('generatePageTests preconditions', () => {
       capturedPages: [],
       skippedPages: [],
       visionClassificationEnabled: false,
-      pageVisionFallbacks: []
+      pageVisionFallbacks: [],
+      pageStylesheetAnimations: []
     });
   });
 
@@ -89,6 +96,54 @@ describe('applyVisionClassification', () => {
 
   it('leaves domOutline untouched when the vision result length does not match', () => {
     expect(applyVisionClassification(domOutline, [{ kind: 'static' }])).toEqual(domOutline);
+  });
+});
+
+describe('hasRealTransition', () => {
+  it('returns false when no transition duration was ever declared (CSS default)', () => {
+    expect(hasRealTransition('0s', 'opacity')).toBe(false);
+  });
+
+  it('returns false when transition-property is explicitly none, even with a duration present', () => {
+    expect(hasRealTransition('300ms', 'none')).toBe(false);
+  });
+
+  it('returns false when both are at their CSS defaults', () => {
+    expect(hasRealTransition('0s', 'none')).toBe(false);
+  });
+
+  it('returns true for a real, authored transition', () => {
+    expect(hasRealTransition('300ms', 'opacity')).toBe(true);
+  });
+
+  it('returns false for empty-string inputs', () => {
+    expect(hasRealTransition('', '')).toBe(false);
+  });
+});
+
+describe('triggerConditionFor', () => {
+  it('returns "unconditional" for a plain selector with no state pseudo-class', () => {
+    expect(triggerConditionFor('.cta')).toBe('unconditional');
+  });
+
+  it('returns ":hover" for a hover-gated selector', () => {
+    expect(triggerConditionFor('.button:hover')).toBe(':hover');
+  });
+
+  it('returns ":focus-within", not ":focus" — the regression case that caught a real alternation-ordering bug', () => {
+    // A first version of the pattern listed 'focus' before 'focus-within';
+    // since regex alternation tries alternatives left-to-right and takes
+    // the first match, not the longest, it matched only ':focus' and left
+    // '-within' as corrupted leftover text. Traced directly before shipping.
+    expect(triggerConditionFor('.input:focus-within')).toBe(':focus-within');
+  });
+
+  it('returns ":focus-visible", not ":focus"', () => {
+    expect(triggerConditionFor('.input:focus-visible')).toBe(':focus-visible');
+  });
+
+  it('lists multiple distinct pseudo-classes across a selector list, deduped', () => {
+    expect(triggerConditionFor('a:hover, a:focus')).toBe(':hover, :focus');
   });
 });
 

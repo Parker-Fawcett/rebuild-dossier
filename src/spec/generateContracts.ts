@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { RouteEntry } from '../ingest/evidenceSchema.js';
 import type { AssetManifestEntry } from './assetManifestSchema.js';
-import type { SkippedPage } from './generatePageTests.js';
+import type { PageStylesheetAnimations, SkippedPage } from './generatePageTests.js';
 import { inferRequestBodyFields } from './inferRequestBodyFields.js';
 import { inferResponseBodyFields } from './inferResponseBodyFields.js';
 import { METHODS_WITH_BODY } from './routeTestAssertions.js';
@@ -85,6 +85,50 @@ function inferredResponseFieldsSection(repoPath: string, route: RouteEntry): str
   ].join('\n');
 }
 
+// Documentation only — never asserted against, since captures and generated
+// tests always settle animations to their end state before asserting (see
+// generatePageTests.ts's ANIMATION_SETTLE_WAIT_MS / neutralizing override).
+// The two subsections are gated independently — a page can have animations
+// with no transitions, or vice versa. Each entry records its trigger
+// condition (unconditional vs. a state pseudo-class like :hover) — real,
+// live-triggered finding this exists to close: a blind rebuild reproduced a
+// keyframe NAME correctly but wired it to :hover instead of the original's
+// unconditional application, and nothing in the prior (name-only) version of
+// this section could have told it otherwise.
+function stylesheetAnimationsSection(animations: PageStylesheetAnimations): string {
+  return [
+    '## Declared CSS animations/transitions (documentation only — not asserted)',
+    '',
+    "Static analysis of this page's own stylesheets found these authored animation/transition",
+    'declarations, including whether each is applied unconditionally or only under a state like',
+    ':hover. Captures and generated tests always settle animations to their end state before',
+    'asserting, so nothing here is behavior a generated test enforces — a rebuild agent choosing',
+    'to reproduce this motion should treat this section as the source of truth for both what to',
+    'build and when it should actually fire.',
+    '',
+    animations.keyframeUsages.length > 0
+      ? [
+          '### Animations',
+          '',
+          animations.keyframeUsages
+            .map((u) => `- \`${u.selector}\` → \`${u.keyframeName}\` (${u.trigger})`)
+            .join('\n'),
+          ''
+        ].join('\n')
+      : undefined,
+    animations.transitionUsages.length > 0
+      ? [
+          '### Transitions',
+          '',
+          animations.transitionUsages.map((u) => `- \`${u.selector}\` (${u.trigger})`).join('\n'),
+          ''
+        ].join('\n')
+      : undefined
+  ]
+    .filter((line) => line !== undefined)
+    .join('\n');
+}
+
 // Extracts the real interface shape verbatim from the source — never a
 // paraphrase — so the rebuild agent's contract is the actual line, not our
 // summary of it.
@@ -102,12 +146,14 @@ export function generateContracts(
   repoPath: string,
   routes: RouteEntry[],
   assetManifest: AssetManifestEntry[] = [],
-  skippedPages: SkippedPage[] = []
+  skippedPages: SkippedPage[] = [],
+  pageStylesheetAnimations: PageStylesheetAnimations[] = []
 ): GeneratedFile[] {
   return routes.map((route) => {
     const title = route.method ? `${route.method} ${route.path}` : route.path;
     const asset = assetManifest.find((a) => a.metadata.routeFile === route.file);
     const skipped = skippedPages.find((s) => s.routeFile === route.file);
+    const animations = pageStylesheetAnimations.find((a) => a.routeFile === route.file);
 
     const content = [
       `# Contract: ${title}`,
@@ -125,6 +171,8 @@ export function generateContracts(
       inferredFieldsSection(repoPath, route),
       '',
       inferredResponseFieldsSection(repoPath, route),
+      '',
+      animations ? stylesheetAnimationsSection(animations) : undefined,
       '',
       asset
         ? [

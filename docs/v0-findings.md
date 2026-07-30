@@ -98,6 +98,19 @@ route with an inline response gets its fields extracted, a sibling route delegat
 helper function correctly gets no section at all. See "Closing the response-body-shape gap,"
 below.
 
+Both `driftlight` bugs above are now fixed: captures neutralize animations/transitions and add a
+bounded settle wait (baked into the generated test template too, not just the original capture) so
+the screenshot and DOM-text no longer disagree, and a new contract-doc section documents declared
+`@keyframes`/transitions — live-tested against the exact reproduced shapes, which caught and fixed
+a second real bug (a shared, root-layout-level stylesheet made every page report identical
+animations regardless of use, fixed by scoping detection to elements actually present on that
+page). Watching a fresh blind rebuild run side by side with the original then surfaced a further,
+genuinely new limitation: the rebuild reproduced the `glow-pulse` keyframe *name* correctly but
+wired it to `.button:hover` instead of the original's always-on application — the current
+documentation records animation names and selectors, but nothing about *when* they fire, so a
+rebuild agent has no way to tell "always on" from "only on hover" and has to guess. Named as
+real, unaddressed scope, not patched over. See "Settling animations before capture," below.
+
 ## The hypothesis being tested
 
 Prior research (AgentModernize, arXiv:2605.17535) found a rebuild pipeline scores 0%
@@ -1386,6 +1399,53 @@ handler's function body from its file) was needed by both the request- and respo
 extractors, and had to keep meaning exactly the same thing for both — so it was pulled out of
 `inferRequestBodyFields.ts` into its own shared module, `isolateHandlerSource.ts`, rather than
 duplicated. A future fix to isolation logic now can't silently diverge between the two consumers.
+
+## Settling animations before capture, and a new limitation found the moment a rebuild agent actually used the result
+
+The "Animated content" finding above left two confirmed, concrete bugs: a single `generate_spec`
+call's screenshot and DOM-text captures could disagree with each other on an animated value (a
+counter frozen at `"0"` by one capture, `"104+"` by the other, neither the true settled
+`"12,400+"`), and a staggered CSS entrance animation left half a product grid invisible in the
+reference screenshot. Both are now fixed, as new default behavior (no opt-in — this only touches
+an in-memory Playwright page during capture, never the target repo, and adds no external cost):
+animations/transitions are neutralized via `page.addInitScript` injecting the same near-zero
+duration / single-iteration override real visual-regression tools (Percy, Chromatic) use, and a
+bounded settle wait handles JS-driven motion a CSS override can't touch (a
+`requestAnimationFrame` counter). The wait is baked into *both* the original capture and the
+generated test's own template — a necessary correction found during design, not an afterthought:
+without it, a rebuild agent that faithfully reproduces documented motion would fail its own
+generated test by being read before the motion settles.
+
+Alongside the fix, a new contract-doc section — "Declared CSS animations/transitions" — surfaces
+`@keyframes` names and transition-bearing selectors read from the page's own authored stylesheets
+(never computed style, which the neutralizing override would corrupt), so a rebuild agent has
+*some* signal that motion exists at all, which the pipeline previously gave none of. Live testing
+against a fixture reproducing the exact `driftlight` shapes caught a second real bug before this
+shipped: a shared stylesheet (`globals.css`, loaded on every page via the Next.js root layout)
+made every page report the same animations regardless of whether it used them — a plain "about"
+page with zero animated elements initially showed the same `hero-rise`/`glow-pulse` entries as the
+pages that actually use them. Fixed by scoping detection to selectors that match a live element on
+that specific page, confirmed live: the about page correctly shows no section at all, the home
+page shows both keyframes, the collection page shows only the one its cards actually use.
+
+**A further, real limitation found the same day, from the most direct kind of test: watching a
+blind rebuild run side by side with the original in a browser.** The original app's CTA button
+pulses an amber glow *unconditionally*, all the time — `glow-pulse` is applied directly to `.cta`,
+no interaction required. A Haiku-driven blind rebuild (working only from the locked spec, no
+access to this source) correctly reproduced the keyframe *name* — `glow-pulse` genuinely exists in
+its generated CSS — but wired it to `.button:hover` instead, so at rest, with nothing hovering it,
+there's no glow at all. The color was also wrong (`#d4a574`/`rgba(255, 193, 7, ...)` — a generic
+amber — vs. the real `#e8a548`/`rgba(232, 165, 72, ...)`), which is the same, already-documented,
+screenshot-derived-color-approximation pattern from every prior visual-fidelity run this session.
+The hover-vs-always-on miss is a different, new kind of gap: the "Declared CSS animations/
+transitions" section lists keyframe *names* and transition-bearing *selectors*, but nothing about
+*when* an animation fires — always-on vs. triggered by an interaction state like `:hover`. A
+rebuild agent has no way to distinguish "this pulses constantly" from "this pulses on hover" from
+the current documentation alone; it has to guess, and guessed the more common web-convention
+default (motion reserved for interaction) rather than this specific app's actual, less-common
+choice (motion always on). Named here as real, unaddressed scope for a future increment — encoding
+trigger condition (unconditional / `:hover` / `:focus` / media-query-gated) alongside the name and
+selector already captured — not something to guess at or silently patch over now.
 
 ## Bottom line
 

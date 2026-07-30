@@ -7,7 +7,7 @@ import { chromium, type Browser } from 'playwright';
 import type { EvidenceBundle, RouteEntry } from '../ingest/evidenceSchema.js';
 import type { Case } from '../reconciliation/types.js';
 import type { GeneratedTestFile } from './generateTests.js';
-import type { DomTextNode, DynamicShape, PageCapture } from './pageCaptureSchema.js';
+import type { DomTextNode, DynamicShape, KeyframeUsage, PageCapture, TransitionUsage } from './pageCaptureSchema.js';
 import type { AssetManifestEntry } from './assetManifestSchema.js';
 import { classifyDomText } from './classifyDomText.js';
 import { concretePath, sanitizeFilenameBase } from './routeTestAssertions.js';
@@ -49,6 +49,20 @@ const HELD_OUT_EVERY = 3; // same deterministic split convention as generateTest
 const MAX_MUTATION_SITES_PER_PAGE = 3; // bounds runMutationCheck's per-site `next dev` boot cost (see runMutationCheck.ts)
 const MAX_DOM_TEXT_NODES = 60; // keeps a generated test (and the capture itself) from ballooning on a very text-heavy page
 const DEV_SERVER_READY_TIMEOUT_MS = 60_000;
+// A named heuristic, not a guarantee: bounds how long capture (and, baked
+// into the generated test template below, verification against a rebuilt
+// app) waits for JS-driven motion — a requestAnimationFrame counter, a
+// setTimeout-staged reveal — to reach its settled value before either the
+// DOM-text or screenshot capture reads the page. Real, live-triggered
+// finding this fixes: a single generate_spec call's DOM-text capture and
+// screenshot capture disagreed with each other on an animated counter's
+// value ("0" vs "104+", neither the true settled "12,400+") because they
+// were captured sequentially with no synchronization at all. Sized against
+// the real case that surfaced this (a counter settling in ~1.4s) with a
+// small margin — a JS animation that legitimately runs longer than this
+// will still be caught mid-flight; CSS-driven motion is handled
+// deterministically instead, see injectAnimationNeutralizingOverride below.
+const ANIMATION_SETTLE_WAIT_MS = 1500;
 
 export interface SkippedPage {
   routeFile: string;
@@ -60,6 +74,12 @@ export interface CapturedScreenshot {
   buffer: Buffer;
 }
 
+export interface PageStylesheetAnimations {
+  routeFile: string;
+  keyframeUsages: KeyframeUsage[];
+  transitionUsages: TransitionUsage[];
+}
+
 export interface GeneratePageTestsResult {
   visible: GeneratedTestFile[];
   heldOut: GeneratedTestFile[];
@@ -69,6 +89,7 @@ export interface GeneratePageTestsResult {
   skippedPages: SkippedPage[]; // route files visibly skipped, with why — never silently absent
   visionClassificationEnabled: boolean; // whether this run attempted vision classification at all (both GROQ_API_KEY and REBUILD_DOSSIER_ENABLE_VISION_CLASSIFICATION must be set)
   pageVisionFallbacks: SkippedPage[]; // captured pages that fell back to the regex classifier despite vision being enabled, with why — never silently indistinguishable from a page vision actually classified
+  pageStylesheetAnimations: PageStylesheetAnimations[]; // routes whose authored CSS declares a real animation/transition — documentation only, see generateContracts.ts
 }
 
 const EMPTY_RESULT: GeneratePageTestsResult = {
@@ -79,7 +100,8 @@ const EMPTY_RESULT: GeneratePageTestsResult = {
   capturedPages: [],
   skippedPages: [],
   visionClassificationEnabled: false,
-  pageVisionFallbacks: []
+  pageVisionFallbacks: [],
+  pageStylesheetAnimations: []
 };
 
 async function waitForReady(baseUrl: string, deadline: number): Promise<void> {
@@ -120,6 +142,208 @@ function extractDomOutline(): { selectorHint: string; text: string }[] {
   return results;
 }
 
+// Executed inside the page via page.addInitScript — runs before the page's
+// own scripts, on every navigation, so it's active from first paint. This is
+// the standard visual-regression-testing technique (the same one Percy/
+// Chromatic use) for making a screenshot deterministic: near-zero (not
+// literal zero — some browsers treat a 0-duration animation as "no
+// animation" and skip settling oddly) duration, and critically
+// animation-iteration-count: 1 so even an `infinite` keyframe animation
+// collapses to one deterministic pass instead of looping forever during
+// capture. Self-correcting against any small timing gap — even if a real
+// animation starts a few ms before this lands, its already-elapsed time
+// immediately reads as far past the override's ~1ms duration, so it settles
+// on its final keyframe regardless. Marked with data-rebuild-dossier-override
+// so extractStylesheetAnimations below can positively identify and skip this
+// exact stylesheet, never mistaking its own `*` rule for page-authored CSS.
+function injectAnimationNeutralizingOverride(): void {
+  const inject = () => {
+    if (!document.head) {
+      requestAnimationFrame(inject); // document.head may not exist yet this early in addInitScript
+      return;
+    }
+    const style = document.createElement('style');
+    style.setAttribute('data-rebuild-dossier-override', 'true');
+    style.textContent = `
+      *, *::before, *::after {
+        animation-delay: -1ms !important;
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+        transition-delay: -1ms !important;
+      }
+    `;
+    document.head.appendChild(style);
+  };
+  inject();
+}
+
+// Pure, exported so this one piece of real logic in extractStylesheetAnimations
+// is unit-testable without a real browser (matches this codebase's
+// convention of extracting anything with actual logic — see
+// applyVisionClassification, redactObviousSecrets — for exactly this
+// reason). '0s'/'none' are CSS's own "nothing declared" defaults — every
+// element matches some rule with these properties present at their default
+// value (a CSS reset commonly sets transition-property: none globally), so
+// only a real, non-zero duration counts as "this selector has a transition."
+export function hasRealTransition(duration: string, property: string): boolean {
+  return Boolean(duration) && duration !== '0s' && Boolean(property) && property !== 'none';
+}
+
+// Longer/more-specific alternatives listed before their shorter prefixes
+// (focus-within/focus-visible before focus) — regex alternation tries
+// left-to-right and takes the first match, not the longest; traced directly
+// against '.input:focus-within' before finalizing (an earlier ordering
+// matched only ':focus', leaving '-within' as corrupted leftover text).
+const STATE_PSEUDO_CLASS_PATTERN =
+  /:(hover|focus-within|focus-visible|focus|active|target|checked|disabled|enabled|valid|invalid)\b/gi;
+
+// Pure, Node-side, unit-tested directly — same "extract anything with real
+// logic" convention as hasRealTransition just above. Real, live-triggered
+// finding this exists to record: a blind rebuild reproduced a keyframe NAME
+// correctly but wired it to `:hover` instead of the original's unconditional
+// application — without this label, a rebuild agent has no way to tell
+// "always on" from "only on hover" from the contract doc alone.
+export function triggerConditionFor(selectorText: string): string {
+  const matches = selectorText.match(STATE_PSEUDO_CLASS_PATTERN);
+  if (!matches || matches.length === 0) return 'unconditional';
+  return Array.from(new Set(matches.map((m) => m.toLowerCase()))).join(', ');
+}
+
+// Plain-object records (all string fields) can repeat across CSS rules that
+// resolve to the same (selector, trigger[, keyframeName]) combination — a
+// media-query-wrapped duplicate of the same rule, for instance. Dedupe by
+// full content rather than a hand-picked key so this stays correct
+// regardless of which record shape (keyframe usage or transition usage)
+// it's called with.
+function dedupeByJson<T>(records: T[]): T[] {
+  const seen = new Map<string, T>();
+  for (const record of records) {
+    seen.set(JSON.stringify(record), record);
+  }
+  return Array.from(seen.values());
+}
+
+// Executed inside the page via page.evaluate — must be self-contained (no
+// closures over this module's scope), matching extractDomOutline's own
+// convention. Reads AUTHORED stylesheet rules, never computed style: after
+// injectAnimationNeutralizingOverride runs, getComputedStyle(el) would read
+// the override's forced values for every element, making real-vs-none
+// completely indistinguishable — reading document.styleSheets directly
+// inspects what the page's own CSS declares, unaffected by what the
+// override forces into effect. Documentation only (see
+// generateContracts.ts's stylesheetAnimationsSection) — never asserted
+// against, so a false negative here never fails a correct rebuild.
+//
+// Real, live-triggered finding: a shared stylesheet (e.g. globals.css,
+// loaded via a Next.js root layout on every route) commonly declares
+// @keyframes/transitions used by only SOME pages. Without checking whether
+// a rule's selector actually matches an element present on THIS page, every
+// page sharing that stylesheet would report identical animations regardless
+// of whether it uses them — confirmed directly: an "about" page with no
+// animated elements at all initially reported the same hero-fade/glow-pulse
+// as the pages that actually use them. `document.querySelector` (a native
+// browser API, not this module's other functions) is safe to call here —
+// only hasRealTransition/triggerConditionFor below can't be, since those are
+// Node-side logic.
+interface RawStylesheetAnimations {
+  keyframeUsageCandidates: { selector: string; keyframeName: string }[];
+  // Raw candidates only — deciding which of these constitute a "real"
+  // transition (vs. a selector merely matching CSS's own '0s'/'none'
+  // defaults) happens in Node via hasRealTransition, same as classifyDomText
+  // interprets extractDomOutline's raw {selectorHint, text} pairs after the
+  // page.evaluate call returns. This function cannot call hasRealTransition
+  // itself — page.evaluate serializes only the function passed to it and
+  // executes it in an isolated browser realm with no access to this
+  // module's other functions.
+  transitionCandidates: { selectorText: string; transitionDuration: string; transitionProperty: string }[];
+}
+
+function extractStylesheetAnimations(): RawStylesheetAnimations {
+  const declaredKeyframeNames = new Set<string>();
+  const keyframeUsageCandidates: RawStylesheetAnimations['keyframeUsageCandidates'] = [];
+  const transitionCandidates: RawStylesheetAnimations['transitionCandidates'] = [];
+
+  function matchesLiveElement(selectorText: string): boolean {
+    // Must stay in sync with the module-level STATE_PSEUDO_CLASS_PATTERN
+    // used by triggerConditionFor in Node — duplicated here because
+    // page.evaluate can't reference this module's other functions/constants
+    // (see the note on hasRealTransition above for why). Stripping the
+    // state pseudo-class before querying matters, not just for labeling:
+    // `document.querySelector('.button:hover')` returns null during
+    // automated capture regardless of whether `.button` exists, since
+    // nothing is actually being hovered — without stripping first, every
+    // state-gated rule would be invisible to detection entirely, not just
+    // unlabeled (confirmed directly: this was the actual bug behind the
+    // `:hover`-vs-unconditional gap this whole feature exists to close).
+    const STATE_PSEUDO_CLASS_PATTERN =
+      /:(hover|focus-within|focus-visible|focus|active|target|checked|disabled|enabled|valid|invalid)\b/gi;
+    const baseSelector = selectorText.replace(STATE_PSEUDO_CLASS_PATTERN, '').trim();
+    try {
+      return document.querySelector(baseSelector || selectorText) !== null;
+    } catch {
+      // An invalid/unparseable selector (rare, but real CSS can contain
+      // vendor-prefixed or newer-syntax selectors querySelector rejects)
+      // can't be confirmed as matching anything real either way.
+      return false;
+    }
+  }
+
+  function walkRules(rules: CSSRuleList) {
+    for (const rule of Array.from(rules)) {
+      if (rule instanceof CSSKeyframesRule) {
+        declaredKeyframeNames.add(rule.name);
+      } else if (rule instanceof CSSStyleRule) {
+        if (!rule.selectorText) continue;
+        const animationName = rule.style.animationName;
+        const hasAnimationRef = Boolean(animationName) && animationName !== 'none';
+        const hasTransitionRef = rule.style.transitionDuration !== '0s'; // cheap pre-filter before the more expensive DOM query below
+        if (!hasAnimationRef && !hasTransitionRef) continue;
+        if (!matchesLiveElement(rule.selectorText)) continue;
+        if (hasAnimationRef) {
+          for (const name of animationName.split(',').map((n) => n.trim())) {
+            if (name) keyframeUsageCandidates.push({ selector: rule.selectorText, keyframeName: name });
+          }
+        }
+        if (hasTransitionRef) {
+          transitionCandidates.push({
+            selectorText: rule.selectorText,
+            transitionDuration: rule.style.transitionDuration,
+            transitionProperty: rule.style.transitionProperty
+          });
+        }
+      } else if (rule instanceof CSSMediaRule) {
+        // One level of recursion catches the common, accessibility-conscious
+        // `@media (prefers-reduced-motion: no-preference) { @keyframes ... }`
+        // pattern without over-engineering deeper @supports/@media nesting —
+        // a named, accepted gap, not built for.
+        walkRules(rule.cssRules);
+      }
+      // Every other rule type (font-face, import, page, supports, ...) is
+      // deliberately skipped, not crashed on — none carry animation info.
+    }
+  }
+
+  for (const sheet of Array.from(document.styleSheets)) {
+    const ownerNode = sheet.ownerNode as Element | null;
+    if (ownerNode?.getAttribute?.('data-rebuild-dossier-override') === 'true') continue;
+    let rules: CSSRuleList;
+    try {
+      rules = sheet.cssRules; // cross-origin sheets (a Google Fonts <link>) throw here
+    } catch {
+      continue;
+    }
+    walkRules(rules);
+  }
+
+  // Only a keyframe usage whose name is both declared somewhere AND
+  // referenced by a rule whose selector matches a live element on this page
+  // counts — see the doc comment above for why the intersection is required.
+  const keyframeUsageCandidatesFiltered = keyframeUsageCandidates.filter((c) => declaredKeyframeNames.has(c.keyframeName));
+
+  return { keyframeUsageCandidates: keyframeUsageCandidatesFiltered, transitionCandidates };
+}
+
 interface CapturedPage {
   capture: PageCapture;
   screenshotBuffer: Buffer;
@@ -130,25 +354,49 @@ interface CapturedPage {
 async function capturePage(browser: Browser, baseUrl: string, route: RouteEntry): Promise<CapturedPage> {
   const context = await browser.newContext();
   const page = await context.newPage();
+  // Must be registered before page.goto — addInitScript only takes effect on
+  // subsequent navigations, not the current page state.
+  await page.addInitScript(injectAnimationNeutralizingOverride);
   const consoleErrors: string[] = [];
   page.on('console', (msg) => {
     if (msg.type() === 'error') consoleErrors.push(msg.text());
   });
   try {
     await page.goto(`${baseUrl}${concretePath(route.path)}`, { waitUntil: 'load', timeout: 30000 });
+    // Bounded wait for JS-driven motion to settle — see ANIMATION_SETTLE_WAIT_MS's
+    // own doc comment. Both captures below happen after this same wait, so
+    // they can no longer disagree with each other the way a sequential,
+    // unsynchronized DOM-text-then-screenshot capture could.
+    await page.waitForTimeout(ANIMATION_SETTLE_WAIT_MS);
     const rawOutline = await page.evaluate(extractDomOutline);
     const domOutline: DomTextNode[] = rawOutline.slice(0, MAX_DOM_TEXT_NODES).map((node) => ({
       selectorHint: node.selectorHint,
       text: node.text,
       ...classifyDomText(node.text)
     }));
+    const rawStylesheetAnimations = await page.evaluate(extractStylesheetAnimations);
+    const keyframeUsages = dedupeByJson(
+      rawStylesheetAnimations.keyframeUsageCandidates.map((c) => ({
+        selector: c.selector,
+        keyframeName: c.keyframeName,
+        trigger: triggerConditionFor(c.selector)
+      }))
+    );
+    const transitionUsages = dedupeByJson(
+      rawStylesheetAnimations.transitionCandidates
+        .filter((c) => hasRealTransition(c.transitionDuration, c.transitionProperty))
+        .map((c) => ({ selector: c.selectorText, trigger: triggerConditionFor(c.selectorText) }))
+    );
+    const stylesheetAnimations =
+      keyframeUsages.length > 0 || transitionUsages.length > 0 ? { keyframeUsages, transitionUsages } : undefined;
     const screenshotBuffer = await page.screenshot({ fullPage: true });
     const capture: PageCapture = {
       routeFile: route.file,
       path: route.path,
       capturedAt: new Date().toISOString(),
       consoleErrors,
-      domOutline
+      domOutline,
+      ...(stylesheetAnimations ? { stylesheetAnimations } : {})
     };
     return { capture, screenshotBuffer };
   } finally {
@@ -213,6 +461,14 @@ describe(${JSON.stringify(`page: ${route.path} (from-reconciliation)`)}, () => {
       if (msg.type() === 'error') consoleErrors.push(msg.text());
     });
     await page.goto(\`\${baseUrl}${concrete}\`, { waitUntil: 'load' });
+    // Same bounded settle-wait the original capture used (see
+    // ANIMATION_SETTLE_WAIT_MS in generatePageTests.ts) — without this, a
+    // rebuild that faithfully reproduces JS-driven motion documented in this
+    // page's contract (a requestAnimationFrame counter, a staged reveal)
+    // would fail this exact assertion by being read before it settles.
+    // Applied unconditionally, not just when this page had a detected CSS
+    // animation — JS-driven motion has no CSS signal to gate on at all.
+    await page.waitForTimeout(${ANIMATION_SETTLE_WAIT_MS});
     // Tolerates the same console-error count the original capture already
     // had (some apps legitimately log a handful) but fails on NEW ones —
     // a strict-equality check here would flake on timing-sensitive warnings
@@ -318,6 +574,7 @@ export async function generatePageTests(
   const screenshots: CapturedScreenshot[] = [];
   const visible: GeneratedTestFile[] = [];
   const heldOut: GeneratedTestFile[] = [];
+  const pageStylesheetAnimations: PageStylesheetAnimations[] = [];
 
   // Deliberately opt-in via two env vars, not bare GROQ_API_KEY presence —
   // an ambient key set for an unrelated tool must never silently start
@@ -346,6 +603,14 @@ export async function generatePageTests(
       metadata: { routeFile: route.file, path: route.path }
     });
     screenshots.push({ path: screenshotPath, buffer: result.screenshotBuffer });
+
+    if (result.capture.stylesheetAnimations) {
+      pageStylesheetAnimations.push({
+        routeFile: route.file,
+        keyframeUsages: result.capture.stylesheetAnimations.keyframeUsages,
+        transitionUsages: result.capture.stylesheetAnimations.transitionUsages
+      });
+    }
 
     let domOutline = result.capture.domOutline;
     if (visionEnabled) {
@@ -409,6 +674,7 @@ export async function generatePageTests(
     capturedPages,
     skippedPages,
     visionClassificationEnabled: visionEnabled,
-    pageVisionFallbacks
+    pageVisionFallbacks,
+    pageStylesheetAnimations
   };
 }

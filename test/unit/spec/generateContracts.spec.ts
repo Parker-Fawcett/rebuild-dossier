@@ -229,4 +229,154 @@ describe('generateContracts', () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it('adds a declared-CSS-animations section listing both keyframes and transitions when both are detected', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(join(dir, 'page.tsx'), 'export default function Home() { return null; }');
+      const routes: RouteEntry[] = [{ path: '/', file: 'page.tsx', kind: 'page', startLine: 1 }];
+
+      const files = generateContracts(dir, routes, [], [], [
+        {
+          routeFile: 'page.tsx',
+          keyframeUsages: [
+            { selector: '.hero', keyframeName: 'hero-rise', trigger: 'unconditional' },
+            { selector: '.cta', keyframeName: 'glow-pulse', trigger: 'unconditional' }
+          ],
+          transitionUsages: [{ selector: '.card', trigger: 'unconditional' }]
+        }
+      ]);
+
+      expect(files[0]?.content).toContain('Declared CSS animations/transitions');
+      expect(files[0]?.content).toContain('### Animations');
+      expect(files[0]?.content).toContain('`.hero` → `hero-rise` (unconditional)');
+      expect(files[0]?.content).toContain('`.cta` → `glow-pulse` (unconditional)');
+      expect(files[0]?.content).toContain('### Transitions');
+      expect(files[0]?.content).toContain('`.card` (unconditional)');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('renders only the animations subsection when no transitions were detected', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(join(dir, 'page.tsx'), 'export default function Home() { return null; }');
+      const routes: RouteEntry[] = [{ path: '/', file: 'page.tsx', kind: 'page', startLine: 1 }];
+
+      const files = generateContracts(dir, routes, [], [], [
+        {
+          routeFile: 'page.tsx',
+          keyframeUsages: [{ selector: '.hero', keyframeName: 'hero-rise', trigger: 'unconditional' }],
+          transitionUsages: []
+        }
+      ]);
+
+      expect(files[0]?.content).toContain('### Animations');
+      expect(files[0]?.content).not.toContain('### Transitions');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('renders only the transitions subsection when no animations were detected', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(join(dir, 'page.tsx'), 'export default function Home() { return null; }');
+      const routes: RouteEntry[] = [{ path: '/', file: 'page.tsx', kind: 'page', startLine: 1 }];
+
+      const files = generateContracts(dir, routes, [], [], [
+        { routeFile: 'page.tsx', keyframeUsages: [], transitionUsages: [{ selector: '.card', trigger: 'unconditional' }] }
+      ]);
+
+      expect(files[0]?.content).not.toContain('### Animations');
+      expect(files[0]?.content).toContain('### Transitions');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('omits the section for a route with no matching entry, even when other routes in the same call have one', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(join(dir, 'animated.tsx'), 'export default function Animated() { return null; }');
+      writeFileSync(join(dir, 'plain.tsx'), 'export default function Plain() { return null; }');
+      const routes: RouteEntry[] = [
+        { path: '/animated', file: 'animated.tsx', kind: 'page', startLine: 1 },
+        { path: '/plain', file: 'plain.tsx', kind: 'page', startLine: 1 }
+      ];
+
+      const files = generateContracts(dir, routes, [], [], [
+        {
+          routeFile: 'animated.tsx',
+          keyframeUsages: [{ selector: '.hero', keyframeName: 'hero-rise', trigger: 'unconditional' }],
+          transitionUsages: []
+        }
+      ]);
+
+      const plainFile = files.find((f) => f.filename === 'PAGE-plain.md');
+      expect(plainFile?.content).not.toContain('Declared CSS animations/transitions');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('labels a state-gated animation with its trigger, not "unconditional"', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(join(dir, 'page.tsx'), 'export default function Home() { return null; }');
+      const routes: RouteEntry[] = [{ path: '/', file: 'page.tsx', kind: 'page', startLine: 1 }];
+
+      const files = generateContracts(dir, routes, [], [], [
+        {
+          routeFile: 'page.tsx',
+          keyframeUsages: [{ selector: '.button', keyframeName: 'glow-pulse', trigger: ':hover' }],
+          transitionUsages: []
+        }
+      ]);
+
+      expect(files[0]?.content).toContain('`.button` → `glow-pulse` (:hover)');
+      expect(files[0]?.content).not.toContain('`.button` → `glow-pulse` (unconditional)');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('lists each selector separately when two different selectors use the same keyframe', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(join(dir, 'page.tsx'), 'export default function Home() { return null; }');
+      const routes: RouteEntry[] = [{ path: '/', file: 'page.tsx', kind: 'page', startLine: 1 }];
+
+      const files = generateContracts(dir, routes, [], [], [
+        {
+          routeFile: 'page.tsx',
+          keyframeUsages: [
+            { selector: '.hero', keyframeName: 'hero-rise', trigger: 'unconditional' },
+            { selector: '.card', keyframeName: 'hero-rise', trigger: 'unconditional' }
+          ],
+          transitionUsages: []
+        }
+      ]);
+
+      expect(files[0]?.content).toContain('`.hero` → `hero-rise` (unconditional)');
+      expect(files[0]?.content).toContain('`.card` → `hero-rise` (unconditional)');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('omits the section entirely when no pageStylesheetAnimations argument is passed (default-empty-array backward compat)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(join(dir, 'page.tsx'), 'export default function Home() { return null; }');
+      const routes: RouteEntry[] = [{ path: '/', file: 'page.tsx', kind: 'page', startLine: 1 }];
+
+      const files = generateContracts(dir, routes);
+
+      expect(files[0]?.content).not.toContain('Declared CSS animations/transitions');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });

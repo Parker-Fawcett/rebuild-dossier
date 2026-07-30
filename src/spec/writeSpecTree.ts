@@ -179,7 +179,13 @@ async function writeSpecTreeInto(
   // its own `next dev` + Chromium once — see generatePageTests.ts).
   const pageResult = await generatePageTests(repoPath, evidence, cases);
 
-  for (const file of generateContracts(repoPath, evidence.routes, pageResult.assetManifest, pageResult.skippedPages)) {
+  for (const file of generateContracts(
+    repoPath,
+    evidence.routes,
+    pageResult.assetManifest,
+    pageResult.skippedPages,
+    pageResult.pageStylesheetAnimations
+  )) {
     writeFileSync(join(outputDir, 'spec', 'contracts', file.filename), file.content);
   }
 
