@@ -1,6 +1,6 @@
 # rebuild-dossier v0: findings
 
-**Status:** v0 built (6 MCP tools, 370 unit tests), validated end-to-end against **two real,
+**Status:** v0 built (6 MCP tools, 387 unit tests), validated end-to-end against **two real,
 structurally different apps** (Madeline — Next.js client-side gate pattern; catchandtrade — a
 real Prisma+Postgres+Stripe+eBay-backed API app), across **two model tiers** (Sonnet, Haiku),
 with a precisely-characterized weak-model failure boundary and a security-hardening pass
@@ -104,12 +104,17 @@ the screenshot and DOM-text no longer disagree, and a new contract-doc section d
 `@keyframes`/transitions — live-tested against the exact reproduced shapes, which caught and fixed
 a second real bug (a shared, root-layout-level stylesheet made every page report identical
 animations regardless of use, fixed by scoping detection to elements actually present on that
-page). Watching a fresh blind rebuild run side by side with the original then surfaced a further,
-genuinely new limitation: the rebuild reproduced the `glow-pulse` keyframe *name* correctly but
-wired it to `.button:hover` instead of the original's always-on application — the current
-documentation records animation names and selectors, but nothing about *when* they fire, so a
-rebuild agent has no way to tell "always on" from "only on hover" and has to guess. Named as
-real, unaddressed scope, not patched over. See "Settling animations before capture," below.
+page). Watching a fresh blind rebuild run side by side with the original then surfaced a further
+gap: the rebuild reproduced the `glow-pulse` keyframe *name* correctly but wired it to
+`.button:hover` instead of the original's always-on application — the documentation recorded
+animation names and selectors, but nothing about *when* they fire. Now closed, deterministically,
+by labeling each usage's trigger condition — and closing it surfaced a more consequential bug than
+the labeling gap itself: the existing live-element check queried selectors *with* their
+pseudo-class attached, so every state-gated rule (exactly the `.button:hover` shape the rebuild
+produced) was invisible to detection entirely, not merely unlabeled. Both fixed, both traced
+against realistic selectors before shipping (which caught a real regex-alternation-ordering bug on
+`.input:focus-within`), and confirmed live against a fresh fixture built to stress both at once.
+See "Settling animations before capture," below.
 
 ## The hypothesis being tested
 
@@ -1443,9 +1448,46 @@ transitions" section lists keyframe *names* and transition-bearing *selectors*, 
 rebuild agent has no way to distinguish "this pulses constantly" from "this pulses on hover" from
 the current documentation alone; it has to guess, and guessed the more common web-convention
 default (motion reserved for interaction) rather than this specific app's actual, less-common
-choice (motion always on). Named here as real, unaddressed scope for a future increment — encoding
-trigger condition (unconditional / `:hover` / `:focus` / media-query-gated) alongside the name and
-selector already captured — not something to guess at or silently patch over now.
+choice (motion always on).
+
+**This gap is now closed, and closing it surfaced a second bug more consequential than the
+labeling gap itself.** Each detected keyframe usage and transition now records its trigger
+condition — `unconditional` or the specific state pseudo-class (`:hover`, `:focus-within`, etc.) —
+read directly from the rule's own selector text, no LLM call, no new non-determinism. But
+`matchesLiveElement`'s existing live-element check queried the selector *with its pseudo-class
+still attached* (`.button:hover`), and `document.querySelector('.button:hover')` returns `null`
+during automated capture regardless of whether `.button` exists, since nothing is actually being
+hovered — **meaning every state-gated rule was invisible to detection entirely, not merely
+unlabeled.** A rebuild attempting the exact `.button:hover { animation: glow-pulse ... }` mistake
+that motivated this fix wouldn't have shown up in the contract doc at all before this correction.
+Fixed by stripping the pseudo-class before the live-element check (querying the *base* selector)
+— the same piece of information needed for the trigger label, so one fix serves both purposes.
+
+Tracing the label logic against realistic selectors before shipping caught a third, smaller bug:
+a first version of the pseudo-class pattern listed `focus` before `focus-within`, and since regex
+alternation tries alternatives left-to-right and takes the first match, not the longest,
+`.input:focus-within` matched only `:focus`, leaving `-within` as corrupted leftover text in the
+stripped base selector. Fixed by ordering the longer, more specific alternatives first — the same
+category of ordering bug already caught once this session in `inferRequestBodyFields.ts`'s own
+pattern design. Verified live against a fresh fixture built specifically to stress both fixes at
+once (an unconditional animation shared by two selectors, a hover-gated animation, an
+unconditional transition, and a transition whose duration is declared directly on the `:hover`
+rule itself, not the base selector) — the generated contract doc correctly rendered
+`` `.hero` → `fade-in` (unconditional) ``, `` `.badge` → `fade-in` (unconditional) ``,
+`` `.button:hover` → `shake` (:hover) ``, `` `.card` (unconditional) ``, and
+`` `.link:hover` (:hover) `` — every case labeled correctly, including the two that would have
+been silently missing entirely before the detection fix.
+
+Considered and explicitly deferred in the same conversation: using a live Claude-in-Chrome session
+to actually interact with a page (hover, click) and cross-reference its observations against the
+Playwright screenshot and this static CSS extraction, for richer context on behavior static
+analysis can't see at all (multi-step JS state machines, scroll-triggered effects, anything
+without a clean CSS-rule signature). That's a real LLM call driving real interaction — the same
+cost/non-determinism bucket as the existing opt-in vision-classification feature, not something to
+fold into a deterministic fix. The trigger-condition gap specifically didn't need it: the answer
+was sitting in data already being read, for free. Worth a future, separately-scoped increment for
+the cases that genuinely need it, once it's clear the cheaper fixes aren't sufficient — not
+designed further here.
 
 ## Bottom line
 
