@@ -110,6 +110,23 @@ right: showing that a field is an untransformed passthrough is real signal too, 
 tests were fixed to match the verified-correct behavior. Confirmed live against a fresh fixture
 reproducing the exact same-file pattern. See "Response value-format hints," below.
 
+Every fix above had only ever been verified by checking the pipeline's *output* directly — never
+by confirming a fresh, genuinely blind rebuild agent actually changes its behavior because of it,
+which is the real evidence the original `note`-vs-`message` finding rested on. That gap is now
+closed: a new app (`notarybox`), built with a same-file backend so every fix fully applies, was
+put through a real blind rebuild (source relocated, fresh Haiku agent, zero access). Read directly
+from the rebuild's restored source, not its self-report: `name`, `message`, and
+`created_at: new Date().toISOString()` — the exact field names and expression the enriched
+contract documented, confirmed a second way by running an identical `POST` against both apps side
+by side and getting field-name- and format-identical JSON back. The fixes demonstrably changed
+what a blind agent built, not just what the contract said. Two real divergences the same
+experiment surfaced, neither addressed by anything shipped: a status-code miss (`200` vs. the
+original's `201`, with no reconciliation signal to have caught it), and a missing validation rule
+entirely (the rebuild accepts an incomplete request the original correctly rejects with `400`) —
+the second one reconfirms an already-named limitation (generated tests only check crash-safety,
+not business rules) with a fresh, concrete example, not a new discovery. See "Closing the evidence
+gap," below.
+
 Both `driftlight` bugs above are now fixed: captures neutralize animations/transitions and add a
 bounded settle wait (baked into the generated test template too, not just the original capture) so
 the screenshot and DOM-text no longer disagree, and a new contract-doc section documents declared
@@ -1464,6 +1481,55 @@ shows `` `created_at` — computed as: `new Date().toISOString()` `` and `` `nam
 `typeof body?.name === 'string' ? body.name : ''` ``, while `id` (a trivial literal) renders with
 no clause at all — exactly the designed, traced behavior, confirmed against a real pipeline run,
 not just unit tests.
+
+## Closing the evidence gap: does a fresh blind rebuild actually use the improved contract, not just receive it?
+
+Every fix above was verified by checking the pipeline's *output* — the contract doc's content, the
+generated test's body — directly. None of them had been verified by putting a fresh, genuinely
+blind rebuild agent in front of the improved contract and confirming it actually *changes what the
+agent builds*. That's a real, different kind of evidence, and it's the one the original `note`-vs-
+`message` finding actually rested on. This closes that gap: a new app, `notarybox`, built
+specifically so the fixes fully apply (backend logic same-file, no separate data layer — the one
+scope boundary every fix above shares), manually curl-verified correct, run through the real
+pipeline, source genuinely relocated out of the filesystem, and handed to a fresh Haiku agent with
+zero access to it — the same blind-rebuild discipline as every other experiment this session, not
+loosened for convenience.
+
+**The core result is genuinely positive, not assumed.** Read directly from the rebuild's own
+source (not its self-report) after restoring the original: `name`, `message`, and
+`created_at: new Date().toISOString()` — the exact field names and exact timestamp-producing
+expression the enriched contract documented, not a re-guess. Confirmed a second way, independent of
+reading source: running an identical `POST` against both apps side by side returned field-name-
+and format-identical JSON (`{"id":1,"name":"Parker","message":"...","created_at":"2026-08-
+01T10:24:22...Z"}` from both, ISO-8601-with-milliseconds matching on both sides). **The fixes did
+exactly what they were built to do** — this is the missing piece of evidence, not an assumption.
+
+**Two real divergences the same experiment surfaced, neither fixed by anything shipped so far, both
+worth naming plainly rather than let the positive result overshadow them:**
+
+1. **Status code: `201` (original) vs `200` (rebuild).** The rebuild's success response never sets
+   an explicit status, so it defaults to `200`. `ingest_repo` found zero comment/TODO signals for
+   this route, so there was no reconciliation-based claim pinning the expected status — nothing in
+   the current pipeline captures "this route should return 201," field-name/format fixes included.
+   A real, minor, unaddressed gap.
+2. **Missing validation, a more significant miss.** The original app rejects a `POST` missing
+   `message` with `400` and an error body. The rebuild has no such check at all — it silently
+   creates a note with `message: ""` and returns `200`. Confirmed live: identical incomplete
+   requests against both apps get `400` from the original, `200` (with a half-empty record
+   created) from the rebuild. This isn't something any fix in this document could have caught —
+   the generated smoke test only asserts `res.status < 500` (both 200 and 400 satisfy that), and
+   no field-name, value-format, or animation fix touches business-logic validation rules at all.
+   This *reconfirms* an already-named, pre-existing limitation of the current test-generation
+   approach (crash-safety only, not business-rule correctness) with a fresh, concrete, live
+   example, rather than surfacing something new.
+
+**What this settles, and what it doesn't.** The request/response field-name and value-format
+fixes are now validated at the level that actually matters — a fresh, blind rebuild agent changing
+its behavior because of them, not just a correct-looking contract doc. That's real, closed
+evidence, not an assumption carried forward from the original finding. It does not mean "blind
+rebuilds now reliably clone a backend": validation logic, and anything else not captured by field
+names/shapes/formats, remains fully exposed to a blind rebuild's own guessing, with nothing in the
+current pipeline giving it a signal either way.
 
 ## Settling animations before capture, and a new limitation found the moment a rebuild agent actually used the result
 
