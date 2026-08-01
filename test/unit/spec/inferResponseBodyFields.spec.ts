@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { inferResponseBodyFields } from '../../../src/spec/inferResponseBodyFields.js';
+import { inferResponseBodyFields, inferResponseValueFormatHints } from '../../../src/spec/inferResponseBodyFields.js';
 import type { RouteEntry } from '../../../src/ingest/evidenceSchema.js';
 
 function route(overrides: Partial<RouteEntry> = {}): RouteEntry {
@@ -117,5 +117,123 @@ describe('inferResponseBodyFields', () => {
       }
     `;
     expect(inferResponseBodyFields(source, route())).toEqual([]);
+  });
+});
+
+describe('inferResponseValueFormatHints', () => {
+  it('shows an expression written inline directly in the response literal', () => {
+    const source = `
+      export async function POST(request) {
+        return NextResponse.json({ created_at: new Date().toISOString() });
+      }
+    `;
+    expect(inferResponseValueFormatHints(source, route())).toEqual({ created_at: 'new Date().toISOString()' });
+  });
+
+  it('traces a shorthand property back to its local declaration in the same handler', () => {
+    const source = `
+      export async function POST(request) {
+        const created_at = new Date().toISOString();
+        return NextResponse.json({ id: 1, created_at });
+      }
+    `;
+    expect(inferResponseValueFormatHints(source, route())).toEqual({ created_at: 'new Date().toISOString()' });
+  });
+
+  it('shows a hint for a keyed property whose inline value is a real (non-trivial) expression, including a simple request-body passthrough', () => {
+    // Not just server-generated values — any real expression is shown
+    // verbatim, matching the "verbatim from source, never a paraphrase"
+    // philosophy. A plain passthrough like `body.name` is still genuine,
+    // accurate information (it tells a rebuild agent this field is NOT
+    // transformed, just forwarded) — no special-casing to suppress it.
+    const source = `
+      export async function POST(request) {
+        const body = await request.json();
+        return NextResponse.json({ name: body.name });
+      }
+    `;
+    expect(inferResponseValueFormatHints(source, route())).toEqual({ name: 'body.name' });
+  });
+
+  it('suppresses a shorthand property traced to a trivial literal', () => {
+    const source = `
+      export async function POST(request) {
+        const id = 1;
+        return NextResponse.json({ id });
+      }
+    `;
+    expect(inferResponseValueFormatHints(source, route())).toEqual({});
+  });
+
+  it('suppresses an inline trivial literal', () => {
+    const source = `
+      export async function POST(request) {
+        return NextResponse.json({ id: 1, label: 'fixed' });
+      }
+    `;
+    expect(inferResponseValueFormatHints(source, route())).toEqual({});
+  });
+
+  it('suppresses a shorthand property with no local const/let declaration (e.g. destructured from the request)', () => {
+    const source = `
+      export async function POST(request) {
+        const { name } = await request.json();
+        return NextResponse.json({ name });
+      }
+    `;
+    expect(inferResponseValueFormatHints(source, route())).toEqual({});
+  });
+
+  it('suppresses a chained alias — only one level of aliasing is resolved, and a bare alias is not informative', () => {
+    const source = `
+      export async function POST(request) {
+        const x = new Date().toISOString();
+        const created_at = x;
+        return NextResponse.json({ created_at });
+      }
+    `;
+    expect(inferResponseValueFormatHints(source, route())).toEqual({});
+  });
+
+  it('only attaches hints to fields that actually have a traceable expression, leaving other fields out entirely', () => {
+    const source = `
+      export async function POST(request) {
+        const created_at = new Date().toISOString();
+        return NextResponse.json({ id: 1, created_at });
+      }
+    `;
+    const hints = inferResponseValueFormatHints(source, route());
+    expect(hints).toEqual({ created_at: 'new Date().toISOString()' });
+    expect(hints).not.toHaveProperty('id');
+  });
+
+  it('extracts hints from the real fieldnotes-shape idiom (type-asserted body reads, plus a same-file local declaration) for every field with a real expression', () => {
+    // Not just the server-generated created_at field — name/message trace
+    // back to genuine, non-trivial expressions too (the defensive
+    // type-narrowing casts), and showing them is accurate, not noise: it
+    // tells a rebuild agent those two fields are plain request passthroughs,
+    // which is real signal, distinct from created_at's actual computation.
+    const source = `
+      export async function POST(request) {
+        let body;
+        try {
+          body = await request.json();
+        } catch {
+          return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+        }
+        const name = (body as Record<string, unknown> | null)?.name;
+        const message = (body as Record<string, unknown> | null)?.message;
+        if (!name || !message) {
+          return NextResponse.json({ error: 'name and message are both required' }, { status: 400 });
+        }
+        const created_at = new Date().toISOString();
+        return NextResponse.json({ id: 1, name, message, created_at }, { status: 201 });
+      }
+    `;
+    expect(inferResponseValueFormatHints(source, route())).toEqual({
+      name: '(body as Record<string, unknown> | null)?.name',
+      message: '(body as Record<string, unknown> | null)?.message',
+      created_at: 'new Date().toISOString()'
+    });
   });
 });

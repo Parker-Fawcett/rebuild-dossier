@@ -104,38 +104,118 @@ function topLevelColonIndex(entry: string): number {
   return -1;
 }
 
-function extractObjectLiteralKeys(literalText: string): string[] {
+interface ObjectLiteralEntry {
+  key: string;
+  // For a shorthand property this equals `key` itself; for a keyed property
+  // it's the text after the top-level colon. Shared by inferResponseBodyFields
+  // (uses only .key, unchanged public behavior) and
+  // inferResponseValueFormatHints (uses .valueExpression too) — kept in one
+  // place so the two never silently diverge on what counts as an entry.
+  valueExpression: string;
+}
+
+function extractObjectLiteralEntries(literalText: string): ObjectLiteralEntry[] {
   const inner = literalText.slice(1, -1); // strip outer { }
-  const keys: string[] = [];
+  const entries: ObjectLiteralEntry[] = [];
   for (const entry of splitTopLevelEntries(inner)) {
     if (entry.startsWith('...')) continue; // spread — no key name available
     const colonIndex = topLevelColonIndex(entry);
     if (colonIndex === -1) {
-      if (IDENTIFIER_PATTERN.test(entry)) keys.push(entry); // shorthand property
+      if (IDENTIFIER_PATTERN.test(entry)) entries.push({ key: entry, valueExpression: entry }); // shorthand property
       continue;
     }
     const key = entry.slice(0, colonIndex).trim();
-    if (IDENTIFIER_PATTERN.test(key)) keys.push(key); // drops computed/quoted-string keys
+    if (IDENTIFIER_PATTERN.test(key)) {
+      entries.push({ key, valueExpression: entry.slice(colonIndex + 1).trim() }); // drops computed/quoted-string keys
+    }
   }
-  return keys;
+  return entries;
 }
 
-function extractFieldNames(handlerBody: string): string[] {
-  const found = new Set<string>();
+// Shared by both public functions below: finds every response-construction
+// call in the handler body and returns each one's literal-object argument's
+// entries (skipping non-literal/unbalanced arguments the same way both
+// callers already did independently before this refactor).
+function literalEntriesFromResponseCalls(handlerBody: string): ObjectLiteralEntry[] {
+  const entries: ObjectLiteralEntry[] = [];
   for (const m of handlerBody.matchAll(RESPONSE_CALL_PATTERN)) {
     const callOpenIndex = m.index + m[0].length - 1; // position of the call's own "("
     const arg = firstArgument(handlerBody, callOpenIndex);
     if (!arg || !arg.startsWith('{')) continue; // not a literal — honest bail-out, not a guess
     const closeIndex = findMatchingClose(arg, 0, '{', '}');
     if (closeIndex !== arg.length - 1) continue; // unbalanced — don't guess with a partial slice
-    extractObjectLiteralKeys(arg).forEach((key) => found.add(key));
+    entries.push(...extractObjectLiteralEntries(arg));
   }
-  return [...found];
+  return entries;
 }
 
 export function inferResponseBodyFields(sourceCode: string, route: RouteEntry): string[] {
   if (route.kind !== 'api') return [];
   const handlerBody = isolateHandlerBody(sourceCode, route);
   if (!handlerBody) return [];
-  return extractFieldNames(handlerBody);
+  const found = new Set<string>();
+  literalEntriesFromResponseCalls(handlerBody).forEach((entry) => found.add(entry.key));
+  return [...found];
+}
+
+// Companion to inferResponseBodyFields above — same scope, same source, same
+// "documentation only, never asserted" philosophy, but answers a different
+// question: not just that a field exists, but how its value is actually
+// produced (e.g. `created_at` via `new Date().toISOString()`). Shows the
+// real source expression verbatim — no curated pattern classifier, no
+// guessing at meaning — matching generateContracts.ts's own "verbatim from
+// source, never a paraphrase" philosophy (sourceLine).
+//
+// Additional named limitations beyond inferResponseBodyFields's own list:
+// 7. A shorthand/bare-identifier value is traced back to its most recent
+//    `const`/`let` declaration in the SAME handler — a later plain
+//    reassignment (`created_at = ...;` without a keyword) isn't tracked,
+//    since JS doesn't repeat the keyword on reassignment and distinguishing
+//    "reassigned before this point" from "reassigned after" would need real
+//    control-flow analysis.
+// 8. Only one level of variable aliasing is resolved — if the traced
+//    expression is itself just another bare identifier, no hint is shown
+//    (an alias name alone isn't informative over the field name itself).
+// 9. A field whose value is a plain literal (a number, string, boolean, or
+//    null/undefined) never gets a hint — "computed as: `1`" isn't a format
+//    worth documenting.
+const TRIVIAL_LITERAL_PATTERN = /^(?:-?\d+(\.\d+)?|(['"`]).*\2|true|false|null|undefined)$/;
+
+function isTrivialLiteral(expr: string): boolean {
+  return TRIVIAL_LITERAL_PATTERN.test(expr.trim());
+}
+
+function escapeRegExpLiteral(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function findLocalDeclarationExpr(handlerBody: string, varName: string): string | null {
+  const pattern = new RegExp(`(?:const|let)\\s+${escapeRegExpLiteral(varName)}\\s*=\\s*([^;]+);`, 'g');
+  let lastMatch: RegExpExecArray | null = null;
+  for (const m of handlerBody.matchAll(pattern)) lastMatch = m;
+  return lastMatch ? lastMatch[1]!.trim() : null;
+}
+
+function formatHintForExpression(handlerBody: string, valueExpression: string): string | undefined {
+  let expr = valueExpression;
+  if (IDENTIFIER_PATTERN.test(expr)) {
+    const traced = findLocalDeclarationExpr(handlerBody, expr);
+    if (!traced) return undefined; // no local declaration found (e.g. destructured from the request, a param) — nothing to show
+    expr = traced;
+    if (IDENTIFIER_PATTERN.test(expr)) return undefined; // still just an alias after one level — not informative enough to show
+  }
+  if (isTrivialLiteral(expr)) return undefined;
+  return expr;
+}
+
+export function inferResponseValueFormatHints(sourceCode: string, route: RouteEntry): Record<string, string> {
+  if (route.kind !== 'api') return {};
+  const handlerBody = isolateHandlerBody(sourceCode, route);
+  if (!handlerBody) return {};
+  const hints: Record<string, string> = {};
+  for (const entry of literalEntriesFromResponseCalls(handlerBody)) {
+    const hint = formatHintForExpression(handlerBody, entry.valueExpression);
+    if (hint) hints[entry.key] = hint; // last write wins across multiple return sites, same as field-name unioning elsewhere in this file
+  }
+  return hints;
 }

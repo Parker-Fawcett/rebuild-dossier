@@ -4,7 +4,7 @@ import type { RouteEntry } from '../ingest/evidenceSchema.js';
 import type { AssetManifestEntry } from './assetManifestSchema.js';
 import type { PageStylesheetAnimations, SkippedPage } from './generatePageTests.js';
 import { inferRequestBodyFields } from './inferRequestBodyFields.js';
-import { inferResponseBodyFields } from './inferResponseBodyFields.js';
+import { inferResponseBodyFields, inferResponseValueFormatHints } from './inferResponseBodyFields.js';
 import { METHODS_WITH_BODY } from './routeTestAssertions.js';
 
 export interface GeneratedFile {
@@ -71,6 +71,7 @@ function inferredResponseFieldsSection(repoPath: string, route: RouteEntry): str
   const text = readFileSync(join(repoPath, route.file), 'utf-8');
   const fields = inferResponseBodyFields(text, route);
   if (fields.length === 0) return undefined;
+  const formatHints = inferResponseValueFormatHints(text, route);
   return [
     '## Inferred response body fields (best-effort, not verified)',
     '',
@@ -78,9 +79,14 @@ function inferredResponseFieldsSection(repoPath: string, route: RouteEntry): str
     'directly in this file. This is a v1, regex-based heuristic scoped to same-file literal',
     'construction only — a response built by calling a separate function (e.g. a data-layer',
     'helper) is invisible to it, and fields from different return sites (e.g. an error response',
-    'and a success response) are combined without distinguishing which belongs to which.',
+    'and a success response) are combined without distinguishing which belongs to which. Where a',
+    'field\'s value traces to a real expression (not a plain literal), its source is shown',
+    'verbatim, not paraphrased — this includes plain request passthroughs, not just',
+    'server-computed values, since knowing a field is NOT transformed is real signal too.',
     '',
-    fields.map((f) => `- \`${f}\``).join('\n'),
+    fields
+      .map((f) => (formatHints[f] ? `- \`${f}\` — computed as: \`${formatHints[f]}\`` : `- \`${f}\``))
+      .join('\n'),
     ''
   ].join('\n');
 }

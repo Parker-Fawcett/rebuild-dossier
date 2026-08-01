@@ -193,6 +193,54 @@ describe('generateContracts', () => {
     }
   });
 
+  it('adds a "computed as" clause when a response field traces to a real value expression', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(
+        join(dir, 'route.ts'),
+        [
+          "export async function POST(request) {",
+          '  const created_at = new Date().toISOString();',
+          '  return NextResponse.json({ id: 1, created_at }, { status: 201 });',
+          '}'
+        ].join('\n')
+      );
+      const routes: RouteEntry[] = [{ path: '/api/notes', method: 'POST', file: 'route.ts', kind: 'api', startLine: 1 }];
+
+      const files = generateContracts(dir, routes);
+
+      expect(files[0]?.content).toContain('`created_at` — computed as: `new Date().toISOString()`');
+      // `id` has no traceable expression (a plain literal) — rendered plainly, no clause.
+      expect(files[0]?.content).toContain('- `id`\n');
+      expect(files[0]?.content).not.toContain('`id` — computed as');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('renders the response-fields section exactly as before when no field has a traceable value expression', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(
+        join(dir, 'server.ts'),
+        [
+          "import express from 'express';",
+          '',
+          "app.post('/api/notes', (req, res) => {",
+          '  res.status(201).json({ id: 1, name, message });',
+          '});'
+        ].join('\n')
+      );
+      const routes: RouteEntry[] = [{ path: '/api/notes', method: 'POST', file: 'server.ts', kind: 'api', startLine: 3 }];
+
+      const files = generateContracts(dir, routes);
+
+      expect(files[0]?.content).not.toContain('computed as');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('omits the inferred-response-body-fields section when the response is built by calling a separate function', () => {
     const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
     try {
