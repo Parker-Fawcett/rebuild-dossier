@@ -1,6 +1,6 @@
 # rebuild-dossier v0: findings
 
-**Status:** v0 built (6 MCP tools, 387 unit tests), validated end-to-end against **two real,
+**Status:** v0 built (6 MCP tools, 398 unit tests), validated end-to-end against **two real,
 structurally different apps** (Madeline — Next.js client-side gate pattern; catchandtrade — a
 real Prisma+Postgres+Stripe+eBay-backed API app), across **two model tiers** (Sonnet, Haiku),
 with a precisely-characterized weak-model failure boundary and a security-hardening pass
@@ -97,6 +97,18 @@ finalizing the design, then confirmed live against a fixture built specifically 
 route with an inline response gets its fields extracted, a sibling route delegating to an imported
 helper function correctly gets no section at all. See "Closing the response-body-shape gap,"
 below.
+
+The value-format half of that same gap is now closed too — a field name alone never explained the
+original finding's real divergence (`new Date().toISOString()` vs. SQLite's `datetime('now')`).
+`inferResponseValueFormatHints` traces each field back to a real, traceable value-producing
+expression (inline, or via a same-function local declaration — the more common
+compute-once-use-via-shorthand style, matching the real `createNote()`'s own shape) and shows it
+verbatim in the contract doc. Every edge case was traced against concrete examples before a line
+was written; writing the tests then caught a real assumption error before it shipped — three tests
+expected request-body passthrough fields to get no hint, all three failed, and the failure was
+right: showing that a field is an untransformed passthrough is real signal too, not noise, so the
+tests were fixed to match the verified-correct behavior. Confirmed live against a fresh fixture
+reproducing the exact same-file pattern. See "Response value-format hints," below.
 
 Both `driftlight` bugs above are now fixed: captures neutralize animations/transitions and add a
 bounded settle wait (baked into the generated test template too, not just the original capture) so
@@ -1367,7 +1379,8 @@ request body to lean on in the first place. This increment closes that remaining
 response construction (`NextResponse.json({...})`, `res.json({...})`,
 `res.status(n).json({...})`), surfaced as a second "Inferred response body fields" section in the
 generated contract doc. Value-format inference (e.g. detecting *how* a timestamp is produced, not
-just that the field exists) stays out of scope, named as separate future work, not built here.
+just that the field exists) was scoped out here, named as separate future work — since closed, see
+"Response value-format hints," below.
 
 **A real, consequential scope decision was surfaced and confirmed before writing any code, not
 discovered painfully afterward this time.** Response construction is very commonly delegated to a
@@ -1404,6 +1417,53 @@ handler's function body from its file) was needed by both the request- and respo
 extractors, and had to keep meaning exactly the same thing for both — so it was pulled out of
 `inferRequestBodyFields.ts` into its own shared module, `isolateHandlerSource.ts`, rather than
 duplicated. A future fix to isolation logic now can't silently diverge between the two consumers.
+
+## Response value-format hints: how a field's value is produced, not just that it exists
+
+Field names alone don't close the gap the original finding actually turned up: knowing a field is
+called `created_at` gives a rebuild agent zero signal about *how* to produce its value, and the
+real divergence was exactly that — `new Date().toISOString()` in the original app vs. SQLite's
+`datetime('now')` in the rebuild. This increment closes it: for each response field,
+`inferResponseValueFormatHints` traces back to a real, traceable value-producing expression and
+shows it **verbatim** in the contract doc — no curated pattern classifier, no guessing at meaning,
+matching `generateContracts.ts`'s existing "verbatim from source, never a paraphrase" philosophy
+(the same one `sourceLine` already uses for the signature line).
+
+**A real, consequential scope decision, surfaced and confirmed before designing further, same
+discipline as the field-name fix.** Two levels were possible: (a) only expressions written inline
+directly in the response literal, or (b) also tracing a shorthand/bare-identifier field back to its
+most recent `const`/`let` declaration earlier in the same handler — the more common real-world
+style (compute once, use via shorthand), and the exact shape of the real `fieldnotes` app's
+`createNote()`. Confirmed: (b). **Named plainly, not glossed over: even with this scope, that
+specific historical case still isn't resolved directly** — `createNote()` lives in a separate file,
+and cross-file resolution is already a named, deferred limitation from the field-name fix. This
+closes the *pattern*, not that one specific instance.
+
+**Every edge case traced against concrete examples before a single line was written, not assumed**
+— six cases, all confirmed correct: an inline expression; a shorthand property traced to its
+declaration; a shorthand traced to a *trivial* literal (suppressed — `computed as: `1`` isn't a
+format worth documenting); an inline trivial literal (also suppressed); a shorthand field with no
+local declaration at all, e.g. destructured directly from the request (nothing to show, honestly);
+and a chained alias (`const x = ...; const created_at = x;`) — deliberately suppressed too, since
+only one level of aliasing is resolved and showing a bare alias name isn't more informative than
+the field name itself.
+
+**Writing the tests surfaced a real assumption error before it shipped, caught by the tests
+failing, not by further guessing.** Three tests were first written expecting request-body
+passthrough fields (e.g. `name` derived from `body.name`) to get *no* hint, on the assumption this
+feature was only about server-generated values. All three failed — the actual traced logic
+correctly shows a hint for `body.name` too, since it's a real, non-trivial expression. Reconsidered
+rather than patched around: showing it is *correct*, not noise — telling a rebuild agent a field is
+a plain, untransformed passthrough is real signal, distinct from a field that's actually computed.
+The tests were fixed to match the verified-correct behavior, not the other way around.
+
+**Verified live** against a fresh fixture reproducing the exact `createNote()`-shaped pattern in a
+single file (`const created_at = new Date().toISOString(); ... return NextResponse.json({ id: 1,
+name, created_at })`, manually curl-verified correct first): the generated contract doc correctly
+shows `` `created_at` — computed as: `new Date().toISOString()` `` and `` `name` — computed as:
+`typeof body?.name === 'string' ? body.name : ''` ``, while `id` (a trivial literal) renders with
+no clause at all — exactly the designed, traced behavior, confirmed against a real pipeline run,
+not just unit tests.
 
 ## Settling animations before capture, and a new limitation found the moment a rebuild agent actually used the result
 
