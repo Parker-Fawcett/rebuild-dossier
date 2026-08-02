@@ -1,6 +1,6 @@
 # rebuild-dossier v0: findings
 
-**Status:** v0 built (6 MCP tools, 411 unit tests), validated end-to-end against **two real,
+**Status:** v0 built (6 MCP tools, 425 unit tests), validated end-to-end against **two real,
 structurally different apps** (Madeline — Next.js client-side gate pattern; catchandtrade — a
 real Prisma+Postgres+Stripe+eBay-backed API app), across **two model tiers** (Sonnet, Haiku),
 with a precisely-characterized weak-model failure boundary and a security-hardening pass
@@ -159,6 +159,24 @@ mishandled. Merged additively into the existing request-fields contract section 
 "required (checked via: ...)" clause per field, confirmed live against a fresh fixture run through
 the real `ingest_repo` → `generate_spec` pipeline, not just unit tests. See "Closing part of the
 missing-validation gap," below.
+
+The single most-repeated limitation in this document is now closed too: a route whose response is
+built by calling an imported function (`NextResponse.json(createNote(name, message))`, delegating
+to a `lib/db.ts` data layer — the real motivating app's own shape, deferred twice already as "a
+materially bigger, riskier increment than same-file extraction") got no response-fields section at
+all. `resolveDelegatedResponseFields.ts` follows one level of same-repo relative import — resolving
+named and aliased imports, isolating the callee's own function body, and unioning fields across its
+return sites, the same accepted risk as the same-file extractor — deliberately scoped to the
+response side only, since the real motivating app's request fields and validation guard are both
+already same-file. Bare package imports and tsconfig path aliases (`@/lib/db`) are left alone, not
+guessed at. **Live pipeline verification caught a real gap the design and unit tests had both
+missed:** the fixture's callee built its response in a local variable, did a side effect, then
+returned the variable (`const note = {...}; notes.push(note); return note;`) — a real, common
+pattern neither the traced design nor its unit tests had covered, since every earlier trace used a
+direct `return {...}`. Fixed by tracing a bare `return someVar;` back to its local declaration one
+level deep, the same aliasing discipline `formatHintForExpression` already uses for individual
+field values, now applied to the whole return statement — re-verified live afterward, not just
+patched and assumed correct. See "Resolving cross-file delegated response construction," below.
 
 ## The hypothesis being tested
 
@@ -1708,6 +1726,77 @@ other scope decision in this document follows. The `notarybox` experiment's *oth
 divergence — the `201`-vs-`200` status-code miss, with no reconciliation signal to have caught it
 — also remains untouched by this fix; it's a different kind of gap (an outcome-level assertion, not
 a request-shape guard) and isn't addressed here.
+
+## Resolving cross-file delegated response construction
+
+Every response-side fix shipped before this one — `inferResponseBodyFields`,
+`inferResponseValueFormatHints` — shared the exact same boundary: they only see a response literal
+built directly in the route handler's own file. This was the single most-repeated limitation in
+this document, named explicitly, twice, as deliberately deferred: "a response built by calling a
+separate function (e.g. a data-layer helper) is invisible to it... a materially bigger, riskier
+increment than same-file extraction." The real motivating app's own shape is exactly this —
+`route.ts` calling `createNote()`/`listNotes()` from a `lib/db.ts` data layer — and it got **no
+response-fields section at all** until now.
+
+**Deliberately scoped to the response side only, not "cross-file resolution" in general.** The
+real motivating app's request-side field extraction already works today — the handler destructures
+`name`/`message` from the body itself before delegating — and its validation guard is also
+same-file (the `notarybox` finding). Extending cross-file resolution to request fields or
+validation rules would be speculative, not evidence-driven, so both are named as deferred future
+work rather than spec-built ahead of a confirmed real gap.
+
+**Design traced against seven real shapes via a throwaway Node script before any real code was
+written**, matching the discipline used for every fix this session. `resolveDelegatedResponseFields.ts`:
+detects a response call whose argument is a bare function call, not a literal
+(`createNote(name, message)`, correctly never firing at all for the literal responses the existing
+extractor already handles); searches the full file for a named import bringing that function into
+scope, resolving an alias back to its real exported name; resolves only relative specifiers
+(`./`, `../`) against the route file's own directory, trying standard extension and index-file
+fallbacks — a bare package import (`from 'uuid'`) or a tsconfig path alias (`from '@/lib/db'`) is
+correctly left unresolved, not guessed at; isolates the resolved function's body (`export function
+name(...) {}` or `export const name = (...) => {}` with a block body); and unions fields across all
+of its `return {...}` sites, the same accepted "combined, not distinguished by call path" risk the
+same-file extractor already carries. A callee returning a bare array (the real `listNotes()`
+GET-list shape) correctly yields zero fields, not a wrong guess — matching the existing, already-
+accepted "bare variable/array response is invisible" limitation, now applied one file over.
+Value-format hints trace against the *callee's own body*, not the caller's — this is what makes
+`created_at: new Date().toISOString()`, declared inside `createNote()` itself, resolve correctly
+with no parameter-name mapping needed across the call boundary at all, since the callee's return
+statement already uses its own local names, self-contained.
+
+**Live pipeline verification caught a real design gap immediately, not eventually.** All seven
+traced cases and all twelve unit tests passed cleanly — then a live re-run against a fresh
+two-file fixture through the actual `ingest_repo` → `generate_spec` pipeline came back with an
+empty response-fields section where one was expected. The fixture's `createNote()` didn't `return
+{...}` directly; it built the object in a local variable, pushed it onto an in-memory array as a
+side effect, then returned the variable (`const note = {...}; notes.push(note); return note;`) —
+an entirely realistic pattern (build, use for a side effect, then return) that every earlier traced
+case had missed, since all seven used a direct literal return. **Not patched around or the fixture
+quietly simplified to dodge it** — fixed at the design level: a bare `return someVar;` is now traced
+back to its most recent local declaration in the same callee body, exactly the same one-level
+aliasing discipline `formatHintForExpression` already applies to individual field values, just
+applied to the whole return statement instead. Two new regression tests were added for this shape
+(the build-then-return case, and confirming a chained alias — a return that traces to *another*
+bare identifier — is still correctly not followed beyond one level), and the live fixture was
+re-run afterward to confirm the fix, not assumed correct from the unit tests alone.
+
+**Verified live, both routes of the same two-file fixture, through the real `ingest_repo` →
+`generate_spec` pipeline.** The `POST` route (delegating to `createNote()`) correctly rendered all
+four resolved fields, the `computed as:` hint for `created_at`, and an explicit note identifying
+the cross-file resolution (`` *This route's response is built by calling `createNote()`, imported
+from `lib/db.ts`...* ``) — transparent about where the claim actually came from, matching this
+document's established "state a claim's source and confidence plainly" style. The sibling `GET`
+route (delegating to `listNotes()`, which returns a bare array) correctly omitted the section
+entirely, exactly as before — confirming the fallback is purely additive and doesn't misfire on the
+shape it's still honestly unable to resolve.
+
+**What this closes, and what it doesn't.** A rebuild agent reading this contract for a delegated
+route now has real field-name and value-format signal it had none of before — closing the most
+consequential, most-repeated gap named in this entire document. It remains single-hop only (a
+callee that itself delegates to a third file is not followed further), relative-import-only (no
+tsconfig path aliases), and scoped to the response side (request-field and validation-rule
+cross-file resolution remain deferred, un-evidenced future work) — named limitations, not silent
+gaps.
 
 ## Bottom line
 
