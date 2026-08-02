@@ -6,6 +6,7 @@ import type { PageStylesheetAnimations, SkippedPage } from './generatePageTests.
 import { inferRequestBodyFields } from './inferRequestBodyFields.js';
 import { inferRequestValidationRules } from './inferRequestValidationRules.js';
 import { inferResponseBodyFields, inferResponseValueFormatHints } from './inferResponseBodyFields.js';
+import { resolveDelegatedResponseFields } from './resolveDelegatedResponseFields.js';
 import { METHODS_WITH_BODY } from './routeTestAssertions.js';
 
 export interface GeneratedFile {
@@ -69,33 +70,51 @@ function inferredFieldsSection(repoPath: string, route: RouteEntry): string | un
 }
 
 // Companion to inferredFieldsSection above — see inferResponseBodyFields.ts's
-// own header for the full accepted-risk list, most importantly: this only
-// sees a response literal built directly in this file, not one produced by
-// calling a separate (e.g. data-layer) function. Same unguarded-read
+// own header for the full accepted-risk list. Same-file literal construction
+// is tried first; if that finds nothing, resolveDelegatedResponseFields.ts
+// follows one level of same-repo relative import (e.g. `NextResponse.json(
+// createNote(name, message))` delegating to a `lib/db.ts` data layer) as a
+// fallback — see its own header for the full accepted-risk list on that
+// path (relative imports only, single-hop, etc.). Same unguarded-read
 // philosophy as sourceLine/inferredFieldsSection for the same reason.
 function inferredResponseFieldsSection(repoPath: string, route: RouteEntry): string | undefined {
   if (route.kind !== 'api') return undefined;
   const text = readFileSync(join(repoPath, route.file), 'utf-8');
-  const fields = inferResponseBodyFields(text, route);
+  let fields = inferResponseBodyFields(text, route);
+  let formatHints = inferResponseValueFormatHints(text, route);
+  let delegatedNote: string | undefined;
+
+  if (fields.length === 0) {
+    const delegated = resolveDelegatedResponseFields(repoPath, text, route);
+    if (delegated) {
+      fields = delegated.fields;
+      formatHints = delegated.formatHints;
+      delegatedNote = `*This route's response is built by calling \`${delegated.resolvedFrom.functionName}()\`, imported from \`${delegated.resolvedFrom.file}\` — these fields were resolved from that function's own return statement (one level of cross-file resolution), not the route handler's own literal.*`;
+    }
+  }
+
   if (fields.length === 0) return undefined;
-  const formatHints = inferResponseValueFormatHints(text, route);
   return [
     '## Inferred response body fields (best-effort, not verified)',
     '',
     'Static analysis of the handler found these field names in a literal response object built',
-    'directly in this file. This is a v1, regex-based heuristic scoped to same-file literal',
-    'construction only — a response built by calling a separate function (e.g. a data-layer',
-    'helper) is invisible to it, and fields from different return sites (e.g. an error response',
-    'and a success response) are combined without distinguishing which belongs to which. Where a',
-    'field\'s value traces to a real expression (not a plain literal), its source is shown',
-    'verbatim, not paraphrased — this includes plain request passthroughs, not just',
-    'server-computed values, since knowing a field is NOT transformed is real signal too.',
+    'directly in this file, or (when that finds nothing) one level of cross-file resolution',
+    'through a delegated function call. This is a v1, regex-based heuristic, and fields from',
+    'different return sites (e.g. an error response and a success response) are combined without',
+    'distinguishing which belongs to which. Where a field\'s value traces to a real expression',
+    '(not a plain literal), its source is shown verbatim, not paraphrased — this includes plain',
+    'request passthroughs, not just server-computed values, since knowing a field is NOT',
+    'transformed is real signal too.',
     '',
+    delegatedNote,
+    delegatedNote ? '' : undefined,
     fields
       .map((f) => (formatHints[f] ? `- \`${f}\` — computed as: \`${formatHints[f]}\`` : `- \`${f}\``))
       .join('\n'),
     ''
-  ].join('\n');
+  ]
+    .filter((line) => line !== undefined)
+    .join('\n');
 }
 
 // Documentation only — never asserted against, since captures and generated

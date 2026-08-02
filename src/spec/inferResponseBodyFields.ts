@@ -40,7 +40,7 @@ import { isolateHandlerBody } from './isolateHandlerSource.js';
 // 6. Only recognizes the conventional `NextResponse`/`Response`/`res`
 //    receiver names — a differently-named response object is invisible.
 
-const IDENTIFIER_PATTERN = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+export const IDENTIFIER_PATTERN = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 const RESPONSE_CALL_PATTERN = /\b(?:NextResponse|Response|res)\.(?:status\([^)]*\)\.)?json\s*\(/g;
 
 function findMatchingClose(text: string, openIndex: number, openChar: string, closeChar: string): number {
@@ -104,7 +104,7 @@ function topLevelColonIndex(entry: string): number {
   return -1;
 }
 
-interface ObjectLiteralEntry {
+export interface ObjectLiteralEntry {
   key: string;
   // For a shorthand property this equals `key` itself; for a keyed property
   // it's the text after the top-level colon. Shared by inferResponseBodyFields
@@ -114,7 +114,7 @@ interface ObjectLiteralEntry {
   valueExpression: string;
 }
 
-function extractObjectLiteralEntries(literalText: string): ObjectLiteralEntry[] {
+export function extractObjectLiteralEntries(literalText: string): ObjectLiteralEntry[] {
   const inner = literalText.slice(1, -1); // strip outer { }
   const entries: ObjectLiteralEntry[] = [];
   for (const entry of splitTopLevelEntries(inner)) {
@@ -132,16 +132,29 @@ function extractObjectLiteralEntries(literalText: string): ObjectLiteralEntry[] 
   return entries;
 }
 
-// Shared by both public functions below: finds every response-construction
-// call in the handler body and returns each one's literal-object argument's
-// entries (skipping non-literal/unbalanced arguments the same way both
-// callers already did independently before this refactor).
-function literalEntriesFromResponseCalls(handlerBody: string): ObjectLiteralEntry[] {
-  const entries: ObjectLiteralEntry[] = [];
+// Shared by both public functions below and by resolveDelegatedResponseFields.ts
+// (which needs the raw, un-filtered argument text to detect a delegated
+// bare-call response, e.g. `createNote(name, message)`, that this file's own
+// literal-only extraction correctly skips): finds every response-construction
+// call in the handler body and returns each one's raw first-argument text.
+export function findResponseCallArguments(handlerBody: string): string[] {
+  const args: string[] = [];
   for (const m of handlerBody.matchAll(RESPONSE_CALL_PATTERN)) {
     const callOpenIndex = m.index + m[0].length - 1; // position of the call's own "("
     const arg = firstArgument(handlerBody, callOpenIndex);
-    if (!arg || !arg.startsWith('{')) continue; // not a literal — honest bail-out, not a guess
+    if (arg) args.push(arg);
+  }
+  return args;
+}
+
+// Shared by both public functions below: same as findResponseCallArguments,
+// but only entries from arguments that are a real, balanced object literal —
+// skipping non-literal/unbalanced arguments the same way both callers
+// already did independently before this refactor.
+function literalEntriesFromResponseCalls(handlerBody: string): ObjectLiteralEntry[] {
+  const entries: ObjectLiteralEntry[] = [];
+  for (const arg of findResponseCallArguments(handlerBody)) {
+    if (!arg.startsWith('{')) continue; // not a literal — honest bail-out, not a guess
     const closeIndex = findMatchingClose(arg, 0, '{', '}');
     if (closeIndex !== arg.length - 1) continue; // unbalanced — don't guess with a partial slice
     entries.push(...extractObjectLiteralEntries(arg));
@@ -189,14 +202,14 @@ function escapeRegExpLiteral(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function findLocalDeclarationExpr(handlerBody: string, varName: string): string | null {
+export function findLocalDeclarationExpr(handlerBody: string, varName: string): string | null {
   const pattern = new RegExp(`(?:const|let)\\s+${escapeRegExpLiteral(varName)}\\s*=\\s*([^;]+);`, 'g');
   let lastMatch: RegExpExecArray | null = null;
   for (const m of handlerBody.matchAll(pattern)) lastMatch = m;
   return lastMatch ? lastMatch[1]!.trim() : null;
 }
 
-function formatHintForExpression(handlerBody: string, valueExpression: string): string | undefined {
+export function formatHintForExpression(handlerBody: string, valueExpression: string): string | undefined {
   let expr = valueExpression;
   if (IDENTIFIER_PATTERN.test(expr)) {
     const traced = findLocalDeclarationExpr(handlerBody, expr);

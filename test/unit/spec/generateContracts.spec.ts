@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { generateContracts } from '../../../src/spec/generateContracts.js';
@@ -292,7 +292,7 @@ describe('generateContracts', () => {
     }
   });
 
-  it('omits the inferred-response-body-fields section when the response is built by calling a separate function', () => {
+  it('omits the inferred-response-body-fields section when the response is built by calling a separate function with no resolvable import', () => {
     const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
     try {
       writeFileSync(
@@ -306,6 +306,74 @@ describe('generateContracts', () => {
         ].join('\n')
       );
       const routes: RouteEntry[] = [{ path: '/api/notes', method: 'POST', file: 'server.ts', kind: 'api', startLine: 3 }];
+
+      const files = generateContracts(dir, routes);
+
+      expect(files[0]?.content).not.toContain('Inferred response body fields');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('resolves cross-file response fields via one level of relative import when same-file extraction finds nothing', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      mkdirSync(join(dir, 'app', 'api', 'notes'), { recursive: true });
+      mkdirSync(join(dir, 'lib'), { recursive: true });
+      writeFileSync(
+        join(dir, 'app', 'api', 'notes', 'route.ts'),
+        [
+          "import { NextResponse } from 'next/server';",
+          "import { createNote } from '../../../lib/db';",
+          'export async function POST(request) {',
+          '  const { name, message } = await request.json();',
+          '  return NextResponse.json(createNote(name, message), { status: 201 });',
+          '}'
+        ].join('\n')
+      );
+      writeFileSync(
+        join(dir, 'lib', 'db.ts'),
+        [
+          'export function createNote(name, message) {',
+          '  const created_at = new Date().toISOString();',
+          '  return { id: 1, name, message, created_at };',
+          '}'
+        ].join('\n')
+      );
+      const routes: RouteEntry[] = [{ path: '/api/notes', method: 'POST', file: 'app/api/notes/route.ts', kind: 'api', startLine: 3 }];
+
+      const files = generateContracts(dir, routes);
+
+      expect(files[0]?.content).toContain('Inferred response body fields');
+      expect(files[0]?.content).toContain('`created_at` — computed as: `new Date().toISOString()`');
+      expect(files[0]?.content).toContain("resolved from that function's own return statement");
+      expect(files[0]?.content).toContain('`createNote()`');
+      expect(files[0]?.content).toContain('lib/db.ts');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('omits the section when cross-file resolution also finds nothing (e.g. a bare-array GET-list callee)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      mkdirSync(join(dir, 'app', 'api', 'notes'), { recursive: true });
+      mkdirSync(join(dir, 'lib'), { recursive: true });
+      writeFileSync(
+        join(dir, 'app', 'api', 'notes', 'route.ts'),
+        [
+          "import { NextResponse } from 'next/server';",
+          "import { listNotes } from '../../../lib/db';",
+          'export async function GET() {',
+          '  return NextResponse.json(listNotes());',
+          '}'
+        ].join('\n')
+      );
+      writeFileSync(
+        join(dir, 'lib', 'db.ts'),
+        ["export function listNotes() {", "  return db.prepare('SELECT * FROM notes').all();", '}'].join('\n')
+      );
+      const routes: RouteEntry[] = [{ path: '/api/notes', method: 'GET', file: 'app/api/notes/route.ts', kind: 'api', startLine: 3 }];
 
       const files = generateContracts(dir, routes);
 
