@@ -169,6 +169,57 @@ describe('generateContracts', () => {
     }
   });
 
+  it('adds a "required" clause when the handler rejects a missing field with a 4xx response', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(
+        join(dir, 'route.ts'),
+        [
+          'export async function POST(request) {',
+          '  const { name, message } = await request.json();',
+          '  if (!name || !message) {',
+          "    return NextResponse.json({ error: 'name and message are both required' }, { status: 400 });",
+          '  }',
+          '  return NextResponse.json({ id: 1, name, message }, { status: 201 });',
+          '}'
+        ].join('\n')
+      );
+      const routes: RouteEntry[] = [{ path: '/api/notes', method: 'POST', file: 'route.ts', kind: 'api', startLine: 1 }];
+
+      const files = generateContracts(dir, routes);
+
+      expect(files[0]?.content).toContain('`name` — required (checked via: `!name`)');
+      expect(files[0]?.content).toContain('`message` — required (checked via: `!message`)');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('renders the request-fields section exactly as before when no validation guard is present', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(
+        join(dir, 'server.ts'),
+        [
+          "import express from 'express';",
+          '',
+          "app.post('/api/notes', (req, res) => {",
+          '  const { message } = req.body;',
+          '  res.json({ message });',
+          '});'
+        ].join('\n')
+      );
+      const routes: RouteEntry[] = [{ path: '/api/notes', method: 'POST', file: 'server.ts', kind: 'api', startLine: 3 }];
+
+      const files = generateContracts(dir, routes);
+
+      expect(files[0]?.content).toContain('- `message`\n');
+      expect(files[0]?.content).not.toContain('required');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('adds an inferred-response-body-fields section for an API route with a literal response', () => {
     const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
     try {

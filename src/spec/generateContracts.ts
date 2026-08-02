@@ -4,6 +4,7 @@ import type { RouteEntry } from '../ingest/evidenceSchema.js';
 import type { AssetManifestEntry } from './assetManifestSchema.js';
 import type { PageStylesheetAnimations, SkippedPage } from './generatePageTests.js';
 import { inferRequestBodyFields } from './inferRequestBodyFields.js';
+import { inferRequestValidationRules } from './inferRequestValidationRules.js';
 import { inferResponseBodyFields, inferResponseValueFormatHints } from './inferResponseBodyFields.js';
 import { METHODS_WITH_BODY } from './routeTestAssertions.js';
 
@@ -49,14 +50,20 @@ function inferredFieldsSection(repoPath: string, route: RouteEntry): string | un
   const text = readFileSync(join(repoPath, route.file), 'utf-8');
   const fields = inferRequestBodyFields(text, route);
   if (fields.length === 0) return undefined;
+  const validationRules = inferRequestValidationRules(text, route);
   return [
     '## Inferred request body fields (best-effort, not verified)',
     '',
     'Static analysis of the handler found these field names read from the request body. This is',
     'a v1, regex-based heuristic — it can miss renamed destructuring, computed keys, and spread',
-    'patterns, and is not a guarantee of the complete or exact shape.',
+    'patterns, and is not a guarantee of the complete or exact shape. Where the handler rejects a',
+    'missing field with an error response, that is shown too — a v1 heuristic scoped to a single',
+    'falsy-check guard clause (e.g. `if (!name) {...}`), not a guarantee every validation rule the',
+    'handler enforces is captured.',
     '',
-    fields.map((f) => `- \`${f}\``).join('\n'),
+    fields
+      .map((f) => (validationRules[f] ? `- \`${f}\` — required (checked via: \`${validationRules[f]}\`)` : `- \`${f}\``))
+      .join('\n'),
     ''
   ].join('\n');
 }
