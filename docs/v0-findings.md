@@ -1,6 +1,6 @@
 # rebuild-dossier v0: findings
 
-**Status:** v0 built (6 MCP tools, 398 unit tests), validated end-to-end against **two real,
+**Status:** v0 built (6 MCP tools, 411 unit tests), validated end-to-end against **two real,
 structurally different apps** (Madeline — Next.js client-side gate pattern; catchandtrade — a
 real Prisma+Postgres+Stripe+eBay-backed API app), across **two model tiers** (Sonnet, Haiku),
 with a precisely-characterized weak-model failure boundary and a security-hardening pass
@@ -144,6 +144,21 @@ produced) was invisible to detection entirely, not merely unlabeled. Both fixed,
 against realistic selectors before shipping (which caught a real regex-alternation-ordering bug on
 `.input:focus-within`), and confirmed live against a fresh fixture built to stress both at once.
 See "Settling animations before capture," below.
+
+The missing-validation gap the `notarybox` experiment named — the original app rejects a `POST`
+missing a required field with `400`; the blind rebuild had no such check at all — is now partially
+closed: `inferRequestValidationRules.ts` detects the exact real-world guard shape that motivated
+this (`if (!name || !message) { return ...4xx...; }`), cross-referenced against
+`inferRequestBodyFields`'s own known-field set so an unrelated check (an authorization guard, say)
+can't be misreported as a body-field requirement. Ten realistic guard shapes were traced against a
+throwaway script before any real code was written, including one that proved paren-balancing is
+genuinely required, not optional: a naive character-class regex would have truncated a condition
+containing a nested call (`!message.trim()`) mid-expression. `&&`-joined conditions, `typeof`/length
+checks, and brace-less one-liners are all explicitly excluded as deferred, not silently
+mishandled. Merged additively into the existing request-fields contract section as a
+"required (checked via: ...)" clause per field, confirmed live against a fresh fixture run through
+the real `ingest_repo` → `generate_spec` pipeline, not just unit tests. See "Closing part of the
+missing-validation gap," below.
 
 ## The hypothesis being tested
 
@@ -1614,6 +1629,85 @@ fold into a deterministic fix. The trigger-condition gap specifically didn't nee
 was sitting in data already being read, for free. Worth a future, separately-scoped increment for
 the cases that genuinely need it, once it's clear the cheaper fixes aren't sufficient — not
 designed further here.
+
+## Closing part of the missing-validation gap: detecting required-field guards
+
+The `notarybox` blind-rebuild experiment named this as the more significant of its two
+unaddressed divergences: the original app rejects a `POST` missing `message` with `400` and an
+error body; the blind rebuild had no such check at all, silently created a half-empty record, and
+returned `200`. Nothing shipped up to that point touched this — field-name, value-shape, and
+value-format fixes all describe what a response *contains*, never what makes a request *valid*.
+This is a genuinely different kind of signal (a rule, not a shape), and unlike the other gaps this
+document tracks, it's the one most directly threatening to the "functional, not pixel-perfect" bar
+this project is actually aiming for: a rebuild that silently accepts invalid input and corrupts
+state isn't functional, regardless of how close its field names and timestamp formats are.
+
+**Scoped deliberately, same discipline as every prior fix:** ship the exact real-world shape that
+motivated this — `if (!name || !message) { return NextResponse.json({ error: '...' }, { status:
+400 }); }`, the actual `fieldnotes`/`notarybox` handler idiom already used throughout this
+codebase's own tests — and name adjacent shapes as explicitly deferred rather than guess at them.
+`typeof x !== 'string'` checks, `.length === 0`/empty-string checks, Zod or other schema
+validation, and brace-less one-liners (`if (!name) return res.status(400)...;`, a common Express
+idiom) are all recognized as real, common validation shapes that this v1 does not attempt —
+accepted limitations, not oversights.
+
+**A new file, not an extension of `inferRequestBodyFields.ts`.** Guard-clause scanning is a
+genuinely different kind of analysis from property-access/destructuring extraction, so
+`inferRequestValidationRules.ts` gets its own file, matching this codebase's existing
+one-concern-per-file convention. It reuses `isolateHandlerBody` (validation guards must be scoped
+to *this route's own handler*, exactly like the request-field extractor already requires, to avoid
+matching an unrelated `if` in a different exported handler sharing the same file) and — the key
+precision guard — calls `inferRequestBodyFields` itself to get the set of field names actually
+known to be read from the request body for this route. **A negated identifier is only reported as
+a validation rule if it's in that known-field set.** Without this cross-reference, a guard like
+`if (!isAdmin) { return ...403...; }` is structurally identical to a real field-validation guard
+and would otherwise be misreported as "the `isAdmin` field is required," even though `isAdmin` was
+never read from the request body at all — this is an authorization check, not a body-validation
+rule, and the two are easy to conflate from source shape alone.
+
+**Traced against ten realistic guard-clause shapes via a throwaway Node script before any real
+code was written** — the same discipline as every prior fix this session. The real
+`fieldnotes`-shaped `if (!name || !message) {...400...}` idiom correctly flagged both fields; a
+single-field guard flagged correctly; an `&&`-joined condition (`if (!name && !message)`) was
+correctly excluded, since it means "reject only if *both* are missing" — an at-least-one-of-N
+rule, a genuinely different semantic than "each is individually required" that the same per-field
+label would misrepresent; a brace-less Express one-liner was correctly excluded (named v1
+limitation); a guard on a non-body identifier (`isAdmin`) was correctly excluded via the
+cross-reference; a guard whose block returns `200`, not an error, was correctly excluded (nothing
+is actually being rejected); an optionally-chained negation (`!name?.trim()`) correctly resolved to
+its base identifier while showing the full expression verbatim; two separate single-field guards
+in one handler were both flagged independently; a `typeof` check was correctly excluded (different
+shape, deferred); and — the case that proved paren-balancing is genuinely necessary, not a
+nice-to-have — a condition containing a nested call (`!name || !message.trim()`) resolved
+correctly, where a naive `[^)]+`-style regex would have truncated the condition at the `)` inside
+`.trim()` and silently mismatched the guard's actual boundary.
+
+**Merged additively, same proven pattern as the response value-format hints.** Rather than a new
+top-level section, `inferRequestValidationRules`'s result is merged by field name into the
+existing "Inferred request body fields" section: a field with a detected guard gets an extra
+`— required (checked via: ...)` clause, showing the exact guard expression verbatim (matching this
+codebase's established "verbatim from source, never a paraphrase" philosophy); a field without one
+renders exactly as it did before this fix, regression-tested to prove the merge is additive, not a
+reformat.
+
+**Verified live against a fresh fixture run through the actual `ingest_repo` → `generate_spec`
+pipeline**, not just unit tests — a minimal Next.js app with one `POST /api/notes` route
+reproducing the real idiom exactly (including the `try`/`catch` JSON-parse guard alongside the
+field-validation guard). The generated contract doc correctly rendered
+`` `name` — required (checked via: `!name`) `` and `` `message` — required (checked via:
+`!message`) ``, additive alongside the pre-existing field-name list and the response
+value-format-hint section from the earlier fix — nothing else in the doc changed.
+
+**What this closes, and what it doesn't.** A rebuild agent reading this contract now has an
+explicit, verbatim signal that `name` and `message` are required and how the original handler
+checks for it — real information the pipeline gave zero signal about before. It does not close the
+missing-validation gap in general: `&&`-joined rules, type/length/format validation, schema-based
+validation (Zod and similar), and any validation performed in a delegated function in a different
+file remain fully unaddressed, exactly the same "named, not silently skipped" discipline every
+other scope decision in this document follows. The `notarybox` experiment's *other* named
+divergence — the `201`-vs-`200` status-code miss, with no reconciliation signal to have caught it
+— also remains untouched by this fix; it's a different kind of gap (an outcome-level assertion, not
+a request-shape guard) and isn't addressed here.
 
 ## Bottom line
 
