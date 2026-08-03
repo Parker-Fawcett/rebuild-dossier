@@ -1,6 +1,6 @@
 # rebuild-dossier v0: findings
 
-**Status:** v0 built (6 MCP tools, 445 unit tests), validated end-to-end against **two real,
+**Status:** v0 built (6 MCP tools, 453 unit tests), validated end-to-end against **two real,
 structurally different apps** (Madeline — Next.js client-side gate pattern; catchandtrade — a
 real Prisma+Postgres+Stripe+eBay-backed API app), across **two model tiers** (Sonnet, Haiku),
 with a precisely-characterized weak-model failure boundary and a security-hardening pass
@@ -200,6 +200,25 @@ field-name, format, validation-rule, and cross-file extraction for every dynamic
 very first extractor shipped this session — no earlier fixture had combined a dynamic path segment
 with real source reading until this one did. Fixed at the root, with dedicated regression tests, not
 worked around locally. See "Capturing the success-status signal," below.
+
+Stage 2 of the same roadmap broadens validation-guard detection beyond the one shape it covered:
+`inferRequestValidationRules.ts` now also recognizes `typeof x !== 'string'` (type-checking) and an
+explicit `x.length === 0` / `x.length < 1` non-empty check, alongside the existing bare-negation
+guard — each rendering its own contract-doc wording ("must be a `string`" / "must be non-empty" vs.
+"required") rather than forcing every shape into the same label. A positive `typeof x === 'string'`
+guard is deliberately not recognized, since as a *rejection* condition that's inverted, unusual
+logic ("reject if it IS a string"), not the natural "reject if it's NOT the expected type" idiom;
+Zod/schema-based validation remains a separate, structurally different, still-unmotivated future
+stage, not folded in just because it was named in the same breath as the other gaps. The extractor's
+return type changed from a plain string to a small `{ expression, kind, expectedType? }` record — a
+contained, internal-only change (one real consumer) made to avoid re-parsing the same expression a
+second time in the renderer, with both the consumer and all existing tests updated in the same
+pass. Ten branch shapes were traced via a throwaway script before any real code was written,
+including the exact combined shape this stage exists for
+(`if (!name || typeof message !== 'string') {...}`), then confirmed live against a fresh fixture
+combining all three guard kinds in one condition, rendering all three clauses correctly and
+additively alongside the stage-1 success-status line. See "Broadening validation-guard detection,"
+below.
 
 ## The hypothesis being tested
 
@@ -1901,6 +1920,63 @@ response-field extraction itself started); `for`/`while`/`switch` are not recogn
 (safe — more likely to look ambiguous than to produce a wrong answer, not a risk, just less
 useful); and the test-assertion path is deliberately narrower than the documentation path, a real,
 named scope decision, not an oversight.
+
+## Broadening validation-guard detection: two more real guard shapes, one deliberately excluded
+
+This is stage 2 of the four-stage roadmap against the remaining v0 ceilings. Stage 1 closed the
+status-code gap; this one widens the missing-validation gap's coverage: the validation-rule
+extractor built earlier this document recognized exactly one guard shape — a falsy check on a bare
+or optionally-chained identifier (`!name`, `!name?.trim()`). `typeof x !== 'string'` and an explicit
+`x.length === 0` equality-style empty check are two other real, common validation idioms that were
+still completely invisible — a rebuild agent reading the contract for a route using either shape had
+no signal at all that the field was constrained beyond simply being present.
+
+**A real, deliberate return-type change, not string-sniffing in the renderer.** Rendering three
+different clause wordings ("required" / "must be a string" / "must be non-empty") from the
+extractor's previous plain-string return value would have meant re-parsing the same expression a
+second time inside `generateContracts.ts`, duplicating the exact classification the extractor
+already did — a discipline this codebase has avoided everywhere else (shared helpers, not
+re-derived logic). The return type is now a small record per field:
+`{ expression: string; kind: 'required' | 'type' | 'non-empty'; expectedType?: string }` — the raw
+guard text is still always shown verbatim (unchanged philosophy), and `expectedType` holds the
+literal type name captured from a `typeof` guard rather than hardcoding "string" for every case,
+so a rebuild agent sees the actual constraint, not an assumption about what a `typeof` check
+usually looks for. This is a contained, internal-only change — `generateContracts.ts` is the only
+consumer — and all existing tests were updated to the new shape in the same pass, not left
+inconsistent with it.
+
+**Ten branch shapes traced against a throwaway script before any real code was written**, the same
+discipline as the original guard-detection work: the existing bare-negation case confirmed
+unaffected (regression-safe); a standalone `x.length === 0`; a standalone `typeof x !== 'string'`;
+the alternate `x.length < 1` idiom; loose `!=`; a three-way `||` combining all three kinds in one
+condition — the exact shape this stage exists for
+(`if (!name || typeof message !== 'string' || tags.length === 0)`); an unrelated identifier not in
+the known-fields set, confirming the existing cross-reference precision guard still applies
+uniformly regardless of which pattern matched; and the positive-equality `typeof x === 'string'`
+correctly not matching at all — the deliberately-excluded shape. Every case behaved as designed.
+
+**Why the positive `typeof` check is excluded, not just unhandled.** `typeof x !== 'string'` as a
+*rejection* guard reads naturally: "reject this request if the field is not the right type." Its
+mirror, `typeof x === 'string'` used as a rejection condition, would mean "reject this request if
+the field IS a string" — inverted, unusual logic that essentially never appears as real validation.
+Recognizing it would risk mislabeling a rare, semantically different guard as an ordinary type
+check. Named and excluded deliberately, the same discipline as the `&&`-exclusion from the original
+guard-detection work, not an oversight this time either.
+
+**Verified live** against a fresh fixture combining all three guard kinds in a single condition,
+run through the real `ingest_repo` → `generate_spec` pipeline: the generated contract doc correctly
+rendered `` `name` — required (checked via: `!name`) ``, `` `message` — must be a `string` (checked
+via: `typeof message !== 'string'`) ``, and `` `tags` — must be non-empty (checked via: `tags.length
+=== 0`) `` — all three clauses, additive alongside the stage-1 success-status line and the existing
+response-fields section, nothing else in the doc disturbed.
+
+**What this closes, and what it doesn't.** A rebuild agent now has explicit signal for two more
+common, real validation idioms, not just simple presence checks. Zod and other schema-based
+validation libraries remain fully invisible — a structurally different mechanism (recognizing a
+schema object and its shape, not a bare guard clause) that would be a materially bigger, separately-
+scoped increment, and still has no confirmed real motivating case in this project's own experiments.
+`&&`-joined conditions and brace-less one-liners remain excluded too, unchanged from before this
+stage.
 
 ## Bottom line
 
