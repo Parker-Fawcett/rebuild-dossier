@@ -9,7 +9,12 @@ function route(overrides: Partial<RouteEntry> = {}): RouteEntry {
   return { path: '/api/notes', method: 'POST', file: 'app/api/notes/route.ts', kind: 'api', ...overrides };
 }
 
-function withFixture(routeSource: string, libSource: string | null, fn: (dir: string) => void): void {
+function withFixture(
+  routeSource: string,
+  libSource: string | null,
+  fn: (dir: string) => void,
+  tsconfigJson?: string
+): void {
   const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-delegated-'));
   try {
     mkdirSync(join(dir, 'app', 'api', 'notes'), { recursive: true });
@@ -17,6 +22,9 @@ function withFixture(routeSource: string, libSource: string | null, fn: (dir: st
     if (libSource !== null) {
       mkdirSync(join(dir, 'lib'), { recursive: true });
       writeFileSync(join(dir, 'lib', 'db.ts'), libSource);
+    }
+    if (tsconfigJson !== undefined) {
+      writeFileSync(join(dir, 'tsconfig.json'), tsconfigJson);
     }
     fn(dir);
   } finally {
@@ -180,7 +188,7 @@ describe('resolveDelegatedResponseFields', () => {
     });
   });
 
-  it('returns null for a path-alias import (tsconfig paths resolution is deferred)', () => {
+  it('returns null for a path-alias import when no tsconfig.json is present at all', () => {
     const routeSource = `
       import { NextResponse } from 'next/server';
       import { createNote } from '@/lib/db';
@@ -193,6 +201,152 @@ describe('resolveDelegatedResponseFields', () => {
       const result = resolveDelegatedResponseFields(dir, routeSource, route());
       expect(result).toBeNull();
     });
+  });
+
+  it('resolves a path-alias import (@/lib/db) via a real tsconfig.json @/* mapping', () => {
+    const routeSource = `
+      import { NextResponse } from 'next/server';
+      import { createNote } from '@/lib/db';
+      export async function POST(request) {
+        const { name, message } = await request.json();
+        return NextResponse.json(createNote(name, message), { status: 201 });
+      }
+    `;
+    const libSource = `
+      export function createNote(name, message) {
+        const created_at = new Date().toISOString();
+        return { id: 1, name, message, created_at };
+      }
+    `;
+    withFixture(
+      routeSource,
+      libSource,
+      (dir) => {
+        const result = resolveDelegatedResponseFields(dir, routeSource, route());
+        expect(result?.fields).toEqual(expect.arrayContaining(['id', 'name', 'message', 'created_at']));
+        expect(result?.formatHints).toEqual({ created_at: 'new Date().toISOString()' });
+        expect(result?.resolvedFrom).toEqual({ file: join('lib', 'db.ts'), functionName: 'createNote' });
+      },
+      JSON.stringify({ compilerOptions: { baseUrl: '.', paths: { '@/*': ['./*'] } } })
+    );
+  });
+
+  it('resolves a path alias whose first candidate target does not exist, falling through to the second', () => {
+    const routeSource = `
+      import { NextResponse } from 'next/server';
+      import { createNote } from '@/db';
+      export async function POST(request) {
+        const { name, message } = await request.json();
+        return NextResponse.json(createNote(name, message));
+      }
+    `;
+    const libSource = `
+      export function createNote(name, message) {
+        return { id: 1, name, message };
+      }
+    `;
+    withFixture(
+      routeSource,
+      libSource,
+      (dir) => {
+        const result = resolveDelegatedResponseFields(dir, routeSource, route());
+        expect(result?.fields).toEqual(expect.arrayContaining(['id', 'name', 'message']));
+      },
+      JSON.stringify({ compilerOptions: { paths: { '@/*': ['./nonexistent/*', './lib/*'] } } })
+    );
+  });
+
+  it('resolves an exact (non-wildcard) tsconfig path alias', () => {
+    const routeSource = `
+      import { NextResponse } from 'next/server';
+      import { createNote } from '@db';
+      export async function POST(request) {
+        const { name, message } = await request.json();
+        return NextResponse.json(createNote(name, message));
+      }
+    `;
+    const libSource = `
+      export function createNote(name, message) {
+        return { id: 1, name, message };
+      }
+    `;
+    withFixture(
+      routeSource,
+      libSource,
+      (dir) => {
+        const result = resolveDelegatedResponseFields(dir, routeSource, route());
+        expect(result?.fields).toEqual(expect.arrayContaining(['id', 'name', 'message']));
+      },
+      JSON.stringify({ compilerOptions: { paths: { '@db': ['./lib/db'] } } })
+    );
+  });
+
+  it('returns null for a path-alias import that matches no configured paths pattern', () => {
+    const routeSource = `
+      import { NextResponse } from 'next/server';
+      import { createNote } from '@components/db';
+      export async function POST(request) {
+        return NextResponse.json(createNote(name, message));
+      }
+    `;
+    withFixture(
+      routeSource,
+      null,
+      (dir) => {
+        const result = resolveDelegatedResponseFields(dir, routeSource, route());
+        expect(result).toBeNull();
+      },
+      JSON.stringify({ compilerOptions: { paths: { '@/*': ['./*'] } } })
+    );
+  });
+
+  it('returns null, without throwing, for a malformed (JSONC-commented) tsconfig.json', () => {
+    const routeSource = `
+      import { NextResponse } from 'next/server';
+      import { createNote } from '@/lib/db';
+      export async function POST(request) {
+        return NextResponse.json(createNote(name, message));
+      }
+    `;
+    const libSource = `
+      export function createNote(name, message) {
+        return { id: 1, name, message };
+      }
+    `;
+    withFixture(
+      routeSource,
+      libSource,
+      (dir) => {
+        expect(() => resolveDelegatedResponseFields(dir, routeSource, route())).not.toThrow();
+        expect(resolveDelegatedResponseFields(dir, routeSource, route())).toBeNull();
+      },
+      '{ // a comment, invalid strict JSON\n  "compilerOptions": { "paths": { "@/*": ["./*"] } }\n}'
+    );
+  });
+
+  it('a relative import still resolves correctly when a tsconfig.json with unrelated aliases is present', () => {
+    const routeSource = `
+      import { NextResponse } from 'next/server';
+      import { createNote } from '../../../lib/db';
+      export async function POST(request) {
+        const { name, message } = await request.json();
+        return NextResponse.json(createNote(name, message));
+      }
+    `;
+    const libSource = `
+      export function createNote(name, message) {
+        return { id: 1, name, message };
+      }
+    `;
+    withFixture(
+      routeSource,
+      libSource,
+      (dir) => {
+        const result = resolveDelegatedResponseFields(dir, routeSource, route());
+        expect(result?.fields).toEqual(expect.arrayContaining(['id', 'name', 'message']));
+      },
+      JSON.stringify({ compilerOptions: { paths: { '@/*': ['./nope/*'] } } })
+    );
   });
 
   it('returns null for a literal (non-delegated) response — never enters the resolution path', () => {

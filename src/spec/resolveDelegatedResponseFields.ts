@@ -28,10 +28,15 @@ import { isolateHandlerBody } from './isolateHandlerSource.js';
 //    extraction are out of scope here — no confirmed real gap on either
 //    side yet (the real motivating app's request fields and validation
 //    guard are both same-file already).
-// 2. Only relative specifiers (`./`, `../`) are resolved — a bare package
-//    import (`from 'uuid'`) or a tsconfig path alias (`from '@/lib/db'`) is
-//    left alone. Path-alias resolution is a real, separate feature
-//    (parsing and matching tsconfig's glob-based `paths` mappings).
+// 2. Relative specifiers (`./`, `../`) and tsconfig path aliases (`@/lib/db`,
+//    matched against `compilerOptions.paths`) are both resolved; a bare
+//    package import (`from 'uuid'`) is left alone. Only the first matching
+//    `paths` pattern is tried (not TypeScript's full longest-prefix-wins
+//    algorithm across several applicable patterns); a tsconfig.json with
+//    comments/trailing commas (real JSONC, not strict JSON) fails to parse
+//    and falls through to "not resolved," not a crash; `extends`-based
+//    tsconfig inheritance is not followed — only the repo-root
+//    tsconfig.json's own `compilerOptions` are read directly.
 // 3. CommonJS `require(...)` imports, default-exported callees, and a
 //    callee re-exported via a separate `export { name }` statement rather
 //    than declared inline are all real but unrecognized shapes.
@@ -83,12 +88,81 @@ function resolveImportSpecifier(fullSource: string, calleeName: string): { speci
   return null;
 }
 
-function resolveModuleFile(repoPath: string, routeFile: string, specifier: string): string | null {
-  const routeDir = dirname(join(repoPath, routeFile));
-  const base = resolve(routeDir, specifier);
+function firstExistingWithSuffix(base: string): string | null {
   for (const suffix of CANDIDATE_SUFFIXES) {
     const candidate = base + suffix;
     if (existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
+interface TsconfigPaths {
+  baseUrl: string; // resolved, absolute
+  paths: Record<string, string[]>;
+}
+
+// Returns null on anything that isn't a usable, parseable tsconfig with a
+// real `paths` map — including a tsconfig with comments/trailing commas
+// (real-world JSONC, not strict JSON), which JSON.parse rejects. Falling
+// through to "not resolved" here is the same honest-bail-out philosophy as
+// every other extractor in this codebase; it never guesses at a malformed
+// config's intent.
+function loadTsconfigPaths(repoPath: string): TsconfigPaths | null {
+  const tsconfigFile = join(repoPath, 'tsconfig.json');
+  if (!existsSync(tsconfigFile)) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(readFileSync(tsconfigFile, 'utf-8'));
+  } catch {
+    return null;
+  }
+  const compilerOptions = (parsed as { compilerOptions?: unknown } | null)?.compilerOptions as
+    | { paths?: unknown; baseUrl?: unknown }
+    | undefined;
+  const paths = compilerOptions?.paths;
+  if (!paths || typeof paths !== 'object') return null;
+  const baseUrlRaw = typeof compilerOptions?.baseUrl === 'string' ? compilerOptions.baseUrl : '.';
+  return { baseUrl: resolve(repoPath, baseUrlRaw), paths: paths as Record<string, string[]> };
+}
+
+// Matches `specifier` against each `paths` pattern in the order they appear
+// in the JSON, returning every candidate target for the FIRST matching
+// pattern (resolveModuleFile then tries each in turn via
+// firstExistingWithSuffix) — not TypeScript's full longest-prefix-wins
+// algorithm across multiple applicable patterns, a named, accepted
+// simplification. A pattern with no `*` matches only an exact specifier
+// (TypeScript's own exact-alias shape, e.g. `"@utils": [...]`); a pattern
+// with one `*` matches a prefix/suffix around it and substitutes the
+// captured segment into each candidate target's own `*`.
+function resolveAliasSpecifier(tsconfig: TsconfigPaths, specifier: string): string[] {
+  for (const [pattern, targets] of Object.entries(tsconfig.paths)) {
+    const starIndex = pattern.indexOf('*');
+    if (starIndex === -1) {
+      if (pattern === specifier) return targets.map((t) => join(tsconfig.baseUrl, t));
+      continue;
+    }
+    const prefix = pattern.slice(0, starIndex);
+    const suffix = pattern.slice(starIndex + 1);
+    if (specifier.startsWith(prefix) && specifier.endsWith(suffix) && specifier.length >= prefix.length + suffix.length) {
+      const wildcard = specifier.slice(prefix.length, specifier.length - suffix.length);
+      return targets.map((t) => join(tsconfig.baseUrl, t.replace('*', wildcard)));
+    }
+  }
+  return [];
+}
+
+function resolveModuleFile(repoPath: string, routeFile: string, specifier: string): string | null {
+  if (specifier.startsWith('.')) {
+    const routeDir = dirname(join(repoPath, routeFile));
+    return firstExistingWithSuffix(resolve(routeDir, specifier));
+  }
+
+  const tsconfig = loadTsconfigPaths(repoPath);
+  if (!tsconfig) return null; // no tsconfig.json, or no usable `paths` — falls through, same as a bare package import
+
+  for (const base of resolveAliasSpecifier(tsconfig, specifier)) {
+    const found = firstExistingWithSuffix(base);
+    if (found) return found;
   }
   return null;
 }
@@ -188,8 +262,10 @@ export function resolveDelegatedResponseFields(
 
   const imported = resolveImportSpecifier(sourceCode, calleeName);
   if (!imported) return null;
-  if (!imported.specifier.startsWith('.')) return null; // bare package / path alias — not resolved
 
+  // resolveModuleFile handles both relative specifiers and tsconfig path
+  // aliases, correctly returning null for a bare package import or an
+  // unmatched alias — no early bail needed here.
   const moduleFile = resolveModuleFile(repoPath, route.file, imported.specifier);
   if (!moduleFile) return null;
 
