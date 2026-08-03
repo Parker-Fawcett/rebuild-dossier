@@ -1,6 +1,6 @@
 # rebuild-dossier v0: findings
 
-**Status:** v0 built (6 MCP tools, 425 unit tests), validated end-to-end against **two real,
+**Status:** v0 built (6 MCP tools, 445 unit tests), validated end-to-end against **two real,
 structurally different apps** (Madeline — Next.js client-side gate pattern; catchandtrade — a
 real Prisma+Postgres+Stripe+eBay-backed API app), across **two model tiers** (Sonnet, Haiku),
 with a precisely-characterized weak-model failure boundary and a security-hardening pass
@@ -177,6 +177,29 @@ direct `return {...}`. Fixed by tracing a bare `return someVar;` back to its loc
 level deep, the same aliasing discipline `formatHintForExpression` already uses for individual
 field values, now applied to the whole return statement — re-verified live afterward, not just
 patched and assumed correct. See "Resolving cross-file delegated response construction," below.
+
+Stage 1 of a four-stage roadmap against the remaining v0 ceilings is done: `inferSuccessStatusCode.ts`
+closes the status-code gap the `notarybox` experiment surfaced (a rebuild silently defaulting to
+`200` against an original `201` passed the only generated assertion, `res.status < 500`). It
+identifies a handler's confident success-path status — the one unconditional, non-guarded response
+in the source — and bails to no signal at all on any ambiguity, the same discipline as every other
+extractor. Documented in the contract doc unconditionally; wired as a strict
+`expect(res.status).toBe(n)` assertion in both generators only for body-carrying routes with no
+dynamic path segment. **Live verification, not the design or unit tests, caught why that narrower
+gate is required:** a real fixture's `GET /api/users/:id` route correctly has `200` as its
+unconditional success status in the source, but the generated smoke test's placeholder path segment
+(`'test-value-123'`) doesn't match a real record, so the request legitimately hits the `404`
+"not found" branch instead — asserting the code's own success status there would have failed a
+genuinely correct server. **The same live run also caught a real, pre-existing bug well outside
+this stage's own scope:** `isolateHandlerSource.ts`, shared by every extractor built this session,
+silently isolated just `{ params }` — not the real handler body — for any Next.js handler
+destructuring its second parameter inline (`function GET(request, { params })`, a standard App
+Router idiom for dynamic routes), since the naive "first `{` after the handler name's own `(`"
+search finds the destructuring parameter's own brace first. This had been silently degrading
+field-name, format, validation-rule, and cross-file extraction for every dynamic route since the
+very first extractor shipped this session — no earlier fixture had combined a dynamic path segment
+with real source reading until this one did. Fixed at the root, with dedicated regression tests, not
+worked around locally. See "Capturing the success-status signal," below.
 
 ## The hypothesis being tested
 
@@ -1797,6 +1820,87 @@ callee that itself delegates to a third file is not followed further), relative-
 tsconfig path aliases), and scoped to the response side (request-field and validation-rule
 cross-file resolution remain deferred, un-evidenced future work) — named limitations, not silent
 gaps.
+
+## Capturing the success-status signal, and a root-cause bug found only by using it live
+
+This is stage 1 of a four-stage roadmap against the remaining v0 ceilings named at the last status
+check: cross-file resolution's remaining edges, no mechanism for status-code correctness,
+validation-rule detection covering only one guard shape, and real page-heavy apps producing mostly
+weak/unrunnable page tests. Stage 1 targets the status-code gap specifically — the `notarybox`
+experiment's other named divergence, alongside the missing-validation gap this document already
+closed part of: the original app returns `201` on success, a blind rebuild's response defaulted to
+`200`, and nothing in the pipeline had a mechanism to catch it. The generated smoke test's only
+status assertion, `res.status < 500`, is satisfied by both.
+
+**The precision problem this needed to solve, unlike every prior field/format/validation
+extractor:** those are documentation-only, so a wrong guess costs nothing but a misleading contract
+line. A status-code signal used to drive a *test assertion* is directly test-facing — a wrong guess
+there fails a genuinely correct rebuild, the one thing every extractor this session has been built
+to never risk. `inferSuccessStatusCode.ts` solves this by only ever producing a signal when there is
+exactly **one** unconditional (non-guarded) response call in the handler; any ambiguity bails to no
+signal at all. A response call is guarded when it's nested inside an `if`, `else`, or `catch` block
+— recognizing `catch` specifically matters, since the real motivating shape
+(`try { ... } catch { return ...400...; } if (!x) { return ...400...; } return ...201...;`) needs
+both the parse-failure path and the validation path excluded to leave exactly one real candidate.
+An explicit `.status(n)`/`{ status: n }` is read directly; no explicit status option is treated as
+an implicit `200`, genuinely how both Next.js and Express behave, not a guess.
+
+**Documentation and test-assertion integration are deliberately gated differently.** The contract
+doc renders the confident success status unconditionally — even for a route with no extractable
+fields at all, since the two signals are independent, and documentation carries no failure risk.
+The **test assertion** is scoped narrower: only for a body-carrying method (POST/PUT/PATCH) with no
+dynamic path segment in its route. This gate wasn't part of the original design — it came directly
+from the live verification below, which is exactly why it's stated as a real, load-bearing finding
+rather than a hypothetical worth naming in passing.
+
+**Live pipeline verification, not the design or the unit tests, found why the narrower gate is
+necessary.** A fixture built specifically to stress this stage included a `GET /api/users/:id`
+route: `if (!user) { return ...404...; } return ...200...;`. Statically, this is exactly the
+confident, unambiguous shape `inferSuccessStatusCode` is designed to recognize — `200` is genuinely
+the only unconditional response in the source. But the generated smoke test's placeholder path
+segment (`'test-value-123'`) has no relationship to whether a record actually exists, so the
+generated request legitimately hits the `404` branch instead of the `200` one — asserting the
+code's own success status here would have failed a real, correct implementation of this exact
+handler. This is a fundamentally different risk than every prior extractor's "the placeholder body
+satisfies simple presence checks" assumption, which holds for object fields but not for identifiers
+looked up from a URL. Fixed by scoping the test-assertion path to routes where the placeholder
+request can actually be trusted to reach the success branch — a body-carrying method with no
+dynamic path segment — while leaving documentation unrestricted, since it carries none of that risk.
+
+**The same live run surfaced a second, unrelated, more consequential bug — one that predates this
+entire stage.** The same fixture's GET route's contract doc came back with no response-fields
+section at all, including no success-status line, despite the source clearly having one. Direct
+inspection traced this to `isolateHandlerSource.ts`, shared by *every* extractor built this
+session: its handler-body isolation searched for the first `{` after the handler name's own opening
+`(`, assuming that brace starts the function body. For `export async function GET(request, {
+params }: { params: { id: string } }) {...}` — a standard Next.js App Router idiom for any dynamic
+route — that first `{` belongs to the destructured `params` parameter, not the body. The isolator
+had been silently returning `{ params }` (a two-token fragment) as "the handler body" for this
+entire shape, for the whole session, undetected: no earlier fixture had combined a dynamic path
+segment with actually reading real source from disk until this one did (the response-body-shape
+fix's own dynamic-route test, for comparison, only ever checked generated-test placeholder text
+against a nonexistent file, never real extraction). This means field-name, response-field,
+value-format, validation-rule, and cross-file extraction have all been quietly degraded for this
+common shape since the very first extractor shipped — not a new bug this stage introduced, but one
+only this stage's specific live-verification path happened to trip.
+
+**Fixed at the root, not worked around locally.** `isolateFunctionBody` now explicitly balances and
+skips the parameter list's own parentheses before searching for the body's opening brace, instead of
+assuming the first `{` it finds belongs to the body. Two dedicated regression tests were added
+directly to a new `isolateHandlerSource.spec.ts` (no such direct test file existed before — the
+module had only ever been exercised transitively through each extractor's own tests, none of which
+happened to cover this shape): a destructured `{ params }` parameter, and the same with an inline
+TypeScript type annotation. Re-ran the full suite (still green) and the live fixture again
+afterward, confirming the contract doc now correctly shows `` **Success status:** `200` `` for the
+previously-broken route.
+
+**What this closes, and what it doesn't.** A rebuild agent now has an explicit signal for the exact
+`200`-vs-`201` divergence the `notarybox` experiment found, for the shape of route that signal can
+be trusted for. It remains same-file only (no cross-file success-status resolution, matching how
+response-field extraction itself started); `for`/`while`/`switch` are not recognized as guards
+(safe — more likely to look ambiguous than to produce a wrong answer, not a risk, just less
+useful); and the test-assertion path is deliberately narrower than the documentation path, a real,
+named scope decision, not an oversight.
 
 ## Bottom line
 
