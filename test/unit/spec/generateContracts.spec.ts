@@ -195,6 +195,56 @@ describe('generateContracts', () => {
     }
   });
 
+  it('adds a "must be a `string`" clause for a typeof-check guard', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(
+        join(dir, 'route.ts'),
+        [
+          'export async function POST(request) {',
+          '  const { message } = await request.json();',
+          "  if (typeof message !== 'string') {",
+          "    return NextResponse.json({ error: 'invalid message' }, { status: 400 });",
+          '  }',
+          '  return NextResponse.json({ id: 1, message }, { status: 201 });',
+          '}'
+        ].join('\n')
+      );
+      const routes: RouteEntry[] = [{ path: '/api/notes', method: 'POST', file: 'route.ts', kind: 'api', startLine: 1 }];
+
+      const files = generateContracts(dir, routes);
+
+      expect(files[0]?.content).toContain("`message` — must be a `string` (checked via: `typeof message !== 'string'`)");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('adds a "must be non-empty" clause for an explicit non-empty-length guard', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(
+        join(dir, 'route.ts'),
+        [
+          'export async function POST(request) {',
+          '  const { tags } = await request.json();',
+          '  if (tags.length === 0) {',
+          "    return NextResponse.json({ error: 'tags required' }, { status: 400 });",
+          '  }',
+          '  return NextResponse.json({ id: 1, tags }, { status: 201 });',
+          '}'
+        ].join('\n')
+      );
+      const routes: RouteEntry[] = [{ path: '/api/notes', method: 'POST', file: 'route.ts', kind: 'api', startLine: 1 }];
+
+      const files = generateContracts(dir, routes);
+
+      expect(files[0]?.content).toContain('`tags` — must be non-empty (checked via: `tags.length === 0`)');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('renders the request-fields section exactly as before when no validation guard is present', () => {
     const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
     try {

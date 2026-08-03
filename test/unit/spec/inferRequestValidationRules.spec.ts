@@ -25,8 +25,8 @@ describe('inferRequestValidationRules', () => {
       }
     `;
     expect(inferRequestValidationRules(source, route())).toEqual({
-      name: '!name',
-      message: '!message'
+      name: { expression: '!name', kind: 'required' },
+      message: { expression: '!message', kind: 'required' }
     });
   });
 
@@ -40,7 +40,7 @@ describe('inferRequestValidationRules', () => {
         return NextResponse.json({ id: 1, name });
       }
     `;
-    expect(inferRequestValidationRules(source, route())).toEqual({ name: '!name' });
+    expect(inferRequestValidationRules(source, route())).toEqual({ name: { expression: '!name', kind: 'required' } });
   });
 
   it('excludes an &&-joined condition as ambiguous (at-least-one-of-N, not "each required")', () => {
@@ -103,7 +103,9 @@ describe('inferRequestValidationRules', () => {
         return NextResponse.json({ id: 1, name });
       }
     `;
-    expect(inferRequestValidationRules(source, route())).toEqual({ name: '!name?.trim()' });
+    expect(inferRequestValidationRules(source, route())).toEqual({
+      name: { expression: '!name?.trim()', kind: 'required' }
+    });
   });
 
   it('flags two separate single-field guards independently', () => {
@@ -119,20 +121,10 @@ describe('inferRequestValidationRules', () => {
         return NextResponse.json({ id: 1, name, message }, { status: 201 });
       }
     `;
-    expect(inferRequestValidationRules(source, route())).toEqual({ name: '!name', message: '!message' });
-  });
-
-  it('excludes a typeof-check guard (different shape from a falsy check, deferred)', () => {
-    const source = `
-      export async function POST(request) {
-        const { name } = await request.json();
-        if (typeof name !== 'string') {
-          return NextResponse.json({ error: 'invalid name' }, { status: 400 });
-        }
-        return NextResponse.json({ id: 1, name });
-      }
-    `;
-    expect(inferRequestValidationRules(source, route())).toEqual({});
+    expect(inferRequestValidationRules(source, route())).toEqual({
+      name: { expression: '!name', kind: 'required' },
+      message: { expression: '!message', kind: 'required' }
+    });
   });
 
   it('resolves both branches correctly when a nested call inside the condition contains parens', () => {
@@ -146,8 +138,8 @@ describe('inferRequestValidationRules', () => {
       }
     `;
     expect(inferRequestValidationRules(source, route())).toEqual({
-      name: '!name',
-      message: '!message.trim()'
+      name: { expression: '!name', kind: 'required' },
+      message: { expression: '!message.trim()', kind: 'required' }
     });
   });
 
@@ -161,5 +153,108 @@ describe('inferRequestValidationRules', () => {
       }
     `;
     expect(inferRequestValidationRules(source, route({ method: 'GET' }))).toEqual({});
+  });
+
+  it('flags a typeof-check guard, capturing the checked type verbatim', () => {
+    const source = `
+      export async function POST(request) {
+        const { name } = await request.json();
+        if (typeof name !== 'string') {
+          return NextResponse.json({ error: 'invalid name' }, { status: 400 });
+        }
+        return NextResponse.json({ id: 1, name });
+      }
+    `;
+    expect(inferRequestValidationRules(source, route())).toEqual({
+      name: { expression: "typeof name !== 'string'", kind: 'type', expectedType: 'string' }
+    });
+  });
+
+  it('flags a typeof-check guard using loose inequality (!=)', () => {
+    const source = `
+      export async function POST(request) {
+        const { name } = await request.json();
+        if (typeof name != 'string') {
+          return NextResponse.json({ error: 'invalid name' }, { status: 400 });
+        }
+        return NextResponse.json({ id: 1, name });
+      }
+    `;
+    expect(inferRequestValidationRules(source, route())).toEqual({
+      name: { expression: "typeof name != 'string'", kind: 'type', expectedType: 'string' }
+    });
+  });
+
+  it('excludes a positive typeof equality check (inverted/unusual rejection logic, not recognized)', () => {
+    const source = `
+      export async function POST(request) {
+        const { name } = await request.json();
+        if (typeof name === 'string') {
+          return NextResponse.json({ error: 'invalid name' }, { status: 400 });
+        }
+        return NextResponse.json({ id: 1, name });
+      }
+    `;
+    expect(inferRequestValidationRules(source, route())).toEqual({});
+  });
+
+  it('flags an explicit non-empty-length guard (=== 0 form)', () => {
+    const source = `
+      export async function POST(request) {
+        const { tags } = await request.json();
+        if (tags.length === 0) {
+          return NextResponse.json({ error: 'tags required' }, { status: 400 });
+        }
+        return NextResponse.json({ id: 1, tags });
+      }
+    `;
+    expect(inferRequestValidationRules(source, route())).toEqual({
+      tags: { expression: 'tags.length === 0', kind: 'non-empty' }
+    });
+  });
+
+  it('flags an explicit non-empty-length guard (< 1 form)', () => {
+    const source = `
+      export async function POST(request) {
+        const { tags } = await request.json();
+        if (tags.length < 1) {
+          return NextResponse.json({ error: 'tags required' }, { status: 400 });
+        }
+        return NextResponse.json({ id: 1, tags });
+      }
+    `;
+    expect(inferRequestValidationRules(source, route())).toEqual({
+      tags: { expression: 'tags.length < 1', kind: 'non-empty' }
+    });
+  });
+
+  it('flags all three guard kinds combined in one condition (the exact stage-2 motivating shape)', () => {
+    const source = `
+      export async function POST(request) {
+        const { name, message, tags } = await request.json();
+        if (!name || typeof message !== 'string' || tags.length === 0) {
+          return NextResponse.json({ error: 'invalid' }, { status: 400 });
+        }
+        return NextResponse.json({ id: 1, name, message, tags }, { status: 201 });
+      }
+    `;
+    expect(inferRequestValidationRules(source, route())).toEqual({
+      name: { expression: '!name', kind: 'required' },
+      message: { expression: "typeof message !== 'string'", kind: 'type', expectedType: 'string' },
+      tags: { expression: 'tags.length === 0', kind: 'non-empty' }
+    });
+  });
+
+  it('excludes a typeof guard and a non-empty guard on identifiers never read from the request body', () => {
+    const source = `
+      export async function POST(request) {
+        const { name } = await request.json();
+        if (typeof isAdmin !== 'string' || sessionTokens.length === 0) {
+          return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+        }
+        return NextResponse.json({ id: 1, name });
+      }
+    `;
+    expect(inferRequestValidationRules(source, route())).toEqual({});
   });
 });

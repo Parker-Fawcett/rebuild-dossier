@@ -22,9 +22,17 @@ import { isolateHandlerBody } from './isolateHandlerSource.js';
 // 2. `&&`-joined conditions (`if (!a && !b)`) are excluded entirely — that's
 //    an at-least-one-of-N rule, a different semantic than "each is
 //    individually required," and mislabeling it would misrepresent the rule.
-// 3. Non-falsy-check guards (`typeof x !== 'string'`, `.length === 0`,
-//    Zod/schema validation) are not recognized — only a bare or
-//    optionally-chained negated identifier is.
+// 3. Recognizes three guard shapes: a bare/optionally-chained negated
+//    identifier (`!name`, `!name?.trim()`), a `typeof` type-check
+//    (`typeof x !== 'string'` — only the negative form; a positive
+//    `typeof x === 'string'` as a *rejection* condition is inverted, unusual
+//    logic and not recognized), and an explicit non-empty-length check
+//    (`x.length === 0`, `x.length < 1` — distinct from `!x.length`, which
+//    the negated-identifier pattern already catches via its optional
+//    `[?.].*` suffix). Zod/schema-based validation (`schema.safeParse(...)`)
+//    is a structurally different mechanism (recognizing a schema object, not
+//    a bare guard clause) and is not recognized — a separate, bigger,
+//    not-yet-motivated future increment.
 // 4. A guard whose block contains no 4xx status anywhere is not treated as a
 //    rejection, so it's excluded even if it negates a known field.
 // 5. Only identifiers already present in inferRequestBodyFields's result for
@@ -36,6 +44,29 @@ const IDENTIFIER_SOURCE = '[A-Za-z_$][A-Za-z0-9_$]*';
 const IF_PATTERN = /\bif\s*\(/g;
 const ERROR_STATUS_PATTERN = /status\s*:\s*4\d\d|\.status\s*\(\s*4\d\d\s*\)/;
 const NEGATED_IDENTIFIER_PATTERN = new RegExp(`^!\\s*(${IDENTIFIER_SOURCE})(?:[?.].*)?$`);
+const TYPEOF_PATTERN = new RegExp(`^typeof\\s+(${IDENTIFIER_SOURCE})\\s*!==?\\s*(['"])(\\w+)\\2$`);
+const NON_EMPTY_LENGTH_PATTERN = new RegExp(`^(${IDENTIFIER_SOURCE})\\.length\\s*(?:===\\s*0|<\\s*1)$`);
+
+export interface ValidationRule {
+  expression: string; // raw checked-via branch text, shown verbatim
+  kind: 'required' | 'type' | 'non-empty';
+  expectedType?: string; // only set for kind: 'type' — the literal type name captured from the guard
+}
+
+function classifyBranch(branch: string): { field: string; rule: ValidationRule } | null {
+  const negated = NEGATED_IDENTIFIER_PATTERN.exec(branch);
+  if (negated) return { field: negated[1]!, rule: { expression: branch, kind: 'required' } };
+
+  const typeofMatch = TYPEOF_PATTERN.exec(branch);
+  if (typeofMatch) {
+    return { field: typeofMatch[1]!, rule: { expression: branch, kind: 'type', expectedType: typeofMatch[3]! } };
+  }
+
+  const lengthMatch = NON_EMPTY_LENGTH_PATTERN.exec(branch);
+  if (lengthMatch) return { field: lengthMatch[1]!, rule: { expression: branch, kind: 'non-empty' } };
+
+  return null;
+}
 
 function isolateParenExpr(source: string, openParenIndex: number): { expr: string; endIndex: number } | null {
   let depth = 0;
@@ -67,14 +98,14 @@ function isolateBraceBlock(source: string, fromIndex: number): string | null {
   return null;
 }
 
-export function inferRequestValidationRules(sourceCode: string, route: RouteEntry): Record<string, string> {
+export function inferRequestValidationRules(sourceCode: string, route: RouteEntry): Record<string, ValidationRule> {
   const handlerBody = isolateHandlerBody(sourceCode, route);
   if (!handlerBody) return {};
 
   const knownFields = new Set(inferRequestBodyFields(sourceCode, route));
   if (knownFields.size === 0) return {};
 
-  const rules: Record<string, string> = {};
+  const rules: Record<string, ValidationRule> = {};
 
   for (const m of handlerBody.matchAll(IF_PATTERN)) {
     const openParenIndex = m.index + m[0].length - 1;
@@ -87,10 +118,9 @@ export function inferRequestValidationRules(sourceCode: string, route: RouteEntr
     if (cond.expr.includes('&&')) continue; // ambiguous at-least-one-of-N semantics — deferred
 
     for (const branch of cond.expr.split('||').map((b) => b.trim())) {
-      const negated = NEGATED_IDENTIFIER_PATTERN.exec(branch);
-      if (!negated) continue;
-      const field = negated[1]!;
-      if (knownFields.has(field)) rules[field] = branch;
+      const classified = classifyBranch(branch);
+      if (!classified) continue;
+      if (knownFields.has(classified.field)) rules[classified.field] = classified.rule;
     }
   }
 

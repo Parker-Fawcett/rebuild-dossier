@@ -4,7 +4,7 @@ import type { RouteEntry } from '../ingest/evidenceSchema.js';
 import type { AssetManifestEntry } from './assetManifestSchema.js';
 import type { PageStylesheetAnimations, SkippedPage } from './generatePageTests.js';
 import { inferRequestBodyFields } from './inferRequestBodyFields.js';
-import { inferRequestValidationRules } from './inferRequestValidationRules.js';
+import { inferRequestValidationRules, type ValidationRule } from './inferRequestValidationRules.js';
 import { inferResponseBodyFields, inferResponseValueFormatHints } from './inferResponseBodyFields.js';
 import { inferSuccessStatusCode } from './inferSuccessStatusCode.js';
 import { resolveDelegatedResponseFields } from './resolveDelegatedResponseFields.js';
@@ -47,6 +47,12 @@ function sourceLine(repoPath: string, route: RouteEntry): string {
 // philosophy as sourceLine above, for the same reason — a route whose file
 // genuinely can't be read should surface as a real failure here, not a
 // silently-empty section.
+function validationRuleClause(rule: ValidationRule): string {
+  if (rule.kind === 'type') return `must be a \`${rule.expectedType}\``;
+  if (rule.kind === 'non-empty') return 'must be non-empty';
+  return 'required';
+}
+
 function inferredFieldsSection(repoPath: string, route: RouteEntry): string | undefined {
   if (!METHODS_WITH_BODY.has(route.method ?? '')) return undefined;
   const text = readFileSync(join(repoPath, route.file), 'utf-8');
@@ -59,12 +65,15 @@ function inferredFieldsSection(repoPath: string, route: RouteEntry): string | un
     'Static analysis of the handler found these field names read from the request body. This is',
     'a v1, regex-based heuristic — it can miss renamed destructuring, computed keys, and spread',
     'patterns, and is not a guarantee of the complete or exact shape. Where the handler rejects a',
-    'missing field with an error response, that is shown too — a v1 heuristic scoped to a single',
-    'falsy-check guard clause (e.g. `if (!name) {...}`), not a guarantee every validation rule the',
-    'handler enforces is captured.',
+    'missing field with an error response, that is shown too — a v1 heuristic scoped to a falsy',
+    'check, a `typeof` type-check, or an explicit non-empty-length check (e.g. `if (!name) {...}`),',
+    'not a guarantee every validation rule the handler enforces is captured.',
     '',
     fields
-      .map((f) => (validationRules[f] ? `- \`${f}\` — required (checked via: \`${validationRules[f]}\`)` : `- \`${f}\``))
+      .map((f) => {
+        const rule = validationRules[f];
+        return rule ? `- \`${f}\` — ${validationRuleClause(rule)} (checked via: \`${rule.expression}\`)` : `- \`${f}\``;
+      })
       .join('\n'),
     ''
   ].join('\n');
