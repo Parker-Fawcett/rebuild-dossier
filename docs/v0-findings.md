@@ -1,6 +1,6 @@
 # rebuild-dossier v0: findings
 
-**Status:** v0 built (6 MCP tools, 453 unit tests), validated end-to-end against **two real,
+**Status:** v0 built (6 MCP tools, 459 unit tests), validated end-to-end against **two real,
 structurally different apps** (Madeline — Next.js client-side gate pattern; catchandtrade — a
 real Prisma+Postgres+Stripe+eBay-backed API app), across **two model tiers** (Sonnet, Haiku),
 with a precisely-characterized weak-model failure boundary and a security-hardening pass
@@ -219,6 +219,27 @@ including the exact combined shape this stage exists for
 combining all three guard kinds in one condition, rendering all three clauses correctly and
 additively alongside the stage-1 success-status line. See "Broadening validation-guard detection,"
 below.
+
+Stage 3 closes the most common of the three remaining cross-file gaps: `resolveDelegatedResponseFields.ts`
+previously bailed on any non-relative import specifier, including a tsconfig path alias
+(`@/lib/db`) — a near-universal Next.js convention, the default in every `create-next-app` scaffold,
+and materially more likely to be hit in a real target app than the other two deferred gaps
+(2+-hop delegation, cross-file request-field/validation resolution), neither of which has a
+confirmed real example anywhere in this project's own experiments. It now reads and parses the
+repo's `tsconfig.json`, matches a specifier against `compilerOptions.paths`' wildcard or exact
+patterns, and resolves each candidate target relative to `baseUrl` — falling through cleanly (never
+a crash) for a missing or malformed config, an unmatched alias, or a genuine bare-package import,
+exactly as before this stage. Ten realistic tsconfig/specifier combinations were traced against a
+throwaway script using real temp directories and `existsSync` before any real code was written,
+including a malformed, comment-containing tsconfig.json (real-world JSONC, correctly falling
+through rather than throwing) and multiple candidate targets for one alias where only the second
+actually resolves. Confirmed live against a fresh fixture with a real `tsconfig.json`: a route
+importing `createNote` via `@/lib/db` now resolves fields, the format hint, and the cross-file note
+exactly as the existing relative-import case already did, while a sibling route's unrelated
+bare-package import still correctly renders no response-fields section at all. 2+-hop delegation
+and cross-file request-field/validation resolution remain deliberately deferred — still no
+confirmed real motivating case, the same evidence-driven bar every other deferred item in this
+document has been held to. See "Resolving tsconfig path aliases," below.
 
 ## The hypothesis being tested
 
@@ -1977,6 +1998,62 @@ schema object and its shape, not a bare guard clause) that would be a materially
 scoped increment, and still has no confirmed real motivating case in this project's own experiments.
 `&&`-joined conditions and brace-less one-liners remain excluded too, unchanged from before this
 stage.
+
+## Resolving tsconfig path aliases: the most common of three remaining cross-file gaps, the other two still deferred
+
+This is stage 3 of the four-stage roadmap, closing the most common of three cross-file gaps left
+after "Resolving cross-file delegated response construction" shipped: tsconfig path aliases,
+2+-hop delegation chains, and cross-file request-field/validation resolution. Rather than build all
+three, this stage picks the one with real, common-enough justification and states plainly why the
+other two stay out: `@/lib/...` is a near-universal Next.js convention — the
+default alias in every `create-next-app` scaffold — while a 2-hop delegation chain or a validation
+rule living in a separate file has no confirmed real example anywhere in this project's own
+experiments. Building those now would be speculative, not evidence-driven, the same standard every
+other deferred item in this document has already been held to.
+
+**An addition to the existing resolver, not a new file or mechanism.** `resolveDelegatedResponseFields.ts`'s
+`resolveModuleFile` used to only handle relative specifiers and bail on anything else. It's now
+specifier-shape-aware: a relative specifier resolves exactly as before; a non-relative one is
+checked against the repo's own `tsconfig.json` — read once, parsed defensively (a parse failure, or
+no usable `compilerOptions.paths`, falls through to "not resolved" rather than crashing, the same
+honest-bail-out discipline as every other extractor in this codebase). A wildcard pattern (`@/*`)
+matches a prefix/suffix around the `*` and substitutes the captured segment into each candidate
+target; an exact, non-wildcard pattern (`@utils`) matches only an exact specifier. Only the first
+matching `paths` pattern is tried — TypeScript's own algorithm additionally prefers the
+longest/most-specific prefix among several applicable patterns, which this doesn't attempt; a
+named, accepted simplification, not an oversight.
+
+**Ten realistic tsconfig/specifier combinations traced via a throwaway script before any real code
+was written**, using real temporary directories and `existsSync` rather than pure string logic,
+since this stage's whole point is filesystem resolution: a standard `@/*` alias resolving correctly
+into a real file; no `tsconfig.json` present at all (unchanged `null`, exactly as before this
+stage); a tsconfig with no usable `paths` key; a specifier matching no configured prefix; multiple
+candidate targets for one alias where only the second actually exists on disk (TypeScript's own
+"try each candidate in order" behavior, reasonably approximated); an exact, non-wildcard alias; a
+non-default `baseUrl` (`"src"`) paired with a target lacking its own `./` prefix — a real,
+alternate convention some repos use; a malformed, comment-containing `tsconfig.json` (real-world
+JSONC, not strict JSON) correctly falling through rather than throwing; a bare package import with
+unrelated aliases configured, still correctly unresolved; and a relative import confirmed
+unaffected by tsconfig's presence at all. Every case behaved as designed — no surprises this time,
+unlike the previous two stages, each of which had live verification catch a real gap the design and
+unit tests had both missed.
+
+**Verified live** against a fresh fixture with a genuine `tsconfig.json` configuring `@/*`, run
+through the real `ingest_repo` → `generate_spec` pipeline: a route importing `createNote` via
+`@/lib/db` (instead of a relative path) now resolves its fields, the `computed as:` format hint,
+and the cross-file resolution note exactly as the existing relative-import fixture already does —
+additive, not a reformat. A sibling route delegating to `uuid`'s `v4()` (a genuine bare-package
+import, unrelated to the configured alias) still correctly renders no response-fields section at
+all, confirming the new resolution path doesn't misfire on the case it's still honestly unable to
+resolve.
+
+**What this closes, and what it doesn't.** A rebuild agent reading the contract for a route that
+delegates response construction through a `@/`-style path alias — now a common, not niche, shape —
+has the same real signal a relative-import route already had. 2+-hop delegation chains and
+cross-file request-field/validation resolution remain fully deferred, unaddressed by this stage;
+`extends`-based tsconfig inheritance (a config that itself extends a base config for its real
+`paths`) isn't followed either — only the repo-root `tsconfig.json`'s own `compilerOptions` are read
+directly. All named plainly, not silently skipped.
 
 ## Bottom line
 
