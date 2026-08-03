@@ -4,6 +4,7 @@ import type { EvidenceBundle, RouteEntry } from '../ingest/evidenceSchema.js';
 import type { Case } from '../reconciliation/types.js';
 import type { GeneratedTestFile } from './generateTests.js';
 import { inferRequestBodyFields } from './inferRequestBodyFields.js';
+import { inferSuccessStatusCode } from './inferSuccessStatusCode.js';
 import {
   concretePath,
   METHODS_WITH_BODY,
@@ -71,10 +72,47 @@ function inferFieldsSafely(repoPath: string, route: RouteEntry): string[] {
   }
 }
 
-function testFileFor(route: RouteEntry, importPath: string, cases: Case[], fields: string[]): string {
+// Real, live-triggered finding (a real aliased-path fixture's GET
+// /api/users/:id route): inferSuccessStatusCode correctly identifies the
+// handler's own unconditional "success" status from its source, but the
+// generated smoke test's placeholder path segment ('test-value-123') has no
+// relationship to whether a record actually exists — a lookup-gated route
+// legitimately hits its "not found" branch instead, and asserting the
+// code's success status would then fail a genuinely correct server. Scoped
+// down to exactly the shape the placeholder request can actually be trusted
+// to reach: a body-carrying method (whose placeholder body — from
+// inferRequestBodyFields — really does fill in every known field, avoiding
+// simple presence guards) with no dynamic path segment at all (a GET, or
+// any route depending on a lookup keyed by the URL, is not trustworthy this
+// way). Documentation (generateContracts.ts) is NOT scoped this way — this
+// gate is test-assertion-only, since a wrong guess there is directly
+// test-facing.
+function canTrustSuccessStatusForTest(route: RouteEntry): boolean {
+  return METHODS_WITH_BODY.has(route.method ?? '') && !/:[^/]+/.test(route.path);
+}
+
+// Same safe-read convention as inferFieldsSafely above (duplicated
+// per-generator by existing precedent, not shared). Only consulted when
+// reconciliation has no claim for this route — the two signals both derive
+// from the same source repo, but reconciliation encodes a documented
+// (comment/TODO) claim while this is read directly from the handler's own
+// code; never asserting both at once avoids a self-contradictory generated
+// test if they ever happened to disagree.
+function inferSuccessStatusSafely(repoPath: string, route: RouteEntry) {
+  if (!canTrustSuccessStatusForTest(route)) return null;
+  try {
+    const text = readFileSync(join(repoPath, route.file), 'utf-8');
+    return inferSuccessStatusCode(text, route);
+  } catch {
+    return null;
+  }
+}
+
+function testFileFor(repoPath: string, route: RouteEntry, importPath: string, cases: Case[], fields: string[]): string {
   const method = route.method ?? 'GET';
   const concrete = concretePath(route.path);
   const reconciliation = reconciliationAssertion(route, cases);
+  const successStatus = reconciliation ? null : inferSuccessStatusSafely(repoPath, route);
   const paramsArg = paramsObjectLiteral(route.path);
   const requestInit = requestInitFor(method, fields);
 
@@ -92,6 +130,14 @@ function testFileFor(route: RouteEntry, importPath: string, cases: Case[], field
     const request = new NextRequest('http://localhost:3000${concrete}', ${requestInit});
     const res = await ${method}(request, ${paramsArg});
     expect(res.status).toBe(${reconciliation.status});
+  });`
+    );
+  } else if (successStatus) {
+    tests.push(
+      `  it(${JSON.stringify(`${successStatus.claim} (from-source)`)}, async () => {
+    const request = new NextRequest('http://localhost:3000${concrete}', ${requestInit});
+    const res = await ${method}(request, ${paramsArg});
+    expect(res.status).toBe(${successStatus.status});
   });`
     );
   }
@@ -123,7 +169,7 @@ export function generateNextApiTests(
     const fields = inferFieldsSafely(repoPath, route);
     const file: GeneratedTestFile = {
       filename: `${sanitizeFilenameBase(route.method, route.path)}.spec.ts`,
-      content: testFileFor(route, importPathFor(route.file), cases, fields),
+      content: testFileFor(repoPath, route, importPathFor(route.file), cases, fields),
       sourceFile: route.file
     };
     if (index % HELD_OUT_EVERY === HELD_OUT_EVERY - 1) {

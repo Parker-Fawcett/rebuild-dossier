@@ -4,6 +4,7 @@ import type { EvidenceBundle, RouteEntry } from '../ingest/evidenceSchema.js';
 import type { Case } from '../reconciliation/types.js';
 import type { GeneratedFile } from './generateContracts.js';
 import { inferRequestBodyFields } from './inferRequestBodyFields.js';
+import { inferSuccessStatusCode } from './inferSuccessStatusCode.js';
 import {
   concretePath,
   METHODS_WITH_BODY,
@@ -55,10 +56,33 @@ function inferFieldsSafely(repoPath: string, route: RouteEntry): string[] {
   }
 }
 
-function testFileFor(route: RouteEntry, importPath: string, cases: Case[], fields: string[]): string {
+// Same lookup-gated-route safety gate as generateNextApiTests.ts's
+// identical helper — see its comment for the real, live-triggered failure
+// (a GET /:id route whose placeholder path segment doesn't match a real
+// record) that motivated it.
+function canTrustSuccessStatusForTest(route: RouteEntry): boolean {
+  return METHODS_WITH_BODY.has(route.method ?? '') && !/:[^/]+/.test(route.path);
+}
+
+// Same safe-read convention as inferFieldsSafely above, and same
+// reconciliation-takes-precedence rule as generateNextApiTests.ts's
+// identical helper — see its comment for why the two signals are never
+// asserted together.
+function inferSuccessStatusSafely(repoPath: string, route: RouteEntry) {
+  if (!canTrustSuccessStatusForTest(route)) return null;
+  try {
+    const text = readFileSync(join(repoPath, route.file), 'utf-8');
+    return inferSuccessStatusCode(text, route);
+  } catch {
+    return null;
+  }
+}
+
+function testFileFor(repoPath: string, route: RouteEntry, importPath: string, cases: Case[], fields: string[]): string {
   const method = route.method ?? 'GET';
   const concrete = concretePath(route.path);
   const reconciliation = reconciliationAssertion(route, cases);
+  const successStatus = reconciliation ? null : inferSuccessStatusSafely(repoPath, route);
   const requestInit = requestInitFor(method, fields);
 
   const tests = [
@@ -73,6 +97,13 @@ function testFileFor(route: RouteEntry, importPath: string, cases: Case[], field
       `  it(${JSON.stringify(`${reconciliation.claim} (from-reconciliation)`)}, async () => {
     const res = await fetch(\`\${baseUrl}${concrete}\`, ${requestInit});
     expect(res.status).toBe(${reconciliation.status});
+  });`
+    );
+  } else if (successStatus) {
+    tests.push(
+      `  it(${JSON.stringify(`${successStatus.claim} (from-source)`)}, async () => {
+    const res = await fetch(\`\${baseUrl}${concrete}\`, ${requestInit});
+    expect(res.status).toBe(${successStatus.status});
   });`
     );
   }
@@ -137,7 +168,7 @@ export function generateTests(
     const fields = inferFieldsSafely(repoPath, route);
     const file: GeneratedTestFile = {
       filename: `${sanitizeFilenameBase(route.method, route.path)}.spec.ts`,
-      content: testFileFor(route, importPath, cases, fields),
+      content: testFileFor(repoPath, route, importPath, cases, fields),
       sourceFile: route.file
     };
     if (index % HELD_OUT_EVERY === HELD_OUT_EVERY - 1) {

@@ -141,6 +141,69 @@ describe('generateTests', () => {
     }
   });
 
+  it('adds a from-source success-status assertion for a body-carrying route with no dynamic path segment (Express)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-gentests-'));
+    try {
+      writeFileSync(
+        join(dir, 'server.ts'),
+        [
+          "import express from 'express';",
+          'const app = express();',
+          "app.post('/api/notes', (req, res) => {",
+          '  const { name } = req.body;',
+          '  if (!name) {',
+          "    return res.status(400).json({ error: 'name required' });",
+          '  }',
+          '  return res.status(201).json({ id: 1, name });',
+          '});',
+          'export default app;'
+        ].join('\n')
+      );
+      const evidence = minimalEvidence({
+        routes: [{ path: '/api/notes', method: 'POST', file: 'server.ts', kind: 'api', startLine: 3 }]
+      });
+
+      const { visible, heldOut } = generateTests(dir, evidence, []);
+      const content = [...visible, ...heldOut][0]?.content ?? '';
+
+      expect(content).toContain('returns 201 on success (from-source)');
+      expect(content).toContain('expect(res.status).toBe(201)');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('does not add a from-source success-status assertion for a route with a dynamic path segment (Express)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-gentests-'));
+    try {
+      writeFileSync(
+        join(dir, 'server.ts'),
+        [
+          "import express from 'express';",
+          'const app = express();',
+          "app.get('/api/users/:id', (req, res) => {",
+          '  const user = findUser(req.params.id);',
+          '  if (!user) {',
+          "    return res.status(404).json({ error: 'not found' });",
+          '  }',
+          '  return res.status(200).json(user);',
+          '});',
+          'export default app;'
+        ].join('\n')
+      );
+      const evidence = minimalEvidence({
+        routes: [{ path: '/api/users/:id', method: 'GET', file: 'server.ts', kind: 'api', startLine: 3 }]
+      });
+
+      const { visible, heldOut } = generateTests(dir, evidence, []);
+      const content = [...visible, ...heldOut][0]?.content ?? '';
+
+      expect(content).not.toContain('from-source');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('sends a JSON body for POST/PUT/PATCH using inferred field names, so a handler reading req.body does not crash', () => {
     const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-gentests-'));
     try {

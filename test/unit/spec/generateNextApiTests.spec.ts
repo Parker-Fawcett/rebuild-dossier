@@ -90,6 +90,107 @@ describe('generateNextApiTests', () => {
     expect(content).toContain('from-reconciliation');
   });
 
+  it('adds a from-source success-status assertion for a body-carrying route with no dynamic path segment', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-nextapi-'));
+    try {
+      mkdirSync(join(dir, 'src/app/api/notes'), { recursive: true });
+      writeFileSync(
+        join(dir, 'src/app/api/notes/route.ts'),
+        [
+          'export async function POST(request) {',
+          '  const { name } = await request.json();',
+          '  if (!name) {',
+          "    return NextResponse.json({ error: 'name required' }, { status: 400 });",
+          '  }',
+          '  return NextResponse.json({ id: 1, name }, { status: 201 });',
+          '}'
+        ].join('\n')
+      );
+      const evidence = minimalEvidence({
+        routes: [{ path: '/api/notes', method: 'POST', file: 'src/app/api/notes/route.ts', kind: 'api', startLine: 1 }]
+      });
+
+      const { visible, heldOut } = generateNextApiTests(dir, evidence, []);
+      const content = [...visible, ...heldOut][0]?.content ?? '';
+
+      expect(content).toContain('returns 201 on success (from-source)');
+      expect(content).toContain('expect(res.status).toBe(201)');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('does not add a from-source success-status assertion for a route with a dynamic path segment (lookup-gated, not trustworthy)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-nextapi-'));
+    try {
+      mkdirSync(join(dir, 'src/app/api/users/[id]'), { recursive: true });
+      writeFileSync(
+        join(dir, 'src/app/api/users/[id]/route.ts'),
+        [
+          'export async function GET(request, { params }) {',
+          '  const user = findUser(params.id);',
+          '  if (!user) {',
+          "    return NextResponse.json({ error: 'not found' }, { status: 404 });",
+          '  }',
+          '  return NextResponse.json(user, { status: 200 });',
+          '}'
+        ].join('\n')
+      );
+      const evidence = minimalEvidence({
+        routes: [{ path: '/api/users/:id', method: 'GET', file: 'src/app/api/users/[id]/route.ts', kind: 'api', startLine: 1 }]
+      });
+
+      const { visible, heldOut } = generateNextApiTests(dir, evidence, []);
+      const content = [...visible, ...heldOut][0]?.content ?? '';
+
+      expect(content).not.toContain('from-source');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('prefers the reconciliation-backed assertion over a from-source success status when both would apply', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-nextapi-'));
+    try {
+      mkdirSync(join(dir, 'src/app/api/notes'), { recursive: true });
+      writeFileSync(
+        join(dir, 'src/app/api/notes/route.ts'),
+        ['export async function POST(request) {', '  return NextResponse.json({ id: 1 }, { status: 201 });', '}'].join('\n')
+      );
+      const evidence = minimalEvidence({
+        routes: [{ path: '/api/notes', method: 'POST', file: 'src/app/api/notes/route.ts', kind: 'api', startLine: 1 }]
+      });
+      const cases: Case[] = [
+        {
+          id: 'case:route:POST:/api/notes',
+          topicKey: 'route:POST:/api/notes',
+          signals: [
+            {
+              id: 's1',
+              source: 'ingest',
+              locator: { file: 'src/app/api/notes/route.ts', startLine: 1, endLine: 1 },
+              topicKey: 'route:POST:/api/notes',
+              claim: 'returns 201 on create',
+              evidenceText: 'e',
+              detectedAt: now
+            }
+          ],
+          matchedKnownBugs: [],
+          status: 'auto_resolved',
+          autoResolution: { decision: 'intentional', reason: 'r' }
+        }
+      ];
+
+      const { visible, heldOut } = generateNextApiTests(dir, evidence, cases);
+      const content = [...visible, ...heldOut][0]?.content ?? '';
+
+      expect(content).toContain('from-reconciliation');
+      expect(content).not.toContain('from-source');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('splits generated files deterministically between visible and held-out', () => {
     const evidence = minimalEvidence({
       routes: [

@@ -6,6 +6,7 @@ import type { PageStylesheetAnimations, SkippedPage } from './generatePageTests.
 import { inferRequestBodyFields } from './inferRequestBodyFields.js';
 import { inferRequestValidationRules } from './inferRequestValidationRules.js';
 import { inferResponseBodyFields, inferResponseValueFormatHints } from './inferResponseBodyFields.js';
+import { inferSuccessStatusCode } from './inferSuccessStatusCode.js';
 import { resolveDelegatedResponseFields } from './resolveDelegatedResponseFields.js';
 import { METHODS_WITH_BODY } from './routeTestAssertions.js';
 
@@ -75,8 +76,12 @@ function inferredFieldsSection(repoPath: string, route: RouteEntry): string | un
 // follows one level of same-repo relative import (e.g. `NextResponse.json(
 // createNote(name, message))` delegating to a `lib/db.ts` data layer) as a
 // fallback — see its own header for the full accepted-risk list on that
-// path (relative imports only, single-hop, etc.). Same unguarded-read
-// philosophy as sourceLine/inferredFieldsSection for the same reason.
+// path (relative imports only, single-hop, etc.). Also documents the
+// success-status signal from inferSuccessStatusCode.ts (see its own header)
+// when confident — this renders even when no fields were found at all (e.g.
+// a bare-array GET-list response), since the two signals are independent.
+// Same unguarded-read philosophy as sourceLine/inferredFieldsSection for the
+// same reason.
 function inferredResponseFieldsSection(repoPath: string, route: RouteEntry): string | undefined {
   if (route.kind !== 'api') return undefined;
   const text = readFileSync(join(repoPath, route.file), 'utf-8');
@@ -93,7 +98,9 @@ function inferredResponseFieldsSection(repoPath: string, route: RouteEntry): str
     }
   }
 
-  if (fields.length === 0) return undefined;
+  const successStatus = inferSuccessStatusCode(text, route);
+  if (fields.length === 0 && !successStatus) return undefined;
+
   return [
     '## Inferred response body fields (best-effort, not verified)',
     '',
@@ -106,11 +113,17 @@ function inferredResponseFieldsSection(repoPath: string, route: RouteEntry): str
     'request passthroughs, not just server-computed values, since knowing a field is NOT',
     'transformed is real signal too.',
     '',
+    successStatus
+      ? `**Success status:** \`${successStatus.status}\` — the only unconditional (non-guarded) response in this handler.`
+      : undefined,
+    successStatus ? '' : undefined,
     delegatedNote,
     delegatedNote ? '' : undefined,
-    fields
-      .map((f) => (formatHints[f] ? `- \`${f}\` — computed as: \`${formatHints[f]}\`` : `- \`${f}\``))
-      .join('\n'),
+    fields.length > 0
+      ? fields
+          .map((f) => (formatHints[f] ? `- \`${f}\` — computed as: \`${formatHints[f]}\`` : `- \`${f}\``))
+          .join('\n')
+      : undefined,
     ''
   ]
     .filter((line) => line !== undefined)

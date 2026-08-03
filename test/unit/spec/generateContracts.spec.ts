@@ -292,7 +292,7 @@ describe('generateContracts', () => {
     }
   });
 
-  it('omits the inferred-response-body-fields section when the response is built by calling a separate function with no resolvable import', () => {
+  it('renders no field bullets, but still documents a confident success status, when the response is built by calling a separate function with no resolvable import', () => {
     const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
     try {
       writeFileSync(
@@ -309,7 +309,13 @@ describe('generateContracts', () => {
 
       const files = generateContracts(dir, routes);
 
-      expect(files[0]?.content).not.toContain('Inferred response body fields');
+      // Fields are still unresolved (no import statement to follow at all) —
+      // additive-only: the section now renders because a confident success
+      // status exists independently, not because fields were found.
+      const content = files[0]?.content ?? '';
+      const responseSection = content.slice(content.indexOf('## Inferred response body fields'));
+      expect(responseSection).toContain('**Success status:** `201`');
+      expect(responseSection).not.toMatch(/^- `/m);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -354,7 +360,7 @@ describe('generateContracts', () => {
     }
   });
 
-  it('omits the section when cross-file resolution also finds nothing (e.g. a bare-array GET-list callee)', () => {
+  it('renders no field bullets, but still documents an implicit 200, when cross-file field resolution finds nothing (a bare-array GET-list callee)', () => {
     const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
     try {
       mkdirSync(join(dir, 'app', 'api', 'notes'), { recursive: true });
@@ -377,6 +383,37 @@ describe('generateContracts', () => {
 
       const files = generateContracts(dir, routes);
 
+      expect(files[0]?.content).toContain('Inferred response body fields');
+      expect(files[0]?.content).toContain('**Success status:** `200`');
+      expect(files[0]?.content).not.toMatch(/^- `/m);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('omits the section entirely when neither fields nor a confident success status can be found', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(
+        join(dir, 'route.ts'),
+        [
+          'export async function POST(request) {',
+          '  const { name } = await request.json();',
+          '  if (name) {',
+          '    return NextResponse.json(createNote(name), { status: 201 });',
+          '  } else {',
+          '    return NextResponse.json(buildError(), { status: 400 });',
+          '  }',
+          '}'
+        ].join('\n')
+      );
+      const routes: RouteEntry[] = [{ path: '/api/notes', method: 'POST', file: 'route.ts', kind: 'api', startLine: 1 }];
+
+      const files = generateContracts(dir, routes);
+
+      // Both branches delegate to bare, unresolvable calls (no import at
+      // all) — no fields found on either side, and both returns are guarded
+      // by the if/else, so no confident success status either.
       expect(files[0]?.content).not.toContain('Inferred response body fields');
     } finally {
       rmSync(dir, { recursive: true, force: true });
