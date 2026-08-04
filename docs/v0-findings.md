@@ -241,6 +241,34 @@ and cross-file request-field/validation resolution remain deliberately deferred 
 confirmed real motivating case, the same evidence-driven bar every other deferred item in this
 document has been held to. See "Resolving tsconfig path aliases," below.
 
+Stage 4, the last of the four-stage roadmap, was supposed to be a diagnosis-only pass: re-examine
+the real, page-heavy `catchandtrade` app's weak/unrunnable pages one by one and classify the actual
+cause, since the only evidence behind the earlier "mostly auth-gated" claim was an aggregate number,
+not a per-page breakdown. A fresh diagnostic run instead surfaced something more consequential
+first: **`capturedPages: 0`** — every one of the 19 pages failed to capture at all, with the
+identical `ReferenceError: __name is not defined` inside `extractStylesheetAnimations`. Confirmed
+as a real, general, previously-undiscovered regression via a minimal reproduction completely
+outside this codebase (any `page.evaluate(fn)` where `fn` declares an inner function throws
+identically) — not specific to any one extractor: `tsx`'s transform (the real production entrypoint
+this MCP server actually runs under) wraps a nested function inside anything passed to
+`page.evaluate`/`page.addInitScript` with a call to a `__name` helper defined only at the module's
+own top level, invisible to the isolated realm the serialized function actually executes in. This
+had likely also been silently breaking `injectAnimationNeutralizingOverride`'s own nested `inject`
+arrow (an `addInitScript` failure doesn't propagate the way a failed `page.evaluate` call does) —
+meaning the animation-settling work shipped earlier this session may never have actually been
+applying at all. Fixed with a `window.__name` shim injected as a plain string (never itself subject
+to the same transform), confirmed live against both a minimal fixture and a full catchandtrade
+re-run (`capturedPages: 0 → 19`, every page, `skippedPages: []`). Notably, this bug is invisible to
+vitest itself — confirmed directly that vitest's own transform doesn't inject the same helper, so no
+unit test can reproduce or guard it, the same category as the pre-existing `next dev`
+process-group-leak bug. With capture finally working, the real per-page diagnosis turned out to be
+far more mixed than "mostly auth-gated": some auth-redirect-gated pages captured their own real
+in-place fallback message, others captured the actual destination login page, depending on
+incidental page-capture order racing Next.js dev-mode's on-demand route compilation; one page
+renders real, legitimately-public content that's simply gated by user interaction a static capture
+never performs; one page's capture happened to hit a live API failure that got baked in as expected
+content. See "Fixing page capture, then actually diagnosing it," below.
+
 ## The hypothesis being tested
 
 Prior research (AgentModernize, arXiv:2605.17535) found a rebuild pipeline scores 0%
@@ -2054,6 +2082,117 @@ cross-file request-field/validation resolution remain fully deferred, unaddresse
 `extends`-based tsconfig inheritance (a config that itself extends a base config for its real
 `paths`) isn't followed either — only the repo-root `tsconfig.json`'s own `compilerOptions` are read
 directly. All named plainly, not silently skipped.
+
+## Fixing page capture, then actually diagnosing it: stage 4 found a bigger bug before it could answer its own question
+
+This was meant to be the simplest stage of the four-stage roadmap: no code, just diagnosis. The
+prior "real page-test generation" finding against `catchandtrade` had one number backing it up —
+1 of 19 pages with a demonstrated content-driven mutation kill — and one aggregate guess at the
+cause ("mostly because black-box capture with no session can't get past this app's auth gates").
+The plan called for re-examining each of the 19 pages individually, not the aggregate, before
+designing anything. That's what this section does — but only after an unplanned detour that turned
+out to matter more than the original question.
+
+### The detour: page capture was completely broken, and the auth theory couldn't even be tested
+
+A fresh diagnostic run — re-ingesting `catchandtrade` and re-running the real capture + mutation-
+check pipeline from scratch — came back with `capturedPages: 0`. Not some pages. All 19, every one
+failing with the identical error: `page.evaluate: ReferenceError: __name is not defined`, thrown
+from inside `extractStylesheetAnimations`.
+
+**Traced to a real, general, previously-undiscovered bug, confirmed with a minimal reproduction
+completely outside this codebase before touching any real code.** A bare Playwright script —
+`page.evaluate(function outer() { function inner() { return 1; } return inner(); })`, nothing to do
+with this project at all — throws the identical error. The cause: `tsx`'s transform (the actual
+runtime this MCP server runs under — `"start": "tsx src/index.ts"` in `package.json`, not a
+`tsc`-compiled build) wraps any nested function declared inside a function passed to
+`page.evaluate`/`page.addInitScript` with a call to a `__name(fn, "name")` helper, used to preserve
+`.name` across the transform. That helper is defined once, at the top of this module's own
+compiled output — but `page.evaluate`/`page.addInitScript` only ever serialize the *one* passed
+function's own text (`Function.prototype.toString()`), so the helper's definition never makes it
+into the isolated browser realm that text actually executes in. The reference throws the moment the
+inner function is declared.
+
+`extractStylesheetAnimations` has exactly this shape (a nested `matchesLiveElement`), which is why
+it was the one that surfaced in the error. But tracing this further turned up something more
+consequential: `injectAnimationNeutralizingOverride` — the animation-settling `addInitScript`
+callback shipped earlier this session — has the identical shape (a nested `inject` arrow). An
+`addInitScript` failure doesn't propagate the way a failed `page.evaluate` call does, so this had
+likely been failing *silently* the entire time since it shipped: the CSS neutralizing override may
+never have actually been applying, with nothing anywhere surfacing that it wasn't. Confirmed the
+scope is genuinely general, not one extractor's quirk, by grepping the whole codebase — every
+`page.evaluate`/`page.addInitScript` call lives in this one file, and both of its passed functions
+have exactly this nested-function shape.
+
+**Fixed by neutralizing the missing reference, not by avoiding the syntax that triggers it** —
+traced first, since the fix wasn't obvious: a nested arrow function bound to a `const` triggers the
+identical error (not just `function`-keyword declarations), and a hand-written `__name` polyfill
+*defined inside the same evaluated function* gets wrapped by the exact same transform, an infinite
+regress. The fix that actually works: inject `window.__name = window.__name || ((fn) => fn);` via
+`page.addInitScript` as a **plain string**, registered before any other `addInitScript`/`evaluate`
+call — a string is never itself subject to tsx's function-transform, since it isn't parsed as this
+module's own code at all, just handed to the page verbatim. Verified against a minimal single-page
+fixture (`capturedPages: 0 → 1`) and then the full `catchandtrade` re-run
+(`capturedPages: 0 → 19`, `skippedPages: []`, for every page).
+
+**Not covered by a vitest regression test — confirmed directly, not assumed, that it couldn't be.**
+A quick check of `withNestedFunctionForTest.toString()` run *through vitest's own transform*
+showed clean, unwrapped source — no `__name` call anywhere. Vitest's toolchain doesn't reproduce
+this bug at all, so a vitest-based test would either pass trivially regardless of whether the fix
+is present, or could never fail meaningfully either way — an early draft of exactly such a test was
+written, found to do neither job, and removed rather than left in as false confidence. Same category
+as this codebase's existing `next dev` process-group-leak bug: a real environment/tooling mechanic
+that requires a live pipeline re-run to verify, not something a unit test can stand in for.
+
+### The actual diagnosis, now that capture works: not one cause, several
+
+With real captures finally in hand, the per-page picture is meaningfully more precise — and more
+mixed — than the earlier aggregate "mostly auth-gated" framing suggested:
+
+- **Auth-redirect pages split into two different captured outcomes, not one.** `portfolio` and
+  `portfolio/search` — both gated by the identical `if (!token) { window.location.href = '/login';
+  return; }` pattern — captured their *own* real, page-specific fallback content ("Please login to
+  view your portfolio."), not a generic login page. `watchlist` and `onboarding`, gated by the exact
+  same code shape, captured the *actual* destination `/login` page's content ("Welcome Back," "Sign
+  in to your collection," "Email," "Password"). The likely explanation, not yet independently
+  confirmed further: Next.js dev mode compiles routes on demand — whichever gated page is captured
+  *first* hits a cold compile of `/login` that doesn't finish inside the capture's bounded settle
+  wait, so its capture shows the source page's own transitional pre-redirect state; by the time
+  later gated pages are captured, `/login` is already warm, so their redirects complete in time and
+  their captures show the real destination. If so, this is page-capture-*order* nondeterminism, not
+  a property of any individual page — a genuinely different, more specific finding than "auth
+  gating" alone.
+- **A page gated by an in-place conditional, not a redirect, captures real content — and still
+  ends up weak for an unrelated reason.** `collection` (`{!user && (...)}`, no hard redirect at
+  all) captured genuinely real, page-specific, legitimately-public content ("Browse all available
+  Pokemon card sets"). Still weak, but because the mutated logic lives in the authenticated branch
+  this state never reaches — not because the captured content is generic or missing.
+- **A fully public page is weak for a reason that has nothing to do with auth at all.** `grading`
+  (no token check anywhere in its source) captured its full, real content — the ROI calculator's
+  labels, tiers, and the already-documented `GRADE_VALUES` classifier gap. It's weak because its
+  actual calculation logic only runs after a button click ("Calculate ROI") that a static,
+  no-interaction Playwright capture never performs, not because of anything auth-related.
+- **A live API failure during capture got asserted as if it were expected content.** `marketplace`'s
+  captured body includes `"Failed to load cards"` — the page's live data fetch failed at capture
+  time, and that failure state is now the literal, asserted baseline. A rebuild whose fetch
+  succeeds would fail this assertion by behaving *better* than the captured original — a real,
+  narrow risk distinct from every other cause named here.
+- **Already-documented causes, reconfirmed, not newly discovered:** `root` and `marketplace` still
+  reproduce the comma-formatted-live-number classifier gap; `legal-terms`, `legal-privacy`, and
+  `scan` still have zero applicable mutation sites; `watchlist` is still the one page with a real,
+  confirmed kill (an SSR-crash-inducing mutation, unrelated to which content variant its own capture
+  happened to show). `callback` — reading its token from a URL query string rather than
+  `localStorage` — correctly shows its own real "Authentication Failed / No token provided" state
+  when captured with no query params: a genuinely correct result, not a problem to fix.
+
+**What this settles, and what it deliberately doesn't yet.** The bug fix is unambiguous and shipped.
+The diagnosis is not: it shows the "mostly auth-gated" explanation was too coarse, real, and not
+wrong, but incomplete — the actual causes span at least four genuinely different mechanisms
+(redirect-order timing, authenticated-branch-only logic, interaction-gated logic, and a
+transient-failure-baked-into-baseline risk), each of which would need a different fix, if any is
+warranted at all. Matching this document's own standing discipline: the fix that was clearly,
+mechanically necessary shipped now; what (if anything) to build next is deliberately left an open
+question for the next planning pass, not assumed from here.
 
 ## Bottom line
 
