@@ -1,6 +1,6 @@
 # rebuild-dossier v0: findings
 
-**Status:** v0 built (6 MCP tools, 459 unit tests), validated end-to-end against **two real,
+**Status:** v0 built (6 MCP tools, 464 unit tests), validated end-to-end against **two real,
 structurally different apps** (Madeline — Next.js client-side gate pattern; catchandtrade — a
 real Prisma+Postgres+Stripe+eBay-backed API app), across **two model tiers** (Sonnet, Haiku),
 with a precisely-characterized weak-model failure boundary and a security-hardening pass
@@ -262,12 +262,15 @@ re-run (`capturedPages: 0 → 19`, every page, `skippedPages: []`). Notably, thi
 vitest itself — confirmed directly that vitest's own transform doesn't inject the same helper, so no
 unit test can reproduce or guard it, the same category as the pre-existing `next dev`
 process-group-leak bug. With capture finally working, the real per-page diagnosis turned out to be
-far more mixed than "mostly auth-gated": some auth-redirect-gated pages captured their own real
-in-place fallback message, others captured the actual destination login page, depending on
-incidental page-capture order racing Next.js dev-mode's on-demand route compilation; one page
-renders real, legitimately-public content that's simply gated by user interaction a static capture
-never performs; one page's capture happened to hit a live API failure that got baked in as expected
-content. See "Fixing page capture, then actually diagnosing it," below.
+far more mixed than "mostly auth-gated": several pages captured their own real, in-place
+"please log in" content from a render-time early return, not a redirect at all — initially
+misdiagnosed as a capture-order race against Next.js dev-mode's on-demand compilation, a theory
+disproven by building and live-testing the fix for it (see stage 4b, below); one genuinely separate
+page uses a real `useEffect`-driven redirect and correctly captures the destination login page; one
+page renders real, legitimately-public content that's simply gated by user interaction a static
+capture never performs; one page's capture happened to hit a live API failure that got baked in as
+expected content. See "Fixing page capture, then actually diagnosing it," below, and "Waiting for
+redirects to settle — a fix that's correct but disproven as the cause it was built for," after it.
 
 ## The hypothesis being tested
 
@@ -2149,24 +2152,28 @@ that requires a live pipeline re-run to verify, not something a unit test can st
 With real captures finally in hand, the per-page picture is meaningfully more precise — and more
 mixed — than the earlier aggregate "mostly auth-gated" framing suggested:
 
-- **Auth-redirect pages split into two different captured outcomes, not one.** `portfolio` and
-  `portfolio/search` — both gated by the identical `if (!token) { window.location.href = '/login';
-  return; }` pattern — captured their *own* real, page-specific fallback content ("Please login to
-  view your portfolio."), not a generic login page. `watchlist` and `onboarding`, gated by the exact
-  same code shape, captured the *actual* destination `/login` page's content ("Welcome Back," "Sign
-  in to your collection," "Email," "Password"). The likely explanation, not yet independently
-  confirmed further: Next.js dev mode compiles routes on demand — whichever gated page is captured
-  *first* hits a cold compile of `/login` that doesn't finish inside the capture's bounded settle
-  wait, so its capture shows the source page's own transitional pre-redirect state; by the time
-  later gated pages are captured, `/login` is already warm, so their redirects complete in time and
-  their captures show the real destination. If so, this is page-capture-*order* nondeterminism, not
-  a property of any individual page — a genuinely different, more specific finding than "auth
-  gating" alone.
-- **A page gated by an in-place conditional, not a redirect, captures real content — and still
-  ends up weak for an unrelated reason.** `collection` (`{!user && (...)}`, no hard redirect at
-  all) captured genuinely real, page-specific, legitimately-public content ("Browse all available
-  Pokemon card sets"). Still weak, but because the mutated logic lives in the authenticated branch
-  this state never reaches — not because the captured content is generic or missing.
+- **An in-place render-time gate, not a redirect, turned out to be the more common pattern —
+  corrected after an initial misdiagnosis, not assumed.** `portfolio`, `portfolio/search`, and
+  `collection` all captured their *own* real, page-specific fallback content ("Please login to view
+  your portfolio.", "Please login to add cards to your portfolio.", "Browse all available Pokemon
+  card sets"). The first write of this section guessed these were the same
+  `window.location.href`-redirect shape as `watchlist`/`onboarding`, just caught mid-transition by a
+  capture-order race against Next dev's on-demand compilation — plausible-sounding, and wrong.
+  Building the fix for that race (see "Waiting for redirects to settle," below) and then
+  re-verifying live against the real app directly disproved it: the fix changed nothing about these
+  pages' captured content, because there was no redirect to race in the first place. Direct
+  instrumentation of the real source confirms why — `portfolio`'s component body has a synchronous,
+  render-time early return (`const token = localStorage.getItem('token'); if (!token) { return
+  <...Please login...>; }`), never reaching the separate `useEffect`-called function that contains
+  the `window.location.href` string the earlier source-grep had found and misattributed to this
+  branch. Still weak, all three, but for the same reason as before: the mutated business logic
+  lives in the authenticated
+  branch this state never reaches — not because the content is generic or missing.
+- **A genuine `useEffect`-driven redirect does exist, for a different page.** `watchlist` has no
+  early-return gate at all — its only handling is `useEffect(() => { if (!token)
+  window.location.href = '/login'; ... }, [])` — and its capture correctly shows the real `/login`
+  page's content. `onboarding` matches this same shape. This is a real, different pattern from
+  `portfolio`'s, not two timings of the same one.
 - **A fully public page is weak for a reason that has nothing to do with auth at all.** `grading`
   (no token check anywhere in its source) captured its full, real content — the ROI calculator's
   labels, tiers, and the already-documented `GRADE_VALUES` classifier gap. It's weak because its
@@ -2185,14 +2192,87 @@ mixed — than the earlier aggregate "mostly auth-gated" framing suggested:
   `localStorage` — correctly shows its own real "Authentication Failed / No token provided" state
   when captured with no query params: a genuinely correct result, not a problem to fix.
 
-**What this settles, and what it deliberately doesn't yet.** The bug fix is unambiguous and shipped.
-The diagnosis is not: it shows the "mostly auth-gated" explanation was too coarse, real, and not
-wrong, but incomplete — the actual causes span at least four genuinely different mechanisms
-(redirect-order timing, authenticated-branch-only logic, interaction-gated logic, and a
-transient-failure-baked-into-baseline risk), each of which would need a different fix, if any is
-warranted at all. Matching this document's own standing discipline: the fix that was clearly,
+**What this settles, and what it deliberately doesn't yet.** The `__name` bug fix is unambiguous
+and shipped. The diagnosis is not: it shows the "mostly auth-gated" explanation was too coarse,
+real, and not wrong, but incomplete — the actual causes span at least three genuinely different
+mechanisms (an in-place render-time gate whose authenticated branch a static capture never reaches,
+interaction-gated logic, and a transient-failure-baked-into-baseline risk), each of which would need
+a different fix, if any is warranted at all. (A fourth, a genuine `useEffect`-driven redirect, is
+also real, but — see "Waiting for redirects to settle" below — turned out not to be racing anything
+observable on this app.) Matching this document's own standing discipline: the fix that was clearly,
 mechanically necessary shipped now; what (if anything) to build next is deliberately left an open
 question for the next planning pass, not assumed from here.
+
+## Waiting for redirects to settle — a fix that's correct but disproven as the cause it was built for
+
+Stage 4's diagnosis named a specific, plausible-sounding theory: `portfolio`/`portfolio/search` and
+`watchlist`/`onboarding` all share the identical `if (!token) { window.location.href = '/login';
+return; }` shape, yet captured two different outcomes — some pages their own transitional,
+pre-redirect content, others the real destination `/login` page. The suspected cause was a
+capture-order race against Next.js dev-mode's on-demand route compilation: whichever page hit a cold
+compile of `/login` first would be caught mid-transition; later pages, with `/login` already warm,
+would redirect in time. This section is what happened when that theory was actually tested, not
+just asserted.
+
+**The fix was designed and traced properly, and it works — for the bug it targets.**
+`page.goto(url, { waitUntil: 'load' })` only waits for the *requested* navigation; a redirect fired
+later from a mounted `useEffect` is a separate navigation nothing previously waited for.
+`waitForRedirectsToSettle` explicitly waits for the URL to stop changing (with a bounded hop count,
+so a genuine redirect loop can't hang capture) before anything reads the DOM. The obvious first
+choice — reusing `ANIMATION_SETTLE_WAIT_MS` (1500ms) as this same detection window — was traced
+against a real Chromium instance before being accepted, and rejected: a redirect fired after an
+800ms delay (simulating hydration + a mounted effect) combined with a 2500ms server-side delay
+(simulating a cold Next-dev compile) is still missed at 1500ms. A dedicated 5000ms window correctly
+waits out the same combined case. Baked into the generated test's own template too, matching the
+existing `ANIMATION_SETTLE_WAIT_MS` precedent, so a rebuild reproducing the same redirect doesn't
+fail the generated test by racing the same window differently. Unlike the `__name` bug, this one is
+genuinely testable — `waitForRedirectsToSettle` is normal Node-side code, never serialized into a
+browser realm, so five real-Chromium test cases (no redirect, a delayed redirect, the combined
+delayed-effect-plus-slow-server case, a chained 2-hop redirect, and a long chain proving the hop
+bound actually stops following it) all pass.
+
+**Then the live re-verification — the same standard every fix in this document has been held to —
+found the fix changed nothing on the app that supposedly motivated it.** Re-running the real
+pipeline against `catchandtrade` with the fix in place produced byte-identical captured content for
+`portfolio`, `portfolio/search`, `watchlist`, and `onboarding` — before and after. That result alone
+was enough to stop and check instead of accepting a plausible non-result. Direct instrumentation
+(a real browser, logging every URL change, console message, and network request against the actual
+running app, not a synthetic reproduction) showed why: over an 8.5-second observation window,
+`/portfolio`'s URL never changed at all. The "Please login to view your portfolio." text is the
+page's genuine, final, correctly-settled content, not a transitional state caught mid-flight.
+
+**Reading the actual source explains it precisely, and reveals the original diagnosis's mistake.**
+`portfolio/page.tsx`'s component body has a synchronous, render-time early return:
+
+```ts
+const token = localStorage.getItem('token');
+if (!token) {
+  return <div>...Please <a href="/login">login</a> to view your portfolio.</div>;
+}
+```
+
+The `window.location.href = '/login'` string the original diagnosis found *does* exist in this
+file — but inside `fetchPortfolios`, a separate function called from a separate `useEffect`. The
+early return above means that branch's JSX — the actual, final rendered page — never depends on
+`fetchPortfolios` running at all. `portfolio/search` has the identical shape. `watchlist`, by
+contrast, has no early-return gate anywhere; its *only* handling of a missing token is directly
+inside a mounted `useEffect` that calls `window.location.href = '/login'` unconditionally — which is
+exactly why its capture correctly reaches the real destination page. These were never two timings of
+one race. They're two different, both entirely correct, code patterns — the same category
+distinction as `collection`'s in-place conditional, not a new one.
+
+**What this leaves standing, and what it corrects.** The redirect-settling fix itself is not wrong
+or wasted — it closes a real bug class (a genuinely delayed client-side redirect racing a fixed
+timeout), traced and verified independently of this app, and is a reasonable, defensive improvement
+to keep for a target app that actually has that shape. What's corrected is the specific claim in the
+section above: the "capture-order nondeterminism" explanation for `catchandtrade`'s
+`portfolio`-vs-`watchlist` split was plausible and wrong, not merely unconfirmed — verified wrong,
+by building the fix its own theory implied and watching it change nothing. `portfolio`,
+`portfolio/search`, and `collection` belong in the same bucket (an in-place render-time gate whose
+authenticated branch a static, unauthenticated capture never reaches) — one mechanism, not two.
+Left deliberately open, same as before: whether anything further is worth building for the
+remaining named causes (interaction-gated logic, the transient-failure-baked-into-baseline risk) is
+still a question for the next planning pass, not something this correction answers on its own.
 
 ## Bottom line
 
