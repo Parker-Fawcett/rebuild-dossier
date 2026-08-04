@@ -117,6 +117,40 @@ async function waitForReady(baseUrl: string, deadline: number): Promise<void> {
   throw new Error('next dev did not become ready in time');
 }
 
+// Real, confirmed regression (found via a live diagnostic run against
+// catchandtrade, not a hypothetical): tsx/esbuild's transform wraps any
+// NESTED function — a named declaration or a const-bound arrow, either one —
+// inside a function passed to page.evaluate/page.addInitScript with a call
+// to a `__name(fn, "name")` helper, used to preserve `.name` across the
+// transform. That helper is defined once at this module's own top level;
+// page.evaluate/addInitScript only serialize the ONE passed function's own
+// text (via Function.prototype.toString()), so the helper's definition is
+// missing from what actually runs in the isolated browser realm, throwing
+// `ReferenceError: __name is not defined` the moment the inner function is
+// declared — breaking extractStylesheetAnimations's own nested
+// matchesLiveElement below, and, more consequentially,
+// injectAnimationNeutralizingOverride's nested `inject` arrow (silently,
+// since an addInitScript failure doesn't reject the same way a failed
+// page.evaluate call does — the settle-override could be silently not
+// applying at all). Verified as fully general with a minimal reproduction
+// completely outside this codebase (any page.evaluate(fn) where fn declares
+// an inner function throws identically), not specific to any one
+// extractor's code shape. Fixed by defining a no-op `__name` directly on the
+// page's own global scope before any other addInitScript/evaluate call that
+// might need it — as a plain STRING, deliberately, not a function reference,
+// so it can never itself become subject to the same transform.
+// Not covered by a vitest regression test — confirmed directly, not
+// assumed, that vitest's own transform pipeline doesn't reproduce this at
+// all (a nested function's serialized .toString() shows no __name wrapping
+// under vitest, unlike under tsx, the real production entrypoint), so a
+// vitest-based test would either pass trivially or could never fail
+// meaningfully. Same category as the next-dev process-group-leak bug this
+// codebase already has (a real environment/tooling mechanic a unit test
+// can't surface) — verified instead via a live pipeline re-run against a
+// real fixture. Exported for reuse by any future live-verification script
+// that needs it, not for a unit test.
+export const NAME_HELPER_SHIM_SCRIPT = 'window.__name = window.__name || ((fn) => fn);';
+
 // Executed inside the page via page.evaluate — must be self-contained (no
 // closures over this module's scope). Deliberately NOT
 // page.accessibility.snapshot(): the a11y tree restructures around ARIA
@@ -355,7 +389,11 @@ async function capturePage(browser: Browser, baseUrl: string, route: RouteEntry)
   const context = await browser.newContext();
   const page = await context.newPage();
   // Must be registered before page.goto — addInitScript only takes effect on
-  // subsequent navigations, not the current page state.
+  // subsequent navigations, not the current page state. Registered first, so
+  // it's already in place by the time injectAnimationNeutralizingOverride's
+  // own nested arrow function runs — see NAME_HELPER_SHIM_SCRIPT's own
+  // comment for why this is needed at all.
+  await page.addInitScript(NAME_HELPER_SHIM_SCRIPT);
   await page.addInitScript(injectAnimationNeutralizingOverride);
   const consoleErrors: string[] = [];
   page.on('console', (msg) => {
