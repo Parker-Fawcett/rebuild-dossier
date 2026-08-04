@@ -308,6 +308,23 @@ output directory the fixture gets copied into — missed, every such page test w
 registered as unrunnable. See "Closing the auth-gate capture gap: a storageState fix, and the
 port-mismatch bug tracing it caught before shipping," below.
 
+That fix was then re-run against the real catchandtrade app itself, not just a fixture reproducing
+its shape — a genuinely different, higher-stakes test, since the earlier fixture necessarily
+matched the fix to its own bug rather than the other way around. The result is real but layered,
+not a clean before/after win: capture did reach real authenticated content (a real seeded
+portfolio's Charizard, condition, and purchase price, verified directly via a standalone capture),
+but only after a second, unrelated capture-environment gap surfaced and had to be worked around — a
+hardcoded, absolute `NEXT_PUBLIC_API_URL` in this app's own dev config that doesn't match this
+tool's randomized dev-server port, silently breaking the page's own client-side data fetch
+regardless of auth. In the app's own committed configuration (without that workaround), the
+portfolio page's generated test still lands as unrunnable in the official mutation-check run — but
+traced down to a single new console error appearing only in the mutation-check's isolated scratch
+re-run, not a content-reaching failure, a pre-existing console-error-tolerance limitation this
+verification happened to be the first thing able to surface concretely, since no prior run ever
+captured authenticated content noisy enough to trigger it. See "Validating the auth-gate fix
+against the real catchandtrade app: real data reached, two more real gaps found along the way,"
+below.
+
 ## The hypothesis being tested
 
 Prior research (AgentModernize, arXiv:2605.17535) found a rebuild pipeline scores 0%
@@ -2465,6 +2482,78 @@ weak test should carry write-permission the same way a strong one does. The tool
 itself, by design — a caller who can't produce a `storageState` export has no path to authenticated
 capture through this feature, and that's the deliberate boundary, not a placeholder for a future
 version.
+
+## Validating the auth-gate fix against the real catchandtrade app: real data reached, two more real gaps found along the way
+
+The storageState fix above was designed and verified against a fixture built to reproduce
+catchandtrade's exact `localStorage.getItem('token')` gate — necessary to trace the port-remap bug
+before shipping, but a fixture built to match a fix is a weaker test than the real app the fix was
+actually motivated by. This re-runs it against catchandtrade itself.
+
+**Setup, without touching any credential or login form.** A local Postgres instance was stood up
+(matching the app's own `docker-compose.yml` port/credentials), the schema pushed via Prisma, and
+the catalog seed script run. A real `User`/`Portfolio`/`PortfolioItem` row was inserted directly via
+Prisma — a real database record, not a UI-driven signup — with one seeded card (Charizard, Base
+Set, 3x, NEAR_MINT, $120.50 purchase price). A session token was then minted directly via the app's
+own `auth.ts` signing function, using the same secret its dev config already defines — never through
+a login form, never handling a real password. This mirrors the tool's own "never log in itself"
+design applied to the verification process too, not just the shipped feature.
+
+**A real, pre-existing quirk in the target app's own token handling, found along the way.**
+catchandtrade's real login endpoint signs a JWT via `generateToken`, but `/api/portfolios`'s own GET
+handler decodes tokens with a completely different, legacy `base64(userId:x)` scheme — a real,
+pre-existing inconsistency in the target app itself, unrelated to rebuild-dossier, discovered only
+because this verification exercised the full authenticated data-fetch path for the first time. A
+real JWT (matching what login actually issues) authenticates fine at the page's render gate but
+returns zero portfolios from this specific endpoint; a token in the endpoint's own expected legacy
+format returns the real seeded data. The legacy-format token was used for the rest of this
+verification, since it's what this specific route actually honors — not a workaround invented for
+this test, but the format the app's own code already expects here.
+
+**First full run: real content reached, but empty.** With a real (legacy-format) session and
+`authStorageStatePath` set, `generate_spec` against the real 83-route app (368 mutation sites
+checked) correctly captured the portfolio page's authenticated shell — real nav ("Marketplace,"
+"Portfolio," "Collection," "Watchlist," "Log out"), not the anonymous "Please login" wall — but the
+portfolio content itself showed "Your portfolio is empty," not the real seeded card. Traced
+directly: the app's own `.env.development` hardcodes `NEXT_PUBLIC_API_URL=http://localhost:3003`,
+baked into the client bundle at dev-server start. The page's own client-side `fetch` call target's
+that fixed origin regardless of which port this tool's own randomized dev-server spawn actually
+used for this run — an entirely separate capture-environment gap from the storageState fix itself,
+affecting any page whose client fetches use an absolute, non-relative API host, auth or not. Never
+surfaced before this verification because `portfolio`'s render gate previously blocked capture
+before ever reaching this fetch at all.
+
+**Confirmed directly, not assumed**: blanking `NEXT_PUBLIC_API_URL` (so the fetch falls back to a
+relative path, resolving against whatever origin actually served the page) made a standalone
+Playwright capture — bypassing `generate_spec`'s own mutation-check cost — show the real data
+immediately: `Charizard`, `Base Set`, `NEAR MINT`, the real purchase price. A second full
+`generate_spec` run with this env fix in place captured the same real content through the actual
+pipeline, not just a targeted script: the generated test's own assertions include `"Main
+Collection"`, `"Charizard"`, `"Base Set"`, `"Rare Holo"`, `"NEAR MINT"`, and a dynamic-currency
+match for the real price — a genuinely richer, real-data assertion set no capture against this app
+had produced before.
+
+**The honest remainder**: in that same corrected run, `PAGE-portfolio.page.spec.ts` still landed in
+`unrunnableTests` in the official mutation-check summary. Rather than accept that at face value,
+the exact vitest failure was captured directly (a temporary, reverted debug hook on
+`runMutationCheck.ts`'s otherwise-silent `catch` block, not a permanent change) — `AssertionError:
+expected 1 to be less than or equal to 0`, the console-error-tolerance assertion, not a content
+assertion. Every content assertion in the file — including the real Charizard/NEAR MINT/Base Set
+lines — was never reached as failing; the test fails earlier, on one console error the
+mutation-check's isolated scratch-copy re-run produced that the original capture run didn't. This
+is a pre-existing, accepted limitation of the console-error-tolerance mechanism (documented
+elsewhere in this project as tolerating the *same* count, not a looser bound) — not a defect in the
+storageState fix, and not something any prior run against this app could have surfaced, since no
+earlier capture ever got past the login wall into content noisy enough to trigger it. Left
+unfixed, deliberately: chasing a likely `.next`-cache-warmth-driven console-noise difference between
+a first-capture dev server and a fresh mutation-check scratch copy is a real, separate investigation
+of its own, out of scope for verifying whether the auth-gate fix itself reaches real content — which
+it demonstrably does.
+
+**Cleanup.** The local Postgres instance was stopped after this verification; the seeded
+verification user/portfolio and the `web-authverify`/`web-authverify-rebuild` scratch copies were
+removed. Nothing from this verification was left running or committed against the real
+catchandtrade checkout.
 
 ## Bottom line
 
