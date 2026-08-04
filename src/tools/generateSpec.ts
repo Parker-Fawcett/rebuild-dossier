@@ -1,5 +1,5 @@
 import * as z from 'zod/v4';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, basename, join } from 'node:path';
 import { loadCases } from '../state/caseStore.js';
 import { loadEvidenceBundle } from '../state/evidenceStore.js';
@@ -9,7 +9,17 @@ import { findCandidateAppDirs } from '../ingest/detectMonorepoHint.js';
 import { VISION_PAGE_PACING_DELAY_MS } from '../spec/visionClassifier.js';
 
 export const generateSpecInputSchema = z.object({
-  repoPath: z.string().describe('Repo path that was ingested; output is written to a sibling <repoPath>-rebuild/ directory')
+  repoPath: z.string().describe('Repo path that was ingested; output is written to a sibling <repoPath>-rebuild/ directory'),
+  authStorageStatePath: z
+    .string()
+    .optional()
+    .describe(
+      'Optional path to a Playwright storageState JSON file (cookies/localStorage from an already-authenticated session against ' +
+        'the target app) — load it once with `npx playwright open <url> --save-storage=state.json` after logging in by hand, or ' +
+        'any equivalent one-time export. When set, page capture uses it to reach auth-gated pages instead of only ever seeing a ' +
+        'login screen; this tool never logs in itself or handles credentials. The file is copied into the rebuild output ' +
+        '(tests/fixtures/auth-storage-state.json, gitignored) so generated page tests can reach the same pages when run standalone.'
+    )
 });
 
 export const generateSpecConfig = {
@@ -18,7 +28,9 @@ export const generateSpecConfig = {
     'Optional: if the target is a Next.js app with page routes, set GROQ_API_KEY and REBUILD_DOSSIER_ENABLE_VISION_CLASSIFICATION=1 ' +
     'before calling this tool to enable vision-assisted page-content classification (sends each captured page\'s screenshot and source ' +
     'code to Groq to judge static vs. dynamic content more accurately than plain regex matching) — ask the user for a Groq API key if ' +
-    'they want more reliable generated page tests and this isn\'t already configured. Off by default; nothing changes if unset.',
+    'they want more reliable generated page tests and this isn\'t already configured. Off by default; nothing changes if unset. ' +
+    'Optional: pass authStorageStatePath to reach auth-gated pages during capture — see that field\'s own description for how to ' +
+    'produce it.',
   inputSchema: generateSpecInputSchema
 };
 
@@ -43,6 +55,30 @@ export async function generateSpecHandler(args: z.infer<typeof generateSpecInput
   // repoPath itself (it's a sibling, not a child), so an allowlist scoped to
   // one exact repo rather than its parent directory wouldn't otherwise cover it.
   enforcePathAllowlist(siblingRebuildDir(args.repoPath));
+
+  // Fails loudly here, before any capture work starts, rather than letting a
+  // missing/stale/malformed file silently degrade capture back to an
+  // unauthenticated session — that would look identical to "the fix didn't
+  // help" instead of "the file you pointed at is wrong."
+  if (args.authStorageStatePath) {
+    enforcePathAllowlist(args.authStorageStatePath);
+    if (!existsSync(args.authStorageStatePath)) {
+      return {
+        content: [{ type: 'text' as const, text: `authStorageStatePath does not exist: ${args.authStorageStatePath}` }],
+        isError: true
+      };
+    }
+    try {
+      JSON.parse(readFileSync(args.authStorageStatePath, 'utf-8'));
+    } catch {
+      return {
+        content: [
+          { type: 'text' as const, text: `authStorageStatePath is not valid JSON: ${args.authStorageStatePath}` }
+        ],
+        isError: true
+      };
+    }
+  }
 
   const openCases = loadCases(args.repoPath).filter((c) => c.status === 'open');
   if (openCases.length > 0) {
@@ -92,7 +128,8 @@ export async function generateSpecHandler(args: z.infer<typeof generateSpecInput
     repoPath: args.repoPath,
     outputDir,
     evidence,
-    cases
+    cases,
+    authStorageStatePath: args.authStorageStatePath
   });
 
   // Real finding: a target repo with no node_modules of its own makes every

@@ -149,7 +149,24 @@ function writeAliasConfigIfNeeded(originalRepoPath: string, scratchDir: string):
   );
 }
 
-function prepareScratchCopy(originalRepoPath: string): string {
+// Real subtlety, traced before shipping: this scratch copy is built from the
+// ORIGINAL target repo's own tree, not the rebuild output directory — so a
+// generated page test's reference to tests/fixtures/auth-storage-state.json
+// (see generatePageTests.ts's buildPageTestContent, relative to its own
+// import.meta.url) would resolve to a path that never gets created here,
+// making Playwright's storageState load fail and every such test register as
+// unrunnable — the opposite of what supplying authStorageStatePath is for.
+// Copied unconditionally into every scratch dir when set, regardless of
+// whether the specific target being run actually uses it — it's a tiny file,
+// and tracking per-target usage isn't worth the complexity.
+function writeAuthFixtureIfNeeded(scratchDir: string, authStorageStatePath: string | undefined): void {
+  if (!authStorageStatePath) return;
+  const fixturesDir = join(scratchDir, 'tests', 'fixtures');
+  mkdirSync(fixturesDir, { recursive: true });
+  cpSync(authStorageStatePath, join(fixturesDir, 'auth-storage-state.json'));
+}
+
+function prepareScratchCopy(originalRepoPath: string, authStorageStatePath?: string): string {
   const scratchDir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-mutation-'));
   cpSync(originalRepoPath, scratchDir, {
     recursive: true,
@@ -157,6 +174,7 @@ function prepareScratchCopy(originalRepoPath: string): string {
   });
   linkNodeModules(originalRepoPath, scratchDir);
   writeAliasConfigIfNeeded(originalRepoPath, scratchDir);
+  writeAuthFixtureIfNeeded(scratchDir, authStorageStatePath);
   return scratchDir;
 }
 
@@ -269,8 +287,8 @@ function removeScratchDirWithRetry(scratchDir: string): void {
 // zero real signal, which is worse than a weak test (0% kill rate) because a
 // weak test at least gets flagged and moved to tests/weak/ instead of
 // silently looking trustworthy.
-function passesBaseline(originalRepoPath: string, target: MutationTarget): boolean {
-  const scratchDir = prepareScratchCopy(originalRepoPath);
+function passesBaseline(originalRepoPath: string, target: MutationTarget, authStorageStatePath?: string): boolean {
+  const scratchDir = prepareScratchCopy(originalRepoPath, authStorageStatePath);
   try {
     const testDir = join(scratchDir, 'tests', 'visible');
     mkdirSync(testDir, { recursive: true });
@@ -282,7 +300,11 @@ function passesBaseline(originalRepoPath: string, target: MutationTarget): boole
   }
 }
 
-export function runMutationCheck(originalRepoPath: string, targets: MutationTarget[]): MutationCheckReport {
+export function runMutationCheck(
+  originalRepoPath: string,
+  targets: MutationTarget[],
+  authStorageStatePath?: string
+): MutationCheckReport {
   const results: MutationResult[] = [];
   const unrunnableTestFiles: string[] = [];
 
@@ -297,7 +319,7 @@ export function runMutationCheck(originalRepoPath: string, targets: MutationTarg
   }
 
   for (const target of targets) {
-    if (!passesBaseline(originalRepoPath, target)) {
+    if (!passesBaseline(originalRepoPath, target, authStorageStatePath)) {
       unrunnableTestFiles.push(target.filename);
       continue;
     }
@@ -306,7 +328,7 @@ export function runMutationCheck(originalRepoPath: string, targets: MutationTarg
     const sites = target.maxMutationSites !== undefined ? allSites.slice(0, target.maxMutationSites) : allSites;
 
     for (const site of sites) {
-      const scratchDir = prepareScratchCopy(originalRepoPath);
+      const scratchDir = prepareScratchCopy(originalRepoPath, authStorageStatePath);
       try {
         const applied = tsMorphEngine.apply(join(scratchDir, site.locator.file), site);
         if (!applied) continue;

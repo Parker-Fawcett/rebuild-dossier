@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync, renameSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync, renameSync, rmSync, copyFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { join, dirname, basename } from 'node:path';
 import type { EvidenceBundle } from '../ingest/evidenceSchema.js';
@@ -10,7 +10,7 @@ import { generateContracts } from './generateContracts.js';
 import { generateTests } from './generateTests.js';
 import { generateNextApiTests } from './generateNextApiTests.js';
 import { generateGateTests, generateSecretEntryTests } from './generateGateTests.js';
-import { generatePageTests, type SkippedPage } from './generatePageTests.js';
+import { generatePageTests, AUTH_STORAGE_STATE_FIXTURE_RELATIVE_PATH, type SkippedPage } from './generatePageTests.js';
 import { computeUntestedContractFiles } from './computeUntestedContractFiles.js';
 import { generateTestDependencies, type TestPlacement } from './generateTestDependencies.js';
 import { pinDependencyVersions } from './pinDependencyVersions.js';
@@ -26,6 +26,7 @@ export interface WriteSpecTreeInput {
   outputDir: string;
   evidence: EvidenceBundle;
   cases: Case[];
+  authStorageStatePath?: string; // pre-authenticated Playwright storageState — see generatePageTests.ts
 }
 
 export interface WriteSpecTreeResult {
@@ -97,7 +98,7 @@ ${signalLines || '(no signals recorded)'}
 // always a clean sibling directory, never the original repo, and refuses to
 // clobber an existing output so a prior rebuild attempt is never silently lost.
 export async function writeSpecTree(input: WriteSpecTreeInput): Promise<WriteSpecTreeResult> {
-  const { repoPath, outputDir, evidence, cases } = input;
+  const { repoPath, outputDir, evidence, cases, authStorageStatePath } = input;
 
   if (existsSync(outputDir)) {
     throw new Error(`Refusing to overwrite existing directory: ${outputDir}`);
@@ -122,7 +123,7 @@ export async function writeSpecTree(input: WriteSpecTreeInput): Promise<WriteSpe
 
   let result: WriteSpecTreeResult;
   try {
-    result = await writeSpecTreeInto(buildDir, { repoPath, evidence, cases });
+    result = await writeSpecTreeInto(buildDir, { repoPath, evidence, cases, authStorageStatePath });
   } catch (err) {
     rmSync(buildDir, { recursive: true, force: true });
     throw err;
@@ -134,9 +135,9 @@ export async function writeSpecTree(input: WriteSpecTreeInput): Promise<WriteSpe
 
 async function writeSpecTreeInto(
   outputDir: string,
-  input: Pick<WriteSpecTreeInput, 'repoPath' | 'evidence' | 'cases'>
+  input: Pick<WriteSpecTreeInput, 'repoPath' | 'evidence' | 'cases' | 'authStorageStatePath'>
 ): Promise<WriteSpecTreeResult> {
-  const { repoPath, evidence, cases } = input;
+  const { repoPath, evidence, cases, authStorageStatePath } = input;
 
   mkdirSync(join(outputDir, '.claude', 'rules'), { recursive: true });
   mkdirSync(join(outputDir, '.claude', 'agents'), { recursive: true });
@@ -177,16 +178,35 @@ async function writeSpecTreeInto(
   // capture-failed note) sourced from this result. This is also the one
   // real async I/O phase in this otherwise-synchronous pipeline (spins up
   // its own `next dev` + Chromium once — see generatePageTests.ts).
-  const pageResult = await generatePageTests(repoPath, evidence, cases);
+  const pageResult = await generatePageTests(repoPath, evidence, cases, authStorageStatePath);
 
   for (const file of generateContracts(
     repoPath,
     evidence.routes,
     pageResult.assetManifest,
     pageResult.skippedPages,
-    pageResult.pageStylesheetAnimations
+    pageResult.pageStylesheetAnimations,
+    pageResult.usedAuthStorageState
   )) {
     writeFileSync(join(outputDir, 'spec', 'contracts', file.filename), file.content);
+  }
+
+  // Copies the user-supplied storageState alongside the generated tests so
+  // they can reach the same authenticated pages when run standalone later —
+  // see buildPageTestContent's own reference to AUTH_STORAGE_STATE_FIXTURE_RELATIVE_PATH.
+  // Gated on capturedPages.length, not just authStorageStatePath being set —
+  // no point copying a real session-cookie file into the output tree for an
+  // app with no page routes to use it on. The file contains live session
+  // state for the target app, so it's gitignored immediately, not left to a
+  // later, easy-to-forget step.
+  if (authStorageStatePath && pageResult.capturedPages.length > 0) {
+    const fixturesDir = join(outputDir, 'tests', 'fixtures');
+    mkdirSync(fixturesDir, { recursive: true });
+    copyFileSync(authStorageStatePath, join(outputDir, 'tests', AUTH_STORAGE_STATE_FIXTURE_RELATIVE_PATH));
+    writeFileSync(
+      join(outputDir, '.gitignore'),
+      `# Contains live session cookies/localStorage for the target app — never commit.\ntests/${AUTH_STORAGE_STATE_FIXTURE_RELATIVE_PATH}\n`
+    );
   }
 
   for (const kase of cases.filter((c) => c.status !== 'open')) {
@@ -267,7 +287,7 @@ export default defineConfig({
     );
   }
 
-  const mutationReport = runMutationCheck(repoPath, [...visible, ...heldOut]);
+  const mutationReport = runMutationCheck(repoPath, [...visible, ...heldOut], authStorageStatePath);
   // An unrunnable test (never passed even unmutated) gets the same "don't
   // trust this as visible/held-out" treatment as a weak one — both mean a
   // rebuild agent shouldn't rely on it, even though the underlying reason

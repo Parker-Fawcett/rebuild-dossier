@@ -104,6 +104,58 @@ describe('generateContracts', () => {
     }
   });
 
+  it('notes an authenticated capture session when capturedWithAuthSession is true', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(join(dir, 'page.tsx'), 'export default function Home() { return null; }');
+      const routes: RouteEntry[] = [{ path: '/', file: 'page.tsx', kind: 'page', startLine: 1 }];
+
+      const files = generateContracts(
+        dir,
+        routes,
+        [
+          {
+            id: 'PAGE-root-screenshot',
+            path: 'spec/assets/screenshots/PAGE-root.png',
+            hash: 'a'.repeat(64),
+            kind: 'screenshot',
+            metadata: { routeFile: 'page.tsx', path: '/' }
+          }
+        ],
+        [],
+        [],
+        true
+      );
+
+      expect(files[0]?.content).toContain('Auth session');
+      expect(files[0]?.content).toContain('pre-authenticated storage state');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('omits the auth-session note by default (capturedWithAuthSession defaults to false)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(join(dir, 'page.tsx'), 'export default function Home() { return null; }');
+      const routes: RouteEntry[] = [{ path: '/', file: 'page.tsx', kind: 'page', startLine: 1 }];
+
+      const files = generateContracts(dir, routes, [
+        {
+          id: 'PAGE-root-screenshot',
+          path: 'spec/assets/screenshots/PAGE-root.png',
+          hash: 'a'.repeat(64),
+          kind: 'screenshot',
+          metadata: { routeFile: 'page.tsx', path: '/' }
+        }
+      ]);
+
+      expect(files[0]?.content).not.toContain('Auth session');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('adds an inferred-request-body-fields section for a POST route whose handler reads the body', () => {
     const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
     try {

@@ -152,6 +152,61 @@ describe('generate_spec tool', () => {
     }
   });
 
+  it('rejects a missing authStorageStatePath instead of silently falling back to unauthenticated capture', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-genspec-'));
+    try {
+      atomicWriteFile(evidencePath(dir), JSON.stringify(minimalEvidence()));
+      saveCases(dir, []);
+
+      const result = await generateSpecHandler({ repoPath: dir, authStorageStatePath: join(dir, 'does-not-exist.json') });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0]!.text).toContain('does not exist');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects an authStorageStatePath that is not valid JSON', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-genspec-'));
+    try {
+      atomicWriteFile(evidencePath(dir), JSON.stringify(minimalEvidence()));
+      saveCases(dir, []);
+      const badStatePath = join(dir, 'bad-state.json');
+      writeFileSync(badStatePath, 'not valid json{{{');
+
+      const result = await generateSpecHandler({ repoPath: dir, authStorageStatePath: badStatePath });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0]!.text).toContain('not valid JSON');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('accepts a valid authStorageStatePath and proceeds normally for an app with no page routes to use it on', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-genspec-'));
+    const outputDir = `${dir}-rebuild`;
+    try {
+      atomicWriteFile(evidencePath(dir), JSON.stringify(minimalEvidence()));
+      saveCases(dir, []);
+      const statePath = join(dir, 'good-state.json');
+      writeFileSync(statePath, JSON.stringify({ cookies: [], origins: [] }));
+
+      const result = await generateSpecHandler({ repoPath: dir, authStorageStatePath: statePath });
+
+      expect(result.isError).toBeUndefined();
+      expect(existsSync(join(outputDir, 'CLAUDE.md'))).toBe(true);
+      // No page routes were captured (this app has none at all), so nothing
+      // needed the fixture — must not copy a live session-cookie file into
+      // the output tree for no reason.
+      expect(existsSync(join(outputDir, 'tests', 'fixtures', 'auth-storage-state.json'))).toBe(false);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+      rmSync(outputDir, { recursive: true, force: true });
+    }
+  });
+
   it('does not warn when the target repo has its own node_modules', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-genspec-'));
     const outputDir = `${dir}-rebuild`;

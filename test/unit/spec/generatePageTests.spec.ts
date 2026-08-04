@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { chromium } from 'playwright';
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join as pathJoin } from 'node:path';
 import {
   generatePageTests,
   buildPageTestContent,
   applyVisionClassification,
   hasRealTransition,
   triggerConditionFor,
-  waitForRedirectsToSettle
+  waitForRedirectsToSettle,
+  resolveAuthStorageState,
+  AUTH_STORAGE_STATE_FIXTURE_RELATIVE_PATH
 } from '../../../src/spec/generatePageTests.js';
 import type { EvidenceBundle, RouteEntry } from '../../../src/ingest/evidenceSchema.js';
 import type { DomTextNode, PageCapture } from '../../../src/spec/pageCaptureSchema.js';
@@ -178,7 +183,8 @@ describe('generatePageTests preconditions', () => {
       skippedPages: [],
       visionClassificationEnabled: false,
       pageVisionFallbacks: [],
-      pageStylesheetAnimations: []
+      pageStylesheetAnimations: [],
+      usedAuthStorageState: false
     });
   });
 
@@ -337,5 +343,88 @@ describe('buildPageTestContent', () => {
     expect(content).toContain("from 'playwright'");
     expect(content).toContain('beforeAll');
     expect(content).toContain('afterAll');
+  });
+
+  it('uses a plain, unauthenticated context by default (usedAuthStorageState omitted)', () => {
+    const content = buildPageTestContent(route, capture());
+    expect(content).toContain('await browser.newContext();');
+    expect(content).not.toContain('storageState');
+  });
+
+  it('loads the copied auth storageState fixture when usedAuthStorageState is true', () => {
+    const content = buildPageTestContent(route, capture(), true);
+    expect(content).toContain('storageState:');
+    expect(content).toContain("'..', \"fixtures/auth-storage-state.json\"");
+    // Must reference the SAME relative fixture path writeSpecTree.ts copies
+    // the caller's file to and runMutationCheck.ts's scratch-copy mirrors —
+    // see AUTH_STORAGE_STATE_FIXTURE_RELATIVE_PATH's own doc comment.
+    expect(content).toContain(AUTH_STORAGE_STATE_FIXTURE_RELATIVE_PATH);
+    // Real, traced-before-shipping requirement (see resolveAuthStorageState's
+    // doc comment): the fixture's own baked-in origin can never match this
+    // generated test's own fresh, randomly-chosen dev-server port, so the
+    // generated test must remap origins[] to its own baseUrl at run time
+    // rather than loading the fixture verbatim by path.
+    expect(content).toContain("import { readFileSync } from 'node:fs';");
+    expect(content).toContain('JSON.parse(readFileSync(');
+    expect(content).toContain('origin: baseUrl');
+  });
+
+  it('does not load storageState when usedAuthStorageState is explicitly false', () => {
+    const content = buildPageTestContent(route, capture(), false);
+    expect(content).toContain('await browser.newContext();');
+    expect(content).not.toContain('storageState');
+  });
+});
+
+describe('resolveAuthStorageState', () => {
+  it('remaps every origins[] entry to this run\'s own baseUrl, regardless of what origin the file was captured against', () => {
+    const dir = mkdtempSync(pathJoin(tmpdir(), 'rebuild-dossier-authstate-'));
+    try {
+      const filePath = pathJoin(dir, 'state.json');
+      writeFileSync(
+        filePath,
+        JSON.stringify({
+          cookies: [{ name: 'session', value: 'abc', domain: 'localhost', path: '/' }],
+          origins: [{ origin: 'http://localhost:54321', localStorage: [{ name: 'token', value: 'jwt-123' }] }]
+        })
+      );
+
+      const result = resolveAuthStorageState(filePath, 'http://localhost:9999');
+
+      expect(result.origins).toEqual([
+        { origin: 'http://localhost:9999', localStorage: [{ name: 'token', value: 'jwt-123' }] }
+      ]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('leaves cookies untouched — cookie matching is host-scoped, not port-scoped, so no remap is needed', () => {
+    const dir = mkdtempSync(pathJoin(tmpdir(), 'rebuild-dossier-authstate-'));
+    try {
+      const filePath = pathJoin(dir, 'state.json');
+      const cookies = [{ name: 'session', value: 'abc', domain: 'localhost', path: '/' }];
+      writeFileSync(filePath, JSON.stringify({ cookies, origins: [] }));
+
+      const result = resolveAuthStorageState(filePath, 'http://localhost:9999');
+
+      expect(result.cookies).toEqual(cookies);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('handles a file with no origins array at all', () => {
+    const dir = mkdtempSync(pathJoin(tmpdir(), 'rebuild-dossier-authstate-'));
+    try {
+      const filePath = pathJoin(dir, 'state.json');
+      writeFileSync(filePath, JSON.stringify({ cookies: [] }));
+
+      const result = resolveAuthStorageState(filePath, 'http://localhost:9999');
+
+      expect(result.origins).toEqual([]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

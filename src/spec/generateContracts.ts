@@ -235,7 +235,8 @@ export function generateContracts(
   routes: RouteEntry[],
   assetManifest: AssetManifestEntry[] = [],
   skippedPages: SkippedPage[] = [],
-  pageStylesheetAnimations: PageStylesheetAnimations[] = []
+  pageStylesheetAnimations: PageStylesheetAnimations[] = [],
+  capturedWithAuthSession = false
 ): GeneratedFile[] {
   return routes.map((route) => {
     const title = route.method ? `${route.method} ${route.path}` : route.path;
@@ -274,8 +275,13 @@ export function generateContracts(
             '',
             `- **Asset id:** ${asset.id}`,
             `- **Asset manifest:** spec/assets-manifest.json`,
+            capturedWithAuthSession
+              ? '- **Auth session:** captured using a supplied, pre-authenticated storage state — this content reflects a real logged-in view, not a generic unauthenticated fallback.'
+              : undefined,
             ''
-          ].join('\n')
+          ]
+            .filter((line) => line !== undefined)
+            .join('\n')
         : undefined,
       skipped
         ? `## Screenshot/DOM capture failed for this route (${skipped.reason}) — no page test was generated.\n`

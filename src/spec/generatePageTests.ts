@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
-import { chromium, type Browser, type Page } from 'playwright';
+import { chromium, type Browser, type Page, type BrowserContextOptions } from 'playwright';
 import type { EvidenceBundle, RouteEntry } from '../ingest/evidenceSchema.js';
 import type { Case } from '../reconciliation/types.js';
 import type { GeneratedTestFile } from './generateTests.js';
@@ -104,6 +104,16 @@ export async function waitForRedirectsToSettle(page: Page): Promise<void> {
   }
 }
 
+// Relative to the rebuild output dir's tests/ directory — a fixed, shared
+// name (not derived from the user's original filename) so every generated
+// page test can compute the same relative path via import.meta.url
+// regardless of what the source file was called. writeSpecTree.ts copies the
+// user-supplied storageState file to this same relative path in the output
+// tree, and runMutationCheck.ts's scratch-copy fixture write mirrors it too —
+// all three must agree, since nothing re-derives this path from a shared
+// input at runtime.
+export const AUTH_STORAGE_STATE_FIXTURE_RELATIVE_PATH = 'fixtures/auth-storage-state.json';
+
 export interface SkippedPage {
   routeFile: string;
   reason: string;
@@ -130,6 +140,7 @@ export interface GeneratePageTestsResult {
   visionClassificationEnabled: boolean; // whether this run attempted vision classification at all (both GROQ_API_KEY and REBUILD_DOSSIER_ENABLE_VISION_CLASSIFICATION must be set)
   pageVisionFallbacks: SkippedPage[]; // captured pages that fell back to the regex classifier despite vision being enabled, with why — never silently indistinguishable from a page vision actually classified
   pageStylesheetAnimations: PageStylesheetAnimations[]; // routes whose authored CSS declares a real animation/transition — documentation only, see generateContracts.ts
+  usedAuthStorageState: boolean; // whether a caller-supplied Playwright storageState was used for this run's captures — see capturePage
 }
 
 const EMPTY_RESULT: GeneratePageTestsResult = {
@@ -141,7 +152,8 @@ const EMPTY_RESULT: GeneratePageTestsResult = {
   skippedPages: [],
   visionClassificationEnabled: false,
   pageVisionFallbacks: [],
-  pageStylesheetAnimations: []
+  pageStylesheetAnimations: [],
+  usedAuthStorageState: false
 };
 
 async function waitForReady(baseUrl: string, deadline: number): Promise<void> {
@@ -418,6 +430,34 @@ function extractStylesheetAnimations(): RawStylesheetAnimations {
   return { keyframeUsageCandidates: keyframeUsageCandidatesFiltered, transitionCandidates };
 }
 
+// Playwright's own object shape for BrowserContextOptions.storageState (it
+// also accepts a plain file path string — Exclude drops that variant, since
+// this always needs the parsed object to remap origins below).
+export type StorageStateData = Exclude<NonNullable<BrowserContextOptions['storageState']>, string>;
+
+// Real, traced-before-shipping finding: Playwright's storageState "origins"
+// entries are matched by EXACT origin string (protocol+host+port). Cookies
+// are host-scoped, not port-scoped, so a cookie captured against
+// localhost:ANY_PORT applies regardless of which port this run's dev server
+// happens to land on — but localStorage genuinely IS origin-scoped including
+// port, per same-origin policy. This tool's dev server picks a fresh random
+// port every single generate_spec call specifically to avoid collisions
+// (see the port constant below), which means a caller-supplied storageState
+// captured once, in advance, against whatever port that capture session used
+// would never origin-match THIS run's port — every origins[] entry would
+// silently fail to apply, no error, capture landing right back on
+// unauthenticated content. Confirmed directly: a localStorage-gated fixture
+// (matching the real catchandtrade portfolio/page.tsx shape this whole
+// feature exists to close) showed exactly this silent failure the first time
+// this was tried across two different ports. Since every route this tool
+// ever captures belongs to the SAME single, locally-spawned dev server, every
+// origins[] entry can always be safely remapped to THIS run's baseUrl — there
+// is never a second, genuinely different real origin in play.
+export function resolveAuthStorageState(authStorageStatePath: string, baseUrl: string): StorageStateData {
+  const raw: StorageStateData = JSON.parse(readFileSync(authStorageStatePath, 'utf-8'));
+  return { ...raw, origins: (raw.origins ?? []).map((o) => ({ ...o, origin: baseUrl })) };
+}
+
 interface CapturedPage {
   capture: PageCapture;
   screenshotBuffer: Buffer;
@@ -425,8 +465,14 @@ interface CapturedPage {
 
 // The real Playwright call — left to the manual smoke test (no real browser
 // in unit tests), matching the documented precedent in writeSpecTree.spec.ts.
-async function capturePage(browser: Browser, baseUrl: string, route: RouteEntry): Promise<CapturedPage> {
-  const context = await browser.newContext();
+async function capturePage(browser: Browser, baseUrl: string, route: RouteEntry, storageState?: StorageStateData): Promise<CapturedPage> {
+  // Loads an already-authenticated session the caller supplied out-of-band —
+  // this function never logs in itself, never sees a credential, and never
+  // submits a form. See generateSpec.ts's authStorageStatePath doc comment
+  // for how a caller produces the file in the first place. Already
+  // origin-remapped by resolveAuthStorageState before this is called — see
+  // its own doc comment for why that step is required, not optional.
+  const context = await browser.newContext(storageState ? { storageState } : {});
   const page = await context.newPage();
   // Must be registered before page.goto — addInitScript only takes effect on
   // subsequent navigations, not the current page state. Registered first, so
@@ -529,15 +575,30 @@ export function applyVisionClassification(
   return domOutline.map((node, i) => ({ ...node, kind: visionResult[i]!.kind, dynamicShape: visionResult[i]!.dynamicShape }));
 }
 
-export function buildPageTestContent(route: RouteEntry, capture: PageCapture): string {
+export function buildPageTestContent(route: RouteEntry, capture: PageCapture, usedAuthStorageState = false): string {
   const concrete = concretePath(route.path);
   const assertions = capture.domOutline.map((node) => assertionFor(node)).join('\n');
+  // Same fixture path writeSpecTree.ts copies the caller's storageState to,
+  // and runMutationCheck.ts's scratch-copy fixture write mirrors — see
+  // AUTH_STORAGE_STATE_FIXTURE_RELATIVE_PATH's own doc comment for why these
+  // three must agree. `dirname`/`join`/`fileURLToPath` are already imported
+  // by devServerBoilerplate() above, not re-imported here. The origin remap
+  // below mirrors resolveAuthStorageState in this same file — see its doc
+  // comment for why the fixture's own origins[] can't just be used verbatim:
+  // this generated test computes its own fresh, random dev-server port at
+  // run time, so the fixture's baked-in origin would otherwise never match.
+  const newContextCall = usedAuthStorageState
+    ? `await browser.newContext({\n      storageState: (() => {\n        const raw = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', ${JSON.stringify(AUTH_STORAGE_STATE_FIXTURE_RELATIVE_PATH)}), 'utf-8'));\n        return { ...raw, origins: (raw.origins ?? []).map((o) => ({ ...o, origin: baseUrl })) };\n      })()\n    });`
+    : `await browser.newContext();`;
+  const importLine = usedAuthStorageState
+    ? `import { describe, it, expect, beforeAll, afterAll } from 'vitest';\nimport { readFileSync } from 'node:fs';`
+    : `import { describe, it, expect, beforeAll, afterAll } from 'vitest';`;
 
-  return `import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+  return `${importLine}
 ${devServerBoilerplate()}
 describe(${JSON.stringify(`page: ${route.path} (from-reconciliation)`)}, () => {
   it('loads without crashing and renders its captured content (from-reconciliation)', async () => {
-    const context = await browser.newContext();
+    const context = ${newContextCall}
     const page = await context.newPage();
     const consoleErrors = [];
     page.on('console', (msg) => {
@@ -583,7 +644,8 @@ ${assertions || '    expect(body).toEqual(body); // no DOM text nodes were captu
 export async function generatePageTests(
   repoPath: string,
   evidence: EvidenceBundle,
-  _cases: Case[]
+  _cases: Case[],
+  authStorageStatePath?: string
 ): Promise<GeneratePageTestsResult> {
   const isNext = Object.hasOwn(evidence.packageJson.dependencies, 'next');
   if (!isNext) return EMPTY_RESULT;
@@ -621,10 +683,14 @@ export async function generatePageTests(
     });
     await waitForReady(baseUrl, Date.now() + DEV_SERVER_READY_TIMEOUT_MS);
     browser = await chromium.launch({ headless: true });
+    // Resolved once, against THIS run's actual baseUrl — see
+    // resolveAuthStorageState's own doc comment for why the origin can't
+    // just be read verbatim from whatever the caller's file already says.
+    const resolvedStorageState = authStorageStatePath ? resolveAuthStorageState(authStorageStatePath, baseUrl) : undefined;
 
     for (const route of pageRoutes) {
       try {
-        const result = await capturePage(browser, baseUrl, route);
+        const result = await capturePage(browser, baseUrl, route, resolvedStorageState);
         captures.push({ route, result });
         capturedPages.push(route.file);
       } catch (err) {
@@ -751,7 +817,7 @@ export async function generatePageTests(
 
     const testFile: GeneratedTestFile = {
       filename: `${base}.page.spec.ts`,
-      content: buildPageTestContent(route, finalCapture),
+      content: buildPageTestContent(route, finalCapture, Boolean(authStorageStatePath)),
       sourceFile: route.file,
       coveredRouteFiles: [route.file],
       maxMutationSites: MAX_MUTATION_SITES_PER_PAGE
@@ -773,6 +839,7 @@ export async function generatePageTests(
     skippedPages,
     visionClassificationEnabled: visionEnabled,
     pageVisionFallbacks,
-    pageStylesheetAnimations
+    pageStylesheetAnimations,
+    usedAuthStorageState: Boolean(authStorageStatePath)
   };
 }
