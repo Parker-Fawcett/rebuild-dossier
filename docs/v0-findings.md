@@ -1,6 +1,6 @@
 # rebuild-dossier v0: findings
 
-**Status:** v0 built (6 MCP tools, 464 unit tests), validated end-to-end against **two real,
+**Status:** v0 built (6 MCP tools, 477 unit tests), validated end-to-end against **two real,
 structurally different apps** (Madeline — Next.js client-side gate pattern; catchandtrade — a
 real Prisma+Postgres+Stripe+eBay-backed API app), across **two model tiers** (Sonnet, Haiku),
 with a precisely-characterized weak-model failure boundary and a security-hardening pass
@@ -271,6 +271,24 @@ page renders real, legitimately-public content that's simply gated by user inter
 capture never performs; one page's capture happened to hit a live API failure that got baked in as
 expected content. See "Fixing page capture, then actually diagnosing it," below, and "Waiting for
 redirects to settle — a fix that's correct but disproven as the cause it was built for," after it.
+
+The interaction-gated-logic cause named above now has a real fix too — deliberately scoped to
+static detection and documentation only, never actual interaction with the target page. Simulating
+a click against an arbitrary, unknown target app was considered and explicitly rejected, not just
+simplified past: it crosses into the same risk category this environment's own safety rules gate
+behind explicit human permission (submitting forms, clicking action controls), and there's no human
+in the loop at click-time to grant it for a fully-automated tool. `inferInteractionGatedElements.ts`
+instead detects the real, confirmed motivating shape — a button whose click sets React state that
+some other part of the same file conditionally renders on (`{stateVar && ...}`/`{stateVar ? ...}`),
+not just "a button has an onClick handler," which would be too broad to be useful signal — and
+documents it in a new contract-doc section. The cross-reference against a genuine render gate
+(not just "the state variable is set somewhere") is the precision guard, directly analogous to
+`inferRequestValidationRules`'s known-field cross-reference: traced against nine cases before
+writing any code, including a state variable used only for inline styling comparison (correctly
+not flagged) and a state-setting button whose handler is a separately-named function rather than an
+inline arrow (correctly out of scope, not traced into). Verified live against a fresh fixture
+reproducing the exact `grading`-shaped pattern, confirmed additive alongside a sibling page with no
+such pattern. See "Detecting interaction-gated content, without touching the page," below.
 
 ## The hypothesis being tested
 
@@ -2273,6 +2291,75 @@ authenticated branch a static, unauthenticated capture never reaches) — one me
 Left deliberately open, same as before: whether anything further is worth building for the
 remaining named causes (interaction-gated logic, the transient-failure-baked-into-baseline risk) is
 still a question for the next planning pass, not something this correction answers on its own.
+
+## Detecting interaction-gated content, without touching the page
+
+Stage 4's diagnosis named a fourth, auth-unrelated cause for a weak page test: `grading`'s real ROI
+calculation only runs after a button click ("Calculate ROI") that this pipeline's static,
+no-interaction capture never performs, so mutating that calculation has zero effect on the generated
+test. Unlike every other fix in this document, closing this gap for real would mean the tool
+*acting* on an arbitrary target page, not just observing or timing it more carefully — a
+categorically different kind of change, and one worth pausing on rather than designing straight
+through.
+
+**The interactive option was considered and explicitly rejected, not simplified away.** A
+click-simulation approach — detecting a plausible "action" button and clicking it during capture —
+was a real candidate. It was rejected because simulating a click against an arbitrary, unknown
+target app crosses into the same risk category this environment's own safety rules gate behind
+explicit human permission: submitting a form, clicking an irreversible action control. An
+allowlist/blocklist on button text ("calculate," "preview" vs. "delete," "submit," "pay") is a
+heuristic, not a guarantee, and this tool runs fully automated against real target apps with no
+human in the loop at click-time to catch a wrong guess. Confirmed directly with the user before
+designing anything further, choosing static detection over the interactive alternative.
+
+**The detectable signal, traced against the real shape before writing code.** Not "does this page
+have a button with an onClick handler" — true of nearly every interactive page, far too broad to be
+useful. The real, confirmed shape is more specific: a button whose click sets React state that some
+*other* part of the same file conditionally renders on —
+
+```tsx
+const [showResults, setShowResults] = useState(false);
+<button onClick={() => setShowResults(true)}>Calculate ROI</button>
+{showResults && (<div>...results...</div>)}
+```
+
+— confirming real content is gated behind the click, not an inert state toggle with no visible
+effect (e.g. an analytics-only flag). `inferInteractionGatedElements.ts` maps every `useState`
+declaration to its setter, isolates each `<button>`'s `onClick={() => ...}` body via brace-depth-
+aware tag scanning (a naive `[^>]+` regex breaks the moment an attribute expression contains its own
+`>`, e.g. a ternary comparison — traced and confirmed necessary before shipping), finds which known
+setters it calls, and keeps only the ones that *also* appear in a `{stateVar &&`/`{stateVar ?`
+render gate elsewhere in the file. That cross-reference is the precision guard — directly analogous
+to `inferRequestValidationRules`'s known-field cross-reference — that stops a harmless state toggle
+from being misreported as gated content.
+
+**Nine cases traced before any real code was written, all correct**: the real `grading` shape
+(flagged); a state variable set but never gated anywhere else, an analytics-only toggle (correctly
+not flagged); a plain button with no `onClick` at all (not flagged); a button whose `onClick`
+references a separately-defined handler by name rather than an inline arrow (correctly out of
+scope — not traced into, a named limitation, not an oversight); two buttons where only one gates
+real content (only that one flagged); one `onClick` setting two state variables where only one is
+gated (only the gated one reported); a ternary-gated conditional, not just `&&` (also flagged); a
+`selectedService`-style state variable used only inside an inline styling comparison, never in a
+`{var &&`/`{var ?` render gate (correctly *not* flagged — proving the cross-reference is precise,
+not just "state variable mentioned anywhere"); and a condition containing a nested call with its
+own parens (proving the brace-depth-aware tag isolation is genuinely necessary, not a nicety).
+
+**Verified live**, not just via unit tests: a fresh fixture reproducing the exact `grading`-shaped
+pattern (a button setting state that reveals a results block), run through the real `ingest_repo` →
+`generate_spec` pipeline. The generated contract doc correctly rendered the new section —
+`` `Calculate ROI` — gates content rendered when `showResults` is set `` — while a sibling static
+page with no such pattern rendered nothing extra, confirming the addition is purely additive.
+
+**What this closes, and what it deliberately doesn't.** A rebuild agent reading this contract for a
+page like `grading` now has explicit, honest signal that some of its content is real but
+unverified by the generated test — a plain instruction to check that page's behavior manually,
+rather than silent, undocumented blindness. It remains scoped to an inline `onClick={() => ...}`
+arrow only (a named handler referenced by reference, e.g. `onClick={handleClick}`, is not traced
+into), to `<button>` elements only (not `<input type="submit">`, `role="button"`, or other
+elements), and — the whole point of this stage's design decision — never attempts to actually
+verify the gated content by interacting with the page. That gap stays open, by choice, not by
+oversight.
 
 ## Bottom line
 
