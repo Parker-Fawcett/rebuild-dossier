@@ -1,6 +1,6 @@
 # rebuild-dossier v0: findings
 
-**Status:** v0 built (6 MCP tools, 477 unit tests), validated end-to-end against **two real,
+**Status:** v0 built (6 MCP tools, 492 unit tests), validated end-to-end against **two real,
 structurally different apps** (Madeline — Next.js client-side gate pattern; catchandtrade — a
 real Prisma+Postgres+Stripe+eBay-backed API app), across **two model tiers** (Sonnet, Haiku),
 with a precisely-characterized weak-model failure boundary and a security-hardening pass
@@ -289,6 +289,24 @@ not flagged) and a state-setting button whose handler is a separately-named func
 inline arrow (correctly out of scope, not traced into). Verified live against a fresh fixture
 reproducing the exact `grading`-shaped pattern, confirmed additive alongside a sibling page with no
 such pattern. See "Detecting interaction-gated content, without touching the page," below.
+
+The auth-gate cause behind that same 79%-weak-page-test finding — black-box capture with no
+session can't get past most of a real app's login walls — now has a real fix too, scoped the same
+safe way the interaction-gated fix was: the tool accepts an optional, user-supplied Playwright
+storageState (cookies/localStorage from a session the user authenticates once, out-of-band) and
+loads it before capture, but never logs in itself, never handles a credential, and never submits a
+form. Tracing this before shipping caught a real, load-bearing bug the design would otherwise have
+shipped with: Playwright's storageState origins are matched by exact port, and this tool's dev
+server picks a fresh random port every single run — a storageState captured in advance would never
+origin-match whatever port a later run happens to land on, silently failing to apply with no error,
+capture landing right back on unauthenticated content. Confirmed directly against a fixture
+reproducing the real catchandtrade `localStorage.getItem('token')` shape before it was fixed by
+remapping every origin entry to the run's actual baseUrl at both capture time and inside the
+generated test's own template. The same fix also had to be threaded into the mutation-check's
+scratch-copy mechanism, which mirrors only the target repo's own tree, not the separate rebuild
+output directory the fixture gets copied into — missed, every such page test would have silently
+registered as unrunnable. See "Closing the auth-gate capture gap: a storageState fix, and the
+port-mismatch bug tracing it caught before shipping," below.
 
 ## The hypothesis being tested
 
@@ -2360,6 +2378,93 @@ into), to `<button>` elements only (not `<input type="submit">`, `role="button"`
 elements), and — the whole point of this stage's design decision — never attempts to actually
 verify the gated content by interacting with the page. That gap stays open, by choice, not by
 oversight.
+
+## Closing the auth-gate capture gap: a storageState fix, and the port-mismatch bug tracing it caught before shipping
+
+Stage 4's diagnosis against the real, auth-heavy catchandtrade app found that only 1 of 19 pages had
+a demonstrated, content-driven mutation kill — the rest were weak, unrunnable, or never reached at
+all, mostly because black-box capture with no session can't get past most of this app's auth gates.
+Closing that gap for real means the capture pipeline needs an authenticated session, and — as with
+the interaction-gated-content fix earlier — there are two very different ways to get one.
+
+**The safe direction was chosen deliberately, not assumed.** Simulating an automated login (filling
+a username/password and submitting the form) was a real candidate, and was rejected the same way
+click-simulation was: it means the tool entering credentials and submitting a form against an
+arbitrary, unknown target app, with no human in the loop to catch a wrong guess. The fix instead
+accepts an optional, user-supplied Playwright `storageState` — a JSON file of cookies/localStorage
+from a session the user authenticates once, out-of-band (`npx playwright open <url>
+--save-storage=state.json` after logging in by hand, or any equivalent one-time export) — and loads
+it into the browser context before capture. The tool never sees a password, never fills a login
+form, and never submits anything.
+
+**A second fork, also resolved deliberately**: the generated page tests (emitted into the rebuild
+output, run standalone later) need the same authenticated session to actually reach gated content
+when run on their own. The chosen approach copies the storageState file into the output tree
+(`tests/fixtures/auth-storage-state.json`) and writes a `.gitignore` entry alongside it immediately,
+rather than requiring an env var at test-run time that most people running the tests later wouldn't
+know to set — self-contained, at the cost of a live session-cookie file sitting on disk in the
+output tree, mitigated (not eliminated) by the gitignore entry.
+
+**A real, load-bearing bug was found by tracing the design before writing code, not by shipping and
+discovering it live.** Playwright's `storageState` "origins" entries are matched by exact origin
+string — protocol, host, *and port*. Cookies are host-scoped, not port-scoped, so a cookie captured
+against `localhost:ANY_PORT` applies regardless of which port a later run's dev server happens to
+land on — but `localStorage` genuinely is origin-scoped including port, per the browser's own
+same-origin policy. This tool's dev server picks a fresh random port on every single `generate_spec`
+call, specifically to avoid collisions — which means a `storageState` captured once, in advance,
+against whatever port that capture session happened to use would never origin-match a later run's
+port. Every `origins[]` entry would silently fail to apply — no error, capture landing right back on
+unauthenticated content, looking exactly like "the fix didn't help" rather than "the port doesn't
+match." This would have been especially damaging here because the real motivating case —
+catchandtrade's `portfolio`/`portfolio-search` pages — gates on `localStorage.getItem('token')`, not
+a cookie, so the one auth mechanism this feature exists to support would have been the one it
+silently failed to fix.
+
+**Fixed by remapping, not by fixing the port.** `resolveAuthStorageState(path, baseUrl)` reads the
+caller's file and rewrites every `origins[].origin` to the current run's actual `baseUrl` before
+handing it to Playwright — safe unconditionally, since every route this tool ever captures belongs
+to the same single, locally-spawned dev server; there is never a second, genuinely different real
+origin in play. The same remap has to happen a second time, independently, inside the generated
+test's own template: that test computes its own fresh random port at run time, entirely
+independent of whatever port the original capture used, so the copied fixture's baked-in origin
+needs the identical rewrite, inlined as plain JS in the generated file (the same pattern this
+codebase already uses for `waitForRedirectsToSettle`'s dual implementation).
+
+**A second, independent subtlety, also traced before shipping**: `runMutationCheck`'s scratch-copy
+mechanism (`prepareScratchCopy`) builds its throwaway test directory from the *original target
+repo's own tree* — not the separate rebuild output directory the storageState fixture gets copied
+into. A generated page test's reference to `tests/fixtures/auth-storage-state.json` (relative to its
+own `import.meta.url`) would resolve to a path that never gets created inside that scratch copy,
+making every auth-enabled page test register as unrunnable during mutation-check — the opposite of
+what supplying `authStorageStatePath` is for. Fixed by threading the same path through
+`runMutationCheck`/`prepareScratchCopy` and copying the fixture into every scratch dir whenever it's
+set, unconditionally (a tiny file; tracking per-target usage wasn't worth the added complexity).
+Verified with a positive/negative pair: a hand-authored test asserting the fixture's presence
+registers as unrunnable when `authStorageStatePath` isn't passed, and passes cleanly when it is —
+proving the assertion is real, not vacuous.
+
+**Verified live end-to-end**, not just via unit tests: a fresh fixture reproducing the exact
+catchandtrade `localStorage.getItem('token')` early-return shape, captured once via Playwright
+against a fixed port, exported to a real `storageState.json`. A baseline `generate_spec` run with no
+`authStorageStatePath` correctly captured "Please login to view your portfolio." Re-run against the
+same fixture with `authStorageStatePath` set — this time against a *different*, randomly-chosen port
+than the one the storageState file was originally captured against — correctly captured the real
+authenticated content ("Your portfolio: AAPL 10 shares, TSLA 5 shares, balance $4,821.00.")
+regardless of the port mismatch, confirming the remap fix rather than assuming it from the design.
+The contract doc rendered the new "Auth session" note; `.gitignore` and the copied fixture were both
+present in the output tree; `runMutationCheck` reported the page test as neither weak nor
+unrunnable. Copying the fixture's own real app source into the rebuild output and running `npm test`
+standalone (a third, independent random port) passed cleanly, closing the loop a rebuild agent would
+actually exercise later.
+
+**What this closes, and what it doesn't.** This directly answers one of the two open items the
+auth-gate finding left on the table: a second, less auth-gated real app for page-generation is still
+unattempted, and the weak/unrunnable-unblocks-a-page tension (79% vs. 50%) is untouched by this fix
+— it addresses *why* black-box capture couldn't reach gated content, not whether an unblocked-but-
+weak test should carry write-permission the same way a strong one does. The tool still never logs in
+itself, by design — a caller who can't produce a `storageState` export has no path to authenticated
+capture through this feature, and that's the deliberate boundary, not a placeholder for a future
+version.
 
 ## Bottom line
 
