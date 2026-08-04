@@ -633,4 +633,63 @@ describe('generateContracts', () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it('adds an interaction-gated-content section for a page whose button click gates real content (the real grading.tsx shape)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(
+        join(dir, 'page.tsx'),
+        [
+          "export default function GradingPage() {",
+          '  const [showResults, setShowResults] = useState(false);',
+          '  return (',
+          '    <div>',
+          '      <button onClick={() => setShowResults(true)}>Calculate ROI</button>',
+          '      {showResults && (<div>Results here</div>)}',
+          '    </div>',
+          '  );',
+          '}'
+        ].join('\n')
+      );
+      const routes: RouteEntry[] = [{ path: '/grading', file: 'page.tsx', kind: 'page', startLine: 1 }];
+
+      const files = generateContracts(dir, routes);
+
+      expect(files[0]?.content).toContain('Interaction-gated content');
+      expect(files[0]?.content).toContain('`Calculate ROI` — gates content rendered when `showResults` is set');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('omits the interaction-gated-content section for a page with no such pattern', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(join(dir, 'page.tsx'), 'export default function Home() { return <div>Static page</div>; }');
+      const routes: RouteEntry[] = [{ path: '/', file: 'page.tsx', kind: 'page', startLine: 1 }];
+
+      const files = generateContracts(dir, routes);
+
+      expect(files[0]?.content).not.toContain('Interaction-gated content');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('omits the interaction-gated-content section for an api route (page-only)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(
+        join(dir, 'route.ts'),
+        ['export async function GET() {', '  return NextResponse.json({ ok: true });', '}'].join('\n')
+      );
+      const routes: RouteEntry[] = [{ path: '/api/health', method: 'GET', file: 'route.ts', kind: 'api', startLine: 1 }];
+
+      const files = generateContracts(dir, routes);
+
+      expect(files[0]?.content).not.toContain('Interaction-gated content');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });

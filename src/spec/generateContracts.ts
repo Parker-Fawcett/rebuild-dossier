@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import type { RouteEntry } from '../ingest/evidenceSchema.js';
 import type { AssetManifestEntry } from './assetManifestSchema.js';
 import type { PageStylesheetAnimations, SkippedPage } from './generatePageTests.js';
+import { inferInteractionGatedElements } from './inferInteractionGatedElements.js';
 import { inferRequestBodyFields } from './inferRequestBodyFields.js';
 import { inferRequestValidationRules, type ValidationRule } from './inferRequestValidationRules.js';
 import { inferResponseBodyFields, inferResponseValueFormatHints } from './inferResponseBodyFields.js';
@@ -183,6 +184,39 @@ function stylesheetAnimationsSection(animations: PageStylesheetAnimations): stri
     .join('\n');
 }
 
+// Documentation only — never asserted against, and deliberately never
+// interacts with the target page itself (see
+// inferInteractionGatedElements.ts's own header for why: simulating a click
+// against an arbitrary, unknown target app crosses into the same risk
+// category this environment's own safety rules gate behind explicit human
+// permission). Reads the page's own source directly, same unguarded-read
+// philosophy as sourceLine/inferredFieldsSection, since this is static
+// analysis of the route's own file, not dependent on browser-captured data
+// the way stylesheetAnimationsSection above is.
+function interactionGatedSection(repoPath: string, route: RouteEntry): string | undefined {
+  if (route.kind !== 'page') return undefined;
+  const text = readFileSync(join(repoPath, route.file), 'utf-8');
+  const elements = inferInteractionGatedElements(text);
+  if (elements.length === 0) return undefined;
+  return [
+    '## Interaction-gated content (documentation only — not asserted)',
+    '',
+    "Static analysis found button(s) whose click sets state that gates content elsewhere on this",
+    "page — content this page's static, no-interaction capture never triggers, so a mutation to the",
+    'logic behind it has no effect on the generated test. A rebuild agent should verify this page\'s',
+    'real behavior manually.',
+    '',
+    elements
+      .map((e) => {
+        const label = e.buttonText ? `\`${e.buttonText}\`` : '(unlabeled button)';
+        const vars = e.gatedStateVars.map((v) => `\`${v}\``).join(', ');
+        return `- ${label} — gates content rendered when ${vars} is set`;
+      })
+      .join('\n'),
+    ''
+  ].join('\n');
+}
+
 // Extracts the real interface shape verbatim from the source — never a
 // paraphrase — so the rebuild agent's contract is the actual line, not our
 // summary of it.
@@ -227,6 +261,8 @@ export function generateContracts(
       inferredResponseFieldsSection(repoPath, route),
       '',
       animations ? stylesheetAnimationsSection(animations) : undefined,
+      '',
+      interactionGatedSection(repoPath, route),
       '',
       asset
         ? [
