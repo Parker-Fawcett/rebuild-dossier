@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import { chromium } from 'playwright';
 import {
   generatePageTests,
   buildPageTestContent,
   applyVisionClassification,
   hasRealTransition,
-  triggerConditionFor
+  triggerConditionFor,
+  waitForRedirectsToSettle
 } from '../../../src/spec/generatePageTests.js';
 import type { EvidenceBundle, RouteEntry } from '../../../src/ingest/evidenceSchema.js';
 import type { DomTextNode, PageCapture } from '../../../src/spec/pageCaptureSchema.js';
@@ -23,6 +25,138 @@ function minimalEvidence(overrides: Partial<EvidenceBundle> = {}): EvidenceBundl
     ...overrides
   };
 }
+
+// Uses a real Playwright browser (page.route()-mocked responses, no next
+// dev or real HTTP server needed) — a genuine navigation-timing mechanic,
+// unlike the __name/page.evaluate bug this codebase already has.
+// waitForRedirectsToSettle is normal Node-side code called directly, never
+// serialized into an isolated browser realm, so it's fully testable here
+// (traced live before picking REDIRECT_DETECTION_WINDOW_MS's value — see
+// its own doc comment in generatePageTests.ts).
+describe('waitForRedirectsToSettle (real browser)', () => {
+  it('does not disturb a page that never redirects at all', async () => {
+    const browser = await chromium.launch();
+    try {
+      const page = await (await browser.newContext()).newPage();
+      await page.route('**/no-redirect', (route) =>
+        route.fulfill({ contentType: 'text/html', body: '<html><body><div>source content only</div></body></html>' })
+      );
+      await page.goto('http://example.test/no-redirect', { waitUntil: 'load' });
+      await waitForRedirectsToSettle(page);
+      expect(page.url()).toBe('http://example.test/no-redirect');
+      expect(await page.textContent('body')).toContain('source content only');
+    } finally {
+      await browser.close();
+    }
+  }, 15000);
+
+  it('captures the real destination, not a transitional pre-redirect state, for a delayed client-side redirect', async () => {
+    const browser = await chromium.launch();
+    try {
+      const page = await (await browser.newContext()).newPage();
+      // 800ms delay simulates React hydration + a mounted useEffect firing
+      // the redirect, not an instant navigation.
+      await page.route('**/source-delayed', (route) =>
+        route.fulfill({
+          contentType: 'text/html',
+          body: `<html><body><div>transitional pre-redirect state</div><script>setTimeout(() => { window.location.href = '/destination-delayed'; }, 800);</script></body></html>`
+        })
+      );
+      await page.route('**/destination-delayed', (route) =>
+        route.fulfill({ contentType: 'text/html', body: '<html><body><div>real destination content</div></body></html>' })
+      );
+      await page.goto('http://example.test/source-delayed', { waitUntil: 'load' });
+      await waitForRedirectsToSettle(page);
+      expect(page.url()).toBe('http://example.test/destination-delayed');
+      expect(await page.textContent('body')).toContain('real destination content');
+    } finally {
+      await browser.close();
+    }
+  }, 15000);
+
+  it('waits out a delayed redirect combined with a slow destination response — the exact scenario that motivated this fix', async () => {
+    const browser = await chromium.launch();
+    try {
+      const page = await (await browser.newContext()).newPage();
+      await page.route('**/source-combo', (route) =>
+        route.fulfill({
+          contentType: 'text/html',
+          body: `<html><body><div>transitional combo</div><script>setTimeout(() => { window.location.href = '/destination-combo'; }, 800);</script></body></html>`
+        })
+      );
+      await page.route('**/destination-combo', async (route) => {
+        await new Promise((resolve) => setTimeout(resolve, 3000)); // simulates a cold Next-dev compile
+        await route.fulfill({ contentType: 'text/html', body: '<html><body><div>destination settled after cold compile</div></body></html>' });
+      });
+      await page.goto('http://example.test/source-combo', { waitUntil: 'load' });
+      await waitForRedirectsToSettle(page);
+      expect(page.url()).toBe('http://example.test/destination-combo');
+      expect(await page.textContent('body')).toContain('destination settled after cold compile');
+    } finally {
+      await browser.close();
+    }
+  }, 15000);
+
+  it('settles on the final destination of a chained (2-hop) redirect', async () => {
+    const browser = await chromium.launch();
+    try {
+      const page = await (await browser.newContext()).newPage();
+      await page.route('**/chain-a', (route) =>
+        route.fulfill({ contentType: 'text/html', body: `<html><body><script>window.location.href = '/chain-b';</script></body></html>` })
+      );
+      await page.route('**/chain-b', (route) =>
+        route.fulfill({ contentType: 'text/html', body: `<html><body><script>window.location.href = '/chain-c';</script></body></html>` })
+      );
+      await page.route('**/chain-c', (route) =>
+        route.fulfill({ contentType: 'text/html', body: '<html><body><div>final chained destination</div></body></html>' })
+      );
+      await page.goto('http://example.test/chain-a', { waitUntil: 'load' });
+      await waitForRedirectsToSettle(page);
+      expect(page.url()).toBe('http://example.test/chain-c');
+      expect(await page.textContent('body')).toContain('final chained destination');
+    } finally {
+      await browser.close();
+    }
+  }, 15000);
+
+  it('bounds a long redirect chain rather than following it indefinitely', async () => {
+    const browser = await chromium.launch();
+    try {
+      const page = await (await browser.newContext()).newPage();
+      // A chain of 6 distinct redirects, each delayed ~200ms — deliberately
+      // more than MAX_REDIRECT_HOPS (3) — proves the function itself
+      // returns rather than following the whole chain indefinitely. A
+      // delay on each hop is essential here: an immediate, delay-less
+      // `window.location.href` chain gets fully followed by page.goto's
+      // own `waitUntil: 'load'` semantics before this function ever gets a
+      // chance to observe anything (confirmed directly — an earlier draft
+      // of this test with no delay landed on the final page before
+      // waitForRedirectsToSettle was even called, proving nothing about
+      // this function's own hop-bounding at all).
+      const hopCount = 6;
+      for (let i = 0; i < hopCount; i++) {
+        const next = i + 1 < hopCount ? `/long-chain-${i + 1}` : null;
+        await page.route(`**/long-chain-${i}`, (route) =>
+          route.fulfill({
+            contentType: 'text/html',
+            body: next
+              ? `<html><body><script>setTimeout(() => { window.location.href = '${next}'; }, 200);</script></body></html>`
+              : '<html><body><div>end of chain, never reached within the hop budget</div></body></html>'
+          })
+        );
+      }
+      const start = Date.now();
+      await page.goto('http://example.test/long-chain-0', { waitUntil: 'load' });
+      await waitForRedirectsToSettle(page);
+      const elapsedMs = Date.now() - start;
+      // Bounded, not hanging: stops well short of following all 6 hops.
+      expect(page.url()).not.toBe('http://example.test/long-chain-5');
+      expect(elapsedMs).toBeLessThan(20000);
+    } finally {
+      await browser.close();
+    }
+  }, 25000);
+});
 
 describe('generatePageTests preconditions', () => {
   // No real browser/next-dev involved in any of these — every case here is

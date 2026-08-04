@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
-import { chromium, type Browser } from 'playwright';
+import { chromium, type Browser, type Page } from 'playwright';
 import type { EvidenceBundle, RouteEntry } from '../ingest/evidenceSchema.js';
 import type { Case } from '../reconciliation/types.js';
 import type { GeneratedTestFile } from './generateTests.js';
@@ -63,6 +63,46 @@ const DEV_SERVER_READY_TIMEOUT_MS = 60_000;
 // will still be caught mid-flight; CSS-driven motion is handled
 // deterministically instead, see injectAnimationNeutralizingOverride below.
 const ANIMATION_SETTLE_WAIT_MS = 1500;
+
+// Real, live-triggered finding (a stage-4 diagnostic run against
+// catchandtrade): a client-side redirect (`if (!token) {
+// window.location.href = '/login'; return; }` inside a mounted useEffect)
+// fires AFTER page.goto's own 'load' event, as a completely separate
+// navigation nothing previously waited for. If the destination route's
+// first Next-dev compile is slow, this could still be in flight once a
+// fixed wait elapses — capture then non-deterministically shows either the
+// source page's own transitional pre-redirect state or the settled
+// destination, depending on incidental page-capture order (whichever page
+// happens to warm that route's compile first). Traced directly before
+// picking a number: reusing ANIMATION_SETTLE_WAIT_MS (1500ms) as this same
+// detection window still misses a realistic combined case (an ~800ms
+// effect-firing delay plus a ~3000ms cold-compile delay on the
+// destination); 5000ms correctly waits out that same combined case.
+const REDIRECT_DETECTION_WINDOW_MS = 5000;
+// The real motivating shape is one hop (a single auth-gate redirect); a
+// couple more as a safety margin against a chained redirect, bounded so a
+// genuine redirect loop can't hang capture indefinitely.
+const MAX_REDIRECT_HOPS = 3;
+
+// Exported so this is directly testable with a real Chromium instance and
+// page.route()-mocked responses — unlike the __name/page.evaluate bug this
+// codebase already has, this function is normal Node-side code called
+// directly, never serialized into an isolated browser realm, so it isn't
+// subject to that same untestable-under-vitest problem.
+export async function waitForRedirectsToSettle(page: Page): Promise<void> {
+  for (let hop = 0; hop < MAX_REDIRECT_HOPS; hop++) {
+    const urlBeforeWait = page.url();
+    try {
+      await page.waitForURL((url) => url.toString() !== urlBeforeWait, { timeout: REDIRECT_DETECTION_WINDOW_MS });
+    } catch {
+      return; // no further navigation started within the window — settled
+    }
+    // Best-effort: a real navigation failure on the destination surfaces
+    // elsewhere (console errors, the eventual content assertion), not as a
+    // crash here.
+    await page.waitForLoadState('load', { timeout: 30000 }).catch(() => {});
+  }
+}
 
 export interface SkippedPage {
   routeFile: string;
@@ -401,6 +441,11 @@ async function capturePage(browser: Browser, baseUrl: string, route: RouteEntry)
   });
   try {
     await page.goto(`${baseUrl}${concretePath(route.path)}`, { waitUntil: 'load', timeout: 30000 });
+    // Waits out a possible client-side redirect before anything below reads
+    // the DOM — see waitForRedirectsToSettle's own doc comment. A genuinely
+    // different concern from animation settling (navigation vs. motion), so
+    // kept as its own sequential step, not merged into the wait below.
+    await waitForRedirectsToSettle(page);
     // Bounded wait for JS-driven motion to settle — see ANIMATION_SETTLE_WAIT_MS's
     // own doc comment. Both captures below happen after this same wait, so
     // they can no longer disagree with each other the way a sequential,
@@ -499,6 +544,21 @@ describe(${JSON.stringify(`page: ${route.path} (from-reconciliation)`)}, () => {
       if (msg.type() === 'error') consoleErrors.push(msg.text());
     });
     await page.goto(\`\${baseUrl}${concrete}\`, { waitUntil: 'load' });
+    // Same redirect-settling loop the original capture used (see
+    // waitForRedirectsToSettle in generatePageTests.ts) — without this, a
+    // rebuild that faithfully reproduces the same client-side redirect
+    // (e.g. an auth gate) would race this same timing window differently
+    // than the original capture did and fail this assertion by reading a
+    // transitional, pre-redirect DOM instead of the settled destination.
+    for (let hop = 0; hop < ${MAX_REDIRECT_HOPS}; hop++) {
+      const urlBeforeWait = page.url();
+      try {
+        await page.waitForURL((url) => url.toString() !== urlBeforeWait, { timeout: ${REDIRECT_DETECTION_WINDOW_MS} });
+      } catch {
+        break;
+      }
+      await page.waitForLoadState('load', { timeout: 30000 }).catch(() => {});
+    }
     // Same bounded settle-wait the original capture used (see
     // ANIMATION_SETTLE_WAIT_MS in generatePageTests.ts) — without this, a
     // rebuild that faithfully reproduces JS-driven motion documented in this
