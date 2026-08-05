@@ -1,6 +1,6 @@
 # rebuild-dossier v0: findings
 
-**Status:** v0 built (6 MCP tools, 492 unit tests), validated end-to-end against **two real,
+**Status:** v0 built (6 MCP tools, 504 unit tests), validated end-to-end against **two real,
 structurally different apps** (Madeline — Next.js client-side gate pattern; catchandtrade — a
 real Prisma+Postgres+Stripe+eBay-backed API app), across **two model tiers** (Sonnet, Haiku),
 with a precisely-characterized weak-model failure boundary and a security-hardening pass
@@ -324,6 +324,24 @@ verification happened to be the first thing able to surface concretely, since no
 captured authenticated content noisy enough to trigger it. See "Validating the auth-gate fix
 against the real catchandtrade app: real data reached, two more real gaps found along the way,"
 below.
+
+The absolute-`NEXT_PUBLIC_API_URL` gap that verification surfaced now has a real fix too, and it's
+general — not scoped to auth at all, since any page whose client fetches read a hardcoded localhost
+origin would hit the same wall regardless of whether the page needs a session.
+`resolveLocalApiUrlOverrides` scans a target's `.env`/`.env.local`/`.env.development`/
+`.env.development.local` files for `NEXT_PUBLIC_*` keys already pointing at `localhost`/`127.0.0.1`,
+and passes an override matching this run's actual `baseUrl` into the spawned dev server's own
+env — which always wins over a dotenv-file value, so nothing in the target's own files needs to be
+touched. Deliberately conservative: a `NEXT_PUBLIC_*` var pointing anywhere else (a real external
+host) is left alone, since there's no way to distinguish "this should track my own dev server" from
+"this is an intentional external target" other than the value already being local. Wired into both
+the capture-phase spawn and the shared generated-test boilerplate (inlined there, matching this
+codebase's existing precedent for logic a separately-run generated project can't import directly).
+Re-verified against the same real catchandtrade app, this time with its completely unmodified
+`.env.development` — `NEXT_PUBLIC_API_URL` still hardcoded to `http://localhost:3003` — and the
+portfolio page's real seeded content (Charizard, condition, price) was reached automatically, no
+manual workaround needed this time. See "A general fix for hardcoded local API URLs, verified
+against catchandtrade with no manual workaround," below.
 
 ## The hypothesis being tested
 
@@ -2554,6 +2572,73 @@ it demonstrably does.
 verification user/portfolio and the `web-authverify`/`web-authverify-rebuild` scratch copies were
 removed. Nothing from this verification was left running or committed against the real
 catchandtrade checkout.
+
+## A general fix for hardcoded local API URLs, verified against catchandtrade with no manual workaround
+
+The prior section's real-catchandtrade validation reached real authenticated content only after
+manually blanking `NEXT_PUBLIC_API_URL` in a scratch copy — a workaround, not a fix. This closes
+that gap for real.
+
+**The bug, restated precisely.** Next.js inlines every `NEXT_PUBLIC_*` env var it can find into the
+client bundle at `next dev` start time, not just the ones a given page happens to read at request
+time. catchandtrade's own `.env.development` hardcodes `NEXT_PUBLIC_API_URL=http://localhost:3003`;
+its portfolio page fetches via `` `${API_URL}/api/portfolios` ``. This tool's own dev server picks a
+fresh random port on every single `generate_spec` call, specifically to avoid collisions across
+concurrent runs — so the client bundle's baked-in `http://localhost:3003` almost never matches
+whichever port the tool's own spawned instance actually landed on for this run. The fetch either
+hits nothing or hits an unrelated process, and the failure is silent: `fetchPortfolios`'s own
+`catch (err) { console.error(...) }` swallows it, leaving the page's state empty with no visible
+error. This is not an auth-specific bug — a fully public page whose data comes from a fetch through
+the same hardcoded var would hit the identical wall. It was never seen before only because
+`portfolio`'s own auth gate blocked capture from ever reaching this fetch at all.
+
+**The fix, and why it doesn't touch the target app's own files.** `resolveLocalApiUrlOverrides(repoPath,
+baseUrl)` scans `.env`, `.env.local`, `.env.development`, and `.env.development.local` (Next.js's
+own convention for which dotenv files it loads, and in what order) for any line matching a
+`NEXT_PUBLIC_[A-Z0-9_]+=` key whose value already starts with `http://localhost:` or
+`http://127.0.0.1:`. For every match, it returns an override mapping that key to this run's actual
+`baseUrl`. That mapping gets merged into the spawned `next dev` child's own `env` option
+(`{ ...process.env, ...overrides }`) — Next.js (like dotenv generally) always lets an
+already-present `process.env` value win over anything a `.env*` file would otherwise set, so passing
+the override this way is sufficient; nothing in the target repo's own files is read back, parsed for
+correctness, or rewritten.
+
+**Deliberately conservative, traced against the real risk before shipping.** Only `NEXT_PUBLIC_*`
+keys are touched — a server-only var never needs this, since server-side code executes inside this
+same spawned process rather than a separately-addressed client bundle, so relative addressing was
+never the concern there. And only a value *already* pointing at `localhost`/`127.0.0.1` is
+overridden — a `NEXT_PUBLIC_*` var pointing at a real external host (a staging API, a real
+third-party service) is left completely untouched, since rewriting that would be actively wrong, not
+just unhelpful, and there is no way to tell "this should track my own dev server" apart from "this
+is an intentional external target" other than the value already being a local one. Traced cases,
+unit tested directly: a hardcoded localhost URL (overridden); the identical shape via `127.0.0.1`
+(overridden); a quoted value (still matched); a commented-out line (correctly ignored); a
+non-`NEXT_PUBLIC_` server-only var pointing at localhost (correctly left alone); a real external host
+(correctly left alone); the same key present in more than one `.env*` file (deduped to one override);
+and multiple distinct keys across multiple files (all collected).
+
+**Wired into both places that spawn a dev server for a capture-fidelity fix to actually apply
+everywhere it needs to**: the live capture phase in `generatePageTests.ts`, and the shared
+`devServerBoilerplate()` used by every generated page test and gate test. The second one has to be
+inlined as plain JS text, not imported — the generated output is its own, separate npm project with
+no dependency on rebuild-dossier itself, the same reason a couple of other capture-fidelity fixes in
+this codebase are also duplicated as inlined strings rather than shared function calls. One
+incidental snag caught immediately by the existing test suite, not shipped silently: this new
+function's own doc comment happened to mention a word ("storageState") that an existing, correctly
+strict test was checking never appears in a generated test that doesn't use auth — reworded the
+comment rather than weaken that test's real intent.
+
+**Verified live, with no manual workaround this time.** The same real catchandtrade app was re-run
+end to end — fresh Postgres, the same seeded user and portfolio, the same legacy-format session
+token — but this time against a completely unmodified checkout, `NEXT_PUBLIC_API_URL` still
+hardcoded to `http://localhost:3003` exactly as the app's own repo has it committed. The generated
+portfolio page test's body assertions included the real seeded data automatically — `"Charizard"`,
+`"Base Set"`, `"NEAR MINT"`, `"Main Collection"`, a dynamic-currency match for the real price — with
+no env edit, no scratch copy, no manual intervention of any kind. The mutation-check classified this
+test as weak rather than unrunnable this run (an improvement over the prior run, though not a
+demonstrated kill) — consistent with this codebase's own already-documented mutation-kill caveat for
+page tests (generic mutators can land in code with no connection to what a page's generated test
+actually asserts on), not a new problem this fix introduced.
 
 ## Bottom line
 
