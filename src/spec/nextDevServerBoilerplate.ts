@@ -8,6 +8,7 @@ export function devServerBoilerplate(): string {
   return `import { chromium } from 'playwright';
 import { spawn, spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -16,6 +17,28 @@ const port = 10000 + Math.floor(Math.random() * 40000);
 // "localhost", not "127.0.0.1" — Next's dev server only trusts "localhost" as
 // a default dev origin; 127.0.0.1 silently fails the HMR/hydration handshake.
 const baseUrl = \`http://localhost:\${port}\`;
+
+// Mirrors resolveLocalApiUrlOverrides in resolveLocalApiUrlOverrides.ts —
+// inlined here (not imported) because this generated file is its own,
+// separate npm project with no dependency on rebuild-dossier itself, the
+// same reason a couple of other capture-fidelity fixes are also inlined as
+// plain JS elsewhere in this codebase's generated output. See that file's
+// doc comment for why this exists: a target app can bake a NEXT_PUBLIC_* var
+// pointing at a fixed localhost port into its own client bundle, which would
+// otherwise never match whichever random port this specific test run's dev
+// server lands on.
+function resolveLocalApiUrlOverrides(repoPath, baseUrl) {
+  const overrides = {};
+  for (const filename of ['.env', '.env.local', '.env.development', '.env.development.local']) {
+    const filePath = join(repoPath, filename);
+    if (!existsSync(filePath)) continue;
+    for (const line of readFileSync(filePath, 'utf-8').split('\\n')) {
+      const match = line.match(/^\\s*(NEXT_PUBLIC_[A-Z0-9_]+)\\s*=\\s*["']?(https?:\\/\\/(?:localhost|127\\.0\\.0\\.1):\\d+)/);
+      if (match) overrides[match[1]] = baseUrl;
+    }
+  }
+  return overrides;
+}
 
 let devServer;
 let browser;
@@ -56,7 +79,10 @@ beforeAll(async () => {
   devServer = spawn(process.execPath, [nextBin, 'dev', '-p', String(port)], {
     cwd: appRoot,
     stdio: 'ignore',
-    detached: process.platform !== 'win32'
+    detached: process.platform !== 'win32',
+    // Overrides any NEXT_PUBLIC_* var this app's own .env* files hardcode to
+    // a fixed localhost port — see resolveLocalApiUrlOverrides above.
+    env: { ...process.env, ...resolveLocalApiUrlOverrides(appRoot, baseUrl) }
   });
   await waitForReady(Date.now() + 60000);
   browser = await chromium.launch({ headless: true });

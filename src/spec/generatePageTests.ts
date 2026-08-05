@@ -12,6 +12,7 @@ import type { AssetManifestEntry } from './assetManifestSchema.js';
 import { classifyDomText } from './classifyDomText.js';
 import { concretePath, sanitizeFilenameBase } from './routeTestAssertions.js';
 import { devServerBoilerplate } from './nextDevServerBoilerplate.js';
+import { resolveLocalApiUrlOverrides } from './resolveLocalApiUrlOverrides.js';
 import { classifyPageWithVision, DEFAULT_GROQ_VISION_MODEL, VISION_PAGE_PACING_DELAY_MS } from './visionClassifier.js';
 
 // Complements generateGateTests.ts/generateTests.ts for page/component routes
@@ -679,7 +680,11 @@ export async function generatePageTests(
     devServer = spawn(process.execPath, [nextBin, 'dev', '-p', String(port)], {
       cwd: repoPath,
       stdio: 'ignore',
-      detached: process.platform !== 'win32'
+      detached: process.platform !== 'win32',
+      // Overrides any NEXT_PUBLIC_* var the target app's own .env* files
+      // hardcode to a fixed localhost port — see resolveLocalApiUrlOverrides'
+      // own doc comment for the real, live-triggered bug this fixes.
+      env: { ...process.env, ...resolveLocalApiUrlOverrides(repoPath, baseUrl) }
     });
     await waitForReady(baseUrl, Date.now() + DEV_SERVER_READY_TIMEOUT_MS);
     browser = await chromium.launch({ headless: true });
