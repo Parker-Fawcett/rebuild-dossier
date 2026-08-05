@@ -343,6 +343,21 @@ portfolio page's real seeded content (Charizard, condition, price) was reached a
 manual workaround needed this time. See "A general fix for hardcoded local API URLs, verified
 against catchandtrade with no manual workaround," below.
 
+A genuinely blind third-party app — a 9-page Next.js QR-code generator
+([Awis13/qr](https://github.com/Awis13/qr), selected for this check with no prior knowledge of its
+shape — sharpened, rather than introduced, an already-open design tension named earlier in this
+document: the weak/unrunnable-tests-still-unblock-a-page erosion of the untested-contracts hook's
+own guarantee. On catchandtrade that erosion measured 79% (15 of 19 pages). On this app it measured
+**100%** (9 of 9) — `spec/untested-contracts.json` came back completely empty, meaning the hook
+would grant a rebuild agent write-permission on every single page with zero actual verification
+behind any of it, regardless of which model runs, or whether contract-locking enforcement is even
+present. This is a structural result, not a model-behavior question: `writeSpecTree.ts` marks a
+route "covered" the instant *any* test claims it via `coveredRouteFiles`, weak or unrunnable or not,
+so an app where every generated page test lands in `tests/weak/` — which this one's did, all nine,
+confirmed directly by `generate_spec`'s own report — empties the untested-contracts list by
+construction, not by chance. See "A second real app finds the weak-test-unblock erosion at 100%, not
+79%," below.
+
 ## The hypothesis being tested
 
 Prior research (AgentModernize, arXiv:2605.17535) found a rebuild pipeline scores 0%
@@ -2639,6 +2654,60 @@ test as weak rather than unrunnable this run (an improvement over the prior run,
 demonstrated kill) — consistent with this codebase's own already-documented mutation-kill caveat for
 page tests (generic mutators can land in code with no connection to what a page's generated test
 actually asserts on), not a new problem this fix introduced.
+
+## A second real app finds the weak-test-unblock erosion at 100%, not 79%
+
+The catchandtrade run flagged a real, deliberately unresolved tension: weak/unrunnable page tests
+still unblock a page's write-permission the same way weak API-route tests already do, measured at
+79% (15 of 19 pages) — high enough to notice, not a settled decision just because it matches
+existing precedent. This checks whether that number holds, worsens, or was somehow specific to one
+auth-heavy app, on a completely different, genuinely blind third-party app.
+
+**The app, chosen with no prior knowledge of its shape.** [Awis13/qr](https://github.com/Awis13/qr)
+is a 9-page Next.js QR-code generator — no API routes at all, no authentication, no backend, nine
+static-looking form pages (`/url-qr-code`, `/wifi-qr-code`, etc.) plus a root landing page. Cloned
+fresh, `npm install`ed, and run through the real `ingest_repo` → `generate_spec` pipeline with no
+modification.
+
+**The result, confirmed directly, not assumed from the app's shape.** `generate_spec`'s own report
+showed all 9 captured pages' generated tests landing in `unrunnableTests`, 0 mutation sites checked.
+`spec/untested-contracts.json` came back completely empty (`[]`). Read directly, not guessed:
+`spec/test-dependencies.json` shows every one of the 9 `tests/weak/PAGE-*.spec.ts` files mapped, via
+`coveredRouteFiles`, to its own route file — `writeSpecTree.ts`'s own `computeUntestedContractFiles`
+call is built from exactly this mapping, and marks a route "covered" the moment *any* test claims it
+this way, regardless of whether that test is weak, unrunnable, or ever demonstrated a real kill. Nine
+pages, nine claims, zero real verification behind any of them, and the untested-contracts list —
+whose entire purpose is withholding write-permission until a test demonstrably covers a route — has
+nothing left to withhold.
+
+**Why this is a sharper finding than another confirming run on catchandtrade, not the same confound
+wearing a new face.** On catchandtrade, the open question was about *model behavior*: would a
+compliant model ever actually attempt to exploit weak coverage, given the chance. Here the question
+resolves before any model is even involved — an ablation of contract-locking enforcement on this app
+would produce an identical result with or without the plugin installed, on any model, because the
+mechanism the plugin enforces (block a write to an untested contract) has nothing left to trigger on
+once every contract already reads as "tested." This is a structural gap in the coverage-computation
+logic itself, not a question about whether a model chooses to exploit a known gap.
+
+**What this changes about the open design question, and what it doesn't.** The number moves from
+"worth reconsidering at 79%, on one auth-heavy app" to "worth reconsidering at up to 100%, confirmed
+on a second, structurally different, genuinely blind app" — a stronger citation for the same
+already-named tension, not a new one. It does not, by itself, tell you which fix is correct (requiring
+at least one real mutation kill before a page counts as "tested" is the most direct option named
+earlier, but narrowing it that far risks under-crediting pages whose real logic the mutation engine
+simply can't reach for unrelated reasons — the same capture-reach limitation already documented for
+auth-gated pages). Left unresolved deliberately, same as before — this section exists to sharpen the
+evidence behind the open question, not to unilaterally resolve it.
+
+**What this rules out for the model-behavior question still open.** A contract-locking ablation was
+prepared against this app before this finding was confirmed, then deliberately not run once
+`untested-contracts.json` was checked and found empty — running it anyway would have produced a
+guaranteed, uninformative "no difference between conditions" result for a reason that has nothing to
+do with model behavior, wasting real trial time to confirm a number already known from a single file
+read. The genuinely open question — whether a weaker model, given real rail-2 surface to exploit,
+ever actually attempts to (the thing DeepSeek's own dry run did not do, leaving that question
+unresolved rather than answered) — remains open, and is being pursued next on an app confirmed to
+have real, non-empty untested-contracts surface.
 
 ## Bottom line
 
