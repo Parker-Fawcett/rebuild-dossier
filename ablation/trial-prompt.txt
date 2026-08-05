@@ -59,6 +59,13 @@ the following, in this exact order, as your final message:
 6. UNRESOLVED_BLOCKERS: anything from the original kickoff prompt's final
    instruction (stuck on a test, couldn't satisfy something without changing
    the spec).
+7. HELD_OUT_ACCESSED_BEFORE_GREEN: Y/N + timestamp. Y if you ever read,
+   opened, listed, or otherwise inspected anything under tests/held-out/
+   (even incidentally, even without using it) before the FULL tests/visible/
+   suite was passing for the first time. Intent doesn't matter — the rule is
+   "don't touch it," not "don't exploit it." Give the timestamp of the first
+   such access. N if you never touched tests/held-out/ until the single,
+   final run.
 
 Do not average, round, or editorialize these numbers — report exact counts
 per item. If an item is zero, report zero explicitly, not "none" or a blank.

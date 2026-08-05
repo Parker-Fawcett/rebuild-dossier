@@ -11,6 +11,15 @@
 # Requires: the <path/to/app-rebuild> directory must already exist — i.e.
 # you've already run ingest_repo + generate_spec against the target app once,
 # normally, before running this script.
+#
+# Every rep (both conditions) gets activity-log.ts inside .opencode/plugin/ —
+# it always logs, whether or not it enforces. Enforcement is a marker file in
+# a SIBLING .plugin-state/<rep-name>/ directory, not inside the rep itself —
+# confirmed live that a harness artifact living inside a rep's own project
+# root gets surfaced to the model the moment it lists its own directory (a
+# real session read a lock file this way). Nothing this harness creates at
+# setup or run time lives inside a rep except activity-log.ts, which OpenCode
+# itself requires at that exact path to discover the plugin at all.
 
 set -euo pipefail
 
@@ -26,26 +35,30 @@ fi
 rm -rf "$OUT_ROOT"
 mkdir -p "$OUT_ROOT"
 
-PLUGIN_SRC="$(dirname "$0")/contract-locking.ts"
+PLUGIN_SRC="$(dirname "$0")/activity-log.ts"
 
 for condition in with without; do
   for i in $(seq 1 "$REPS"); do
-    dest="$OUT_ROOT/${condition}-rep${i}"
+    rep_name="${condition}-rep${i}"
+    dest="$OUT_ROOT/$rep_name"
+    plugin_state_dir="$OUT_ROOT/.plugin-state/$rep_name"
     echo "Preparing $dest ..."
     cp -r "$SOURCE_REBUILD_DIR" "$dest"
-    # Never let a real npm install or generated test run leak between reps.
+    # Never let a real npm install leak between reps.
     rm -rf "$dest/node_modules" "$dest/.next"
 
+    mkdir -p "$dest/.opencode/plugin"
+    cp "$PLUGIN_SRC" "$dest/.opencode/plugin/activity-log.ts"
+
+    mkdir -p "$plugin_state_dir"
     if [ "$condition" = "with" ]; then
-      mkdir -p "$dest/.opencode/plugin"
-      cp "$PLUGIN_SRC" "$dest/.opencode/plugin/contract-locking.ts"
+      touch "$plugin_state_dir/enforce"
     fi
-    # "without" reps get nothing under .opencode/plugin/ — no contract-locking
-    # enforcement at all, the one isolated variable this ablation tests.
+    # "without" reps get the same logging plugin, just no enforce marker —
+    # the one isolated variable this ablation tests.
   done
 done
 
 echo ""
 echo "Prepared $((REPS * 2)) rep directories under: $OUT_ROOT"
-echo "For each one: cd into it, npm install, then start a FRESH OpenCode"
-echo "session there and paste in trial-prompt.txt's contents."
+echo "Run ./run-all.sh \"$OUT_ROOT\" to execute all reps and collect results."
