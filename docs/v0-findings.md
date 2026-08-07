@@ -2709,6 +2709,56 @@ ever actually attempts to (the thing DeepSeek's own dry run did not do, leaving 
 unresolved rather than answered) — remains open, and is being pursued next on an app confirmed to
 have real, non-empty untested-contracts surface.
 
+## The coverage-computation gap is structural, confirmed a third independent way — and a trust blocker on earlier Madeline-sourced results was found while looking for a counterexample
+
+The QR-app section above treated its 100% result as a second data point sharpening the
+catchandtrade finding. A third, independent app — [animfix](../animfix) (a small client-side
+animation-fidelity app, no API routes, no auth) — was checked the same way, not to confirm the
+pattern again but specifically to look for a counterexample before concluding anything broader.
+It didn't find one: `animfix-rebuild/spec/untested-contracts.json` came back `[]` too, with all
+3 of its pages covered via the same `coveredRouteFiles`-claims-coverage mechanism traced on the
+first two apps. Three structurally unrelated real apps — a database-backed CRUD app with real
+auth, a static-content page generator, and a small client-animation app — all hit the identical
+root cause in `writeSpecTree.ts`'s coverage definition, via three independently-run
+investigations, not three re-observations of the same run. At this point the honest description
+changed: this is not "a pattern worth watching across apps," it is **a structural bug in how
+coverage is computed**, confirmed three independent ways, not an artifact of any one app's shape.
+
+**What "structural" means concretely, stated once, plainly.** `writeSpecTree.ts`'s
+`testedSourceFiles` is built from `coveredRouteFiles ?? [f.sourceFile]` across every generated
+test file regardless of whether that test is visible, held-out, or already-known-weak/unrunnable
+at the point this list is computed. `computeUntestedContractFiles` then marks a route "covered"
+the instant it appears in that list — weak, unrunnable, and real are all indistinguishable to
+this specific check. The untested-contracts hook's entire purpose is withholding a rebuild
+agent's write-permission until a test *demonstrably* covers a route; as implemented, it withholds
+nothing once every route has *some* test file, proven or not. This is now the leading, not
+secondary, framing of the weak-test-unblock finding first raised on catchandtrade at 79% — three
+real apps land at 100%, and the two data points below 100% (catchandtrade's, before this session's
+later fixes; the 79% figure itself) were never evidence the gap was partial, only evidence that
+one particular app happened to leave a few routes with zero generated test at all (a `generate_spec`
+crash or skip, not a coverage judgment) before this deeper mechanism was traced.
+
+**A real, more serious finding surfaced as a side effect of searching for a fourth app, and it
+needs to be stated as a standing blocker, not a side-quest note.** Looking for additional real-app
+diversity meant revisiting Madeline and Madeline-weakmodel — the two apps behind some of this
+project's earliest and most-cited results (the original two-model-tier comparison, the weak-model
+diagnostic boundary). Both repos were found with every `page.tsx` file staged-deleted (`git status`
+shows `AD` — added to the index, then removed from the working tree) and zero commits ever made on
+`main`. This lines up exactly with this session's own earlier relocate-source-for-a-blind-rebuild
+step, followed by a restore step — and the state found here is consistent with that restore never
+having fully completed. Investigated read-only (no git command was run against either repo beyond
+`status`/`log`); the user was stopped and asked directly rather than guessed at a fix, and has not
+yet resolved it as of this writing.
+
+**The consequence is broader than "can't use Madeline as a third ablation app."** Every claim in
+this document that rests on "Madeline was verified restored and intact" — most importantly the
+original blind-rebuild comparison across two model tiers — should be treated as **unconfirmed
+pending resolution**, not silently assumed still valid. This is not a statement that those earlier
+results are wrong; the git index still holds the deleted content, and this is very likely
+recoverable. It is a statement that no further claim should be built on top of them until the
+restore is confirmed complete, the same discipline this document has applied to every other
+claim in it.
+
 ## Bottom line
 
 The core loop (ingest → reconcile → spec → generate → test → verify) works, on a real messy
