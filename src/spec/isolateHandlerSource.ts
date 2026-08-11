@@ -16,6 +16,18 @@ function nextHandlerPattern(method: string): RegExp {
   return new RegExp(`export\\s+(?:async\\s+)?function\\s+${method}\\s*\\(`);
 }
 
+// Real, live-triggered bug (found running against a genuinely third-party
+// app): a Next.js Route Handler exported as a const arrow function
+// (`export const GET = async (req) => {...}`) is just as valid and common as
+// a function declaration, but nextHandlerPattern only matched the latter —
+// silently returning null (no isolated body) for every route in an app using
+// this style, degrading every extractor built on top of this shared helper
+// (field names, value formats, validation rules, success status), not just
+// detection (see the separate, analogous fix in routeDetectors/nextAppRouter.ts).
+function nextConstArrowHandlerPattern(method: string): RegExp {
+  return new RegExp(`export\\s+const\\s+${method}\\s*=\\s*(?:async\\s+)?\\(`);
+}
+
 function expressHandlerPattern(method: string, path: string): RegExp {
   return new RegExp(`\\b(?:app|router)\\.${method.toLowerCase()}\\s*\\(\\s*(['"\`])${escapeRegExpLiteral(path)}\\1`);
 }
@@ -67,6 +79,15 @@ export function isolateHandlerBody(sourceCode: string, route: RouteEntry): strin
     // back up one character so skipParameterList balances the real
     // parameter list, not a parameter list it hasn't found yet.
     const body = isolateFunctionBody(sourceCode, nextMatch.index + nextMatch[0].length - 1);
+    if (body) return body;
+  }
+
+  const nextArrowMatch = sourceCode.match(nextConstArrowHandlerPattern(method));
+  if (nextArrowMatch?.index !== undefined) {
+    // Same convention as nextMatch above: back up one character so
+    // skipParameterList re-finds the same opening "(" this match already
+    // ended on, rather than skipping past it.
+    const body = isolateFunctionBody(sourceCode, nextArrowMatch.index + nextArrowMatch[0].length - 1);
     if (body) return body;
   }
 

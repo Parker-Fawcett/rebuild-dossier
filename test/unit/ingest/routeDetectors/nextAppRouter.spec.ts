@@ -47,6 +47,39 @@ describe('nextAppRouterDetector', () => {
     }
   });
 
+  it('detects exported HTTP method handlers written as const arrow functions, not just function declarations', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-next-'));
+    try {
+      const file = writeFile(
+        dir,
+        'src/app/api/todos/route.ts',
+        [
+          'export const GET = (req: NextRequest) => {};',
+          'export const POST = async (req: NextRequest) => {};'
+        ].join('\n')
+      );
+
+      const routes = nextAppRouterDetector.detect(dir, [file]);
+
+      expect(routes).toContainEqual({
+        path: '/api/todos',
+        method: 'GET',
+        file: expect.stringContaining('route.ts'),
+        kind: 'api',
+        startLine: 1
+      });
+      expect(routes).toContainEqual({
+        path: '/api/todos',
+        method: 'POST',
+        file: expect.stringContaining('route.ts'),
+        kind: 'api',
+        startLine: 2
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('detects a page route and strips route groups from the path', () => {
     const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-next-'));
     try {

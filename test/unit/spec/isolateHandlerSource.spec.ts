@@ -51,6 +51,36 @@ describe('isolateHandlerBody', () => {
     expect(body).not.toContain('{ params: { id: string } }');
   });
 
+  it('isolates a Next.js handler body exported as a const arrow function, not just a function declaration (real, live-triggered bug against a genuinely third-party app)', () => {
+    // export const POST = async (req: NextRequest) => {...} — just as valid
+    // and common a Route Handler style as `export async function POST`, but
+    // previously unmatched entirely, silently returning null for every
+    // extractor built on isolateHandlerBody.
+    const source = `
+      export const POST = async (req: NextRequest) => {
+        const { text } = await req.json();
+        if (!text) {
+          return NextResponse.json({ status: 404, message: 'required' });
+        }
+        return NextResponse.json({ status: 200, data: { text } });
+      };
+    `;
+    const body = isolateHandlerBody(source, route({ method: 'POST' }));
+    expect(body).toContain('required');
+    expect(body).toContain('status: 200');
+    expect(body).not.toBeNull();
+  });
+
+  it('isolates a const arrow handler body with no async keyword', () => {
+    const source = `
+      export const GET = (req: NextRequest) => {
+        return NextResponse.json({ data: [] });
+      };
+    `;
+    const body = isolateHandlerBody(source, route({ method: 'GET' }));
+    expect(body).toContain('data: []');
+  });
+
   it('isolates a simple Express handler body', () => {
     const source = `
       app.post('/api/notes', (req, res) => {
