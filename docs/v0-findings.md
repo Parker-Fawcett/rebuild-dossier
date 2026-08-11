@@ -2939,7 +2939,15 @@ own `.claude/settings.json` — a `PreToolUse` block hook placed there never fir
 writing to that exact directory. Hooks only fire from *this session's own* root or global
 `settings.json`, regardless of which directory a sub-agent is actually working in (confirmed via
 the hook payload's own `cwd` field, which reflects the session's root, never a sub-agent-specific
-directory). A scoped hook was added to this session's own project `.claude/settings.json` instead
+directory). **This is not just an internally-discovered quirk — it is directly confirmed by
+Claude Code's own official documentation**, checked afterward rather than relied on instead of
+the empirical test: "A subagent's own `.claude/settings.json` is never consulted. Only the session
+root's hooks run" (Claude Code hooks reference, code.claude.com/docs/en/hooks, retrieved 2026).
+The empirical test still matters on its own — it establishes the behavior held in *this*
+environment at *this* time, independent of whether the docs happen to be current or complete —
+but having both an independent empirical confirmation and the vendor's own documented statement
+agreeing is a stronger basis than either alone. A scoped hook was added to this session's own
+project `.claude/settings.json` instead
 — filtering entirely on `tool_input.file_path`/`command` matching a specific trial-root path prefix,
 so it could never affect anything else in this session — smoke-tested (one write inside the scope
 blocked correctly, one outside it succeeded untouched) before being trusted for a real trial, then
@@ -2973,6 +2981,15 @@ mechanical enforcement. This is named as an open risk on a specific, load-bearin
 confirmed retraction — the evidence needed to settle it one way or the other no longer exists, but
 which side of the fork is true is a factual question with a definite answer, not a matter of
 interpretation.
+
+**A related mechanism worth naming for future work, not used in this trial:** Claude Code also
+exposes a `SubagentStop` hook — fired when a sub-agent finishes, and able to *block* it from
+stopping (a nonzero exit code forces it to keep working rather than return control). It's scoped
+from the session root the same way `PreToolUse`/`PostToolUse` are, so it doesn't change the
+finding above, but it's a genuinely different capability from what this trial used: mechanically
+verifying a trial's own self-report criteria (visible suite actually green, held-out actually run
+once) *before* letting a sub-agent report done, rather than only logging what happened after the
+fact via `PostToolUse`. Not built or tested here — named as backlog.
 
 **Two reps ran: `with-rep1` (the block hook live) and `without-rep1` (log-only), both against the
 redesigned fixture, both mechanically logged via a new `claude-code-hooks-log.mjs` + matching
