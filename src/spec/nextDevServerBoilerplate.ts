@@ -76,7 +76,28 @@ beforeAll(async () => {
   // too, matching the Windows branch's existing "/t" tree-kill intent.
   const require = createRequire(import.meta.url);
   const nextBin = require.resolve('next/dist/bin/next');
-  devServer = spawn(process.execPath, [nextBin, 'dev', '-p', String(port)], {
+  // Turbopack became next dev's default at Next 16, with --webpack added
+  // that same release as the opt-out (confirmed against Next's own upgrade
+  // guide) — before that, webpack was already the sole default and this
+  // flag doesn't exist at all (Next <16 exits immediately with "unknown
+  // option '--webpack'", never starting the dev server). Real, live-triggered
+  // finding: a scratch-copy dev server (see runMutationCheck.ts's
+  // linkNodeModules, which real-copies only 'next' and symlinks every other
+  // package) hits Turbopack's own out-of-root-symlink refusal for ANY other
+  // symlinked package a real app's client bundle needs — confirmed against
+  // multiple packages (@swc/helpers, picocolors, framer-motion), independent
+  // of whether that symlink's target has valid content. Forcing webpack for
+  // Next 16+ targets avoids this entirely without needing to real-copy all
+  // of node_modules (defeating the space-saving point of that scratch-copy
+  // strategy). Version-gated, not applied unconditionally, since the flag
+  // itself doesn't exist on the many real target apps still on Next <16
+  // (e.g. catchandtrade, Next 14 — confirmed unaffected by this bug in the
+  // first place, since it never runs under Turbopack to begin with).
+  const nextPackageJsonPath = require.resolve('next/package.json');
+  const nextMajorVersion = Number(JSON.parse(readFileSync(nextPackageJsonPath, 'utf-8')).version.split('.')[0]);
+  const devArgs = ['dev', '-p', String(port)];
+  if (nextMajorVersion >= 16) devArgs.push('--webpack');
+  devServer = spawn(process.execPath, [nextBin, ...devArgs], {
     cwd: appRoot,
     stdio: 'ignore',
     detached: process.platform !== 'win32',

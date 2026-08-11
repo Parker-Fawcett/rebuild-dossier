@@ -236,14 +236,24 @@ function runVitestOnce(scratchDir: string, testFilePath: string): boolean {
       // catchandtrade page-test-generation figure) is what happened to
       // occur, not a value this timeout guaranteed as an upper bound.
       killSignal: 'SIGKILL',
-      stdio: ['ignore', 'pipe', 'ignore']
+      stdio: ['ignore', 'pipe', process.env.REBUILD_DOSSIER_MUTATION_DEBUG ? 'pipe' : 'ignore']
     });
     const jsonStart = output.indexOf('{');
     const parsed = JSON.parse(output.slice(jsonStart));
     return parsed.success === true;
-  } catch {
+  } catch (err) {
     // A thrown execFileSync (non-zero exit, timeout, or crash) means the run
     // did not succeed — treat identically to a parsed failure.
+    if (process.env.REBUILD_DOSSIER_MUTATION_DEBUG) {
+      const e = err as { message?: string; status?: number; signal?: string; stderr?: string; stdout?: string };
+      console.error('MUTATION_DEBUG runVitestOnce failed for', testFilePath, {
+        message: e?.message,
+        status: e?.status,
+        signal: e?.signal,
+        stderr: e?.stderr,
+        stdout: e?.stdout
+      });
+    }
     return false;
   }
 }
