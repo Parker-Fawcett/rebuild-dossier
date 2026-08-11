@@ -86,7 +86,11 @@ describe('writeSpecTree', () => {
       expect(existsSync(join(outputDir, '.claude', 'agents', 'test-verifier.md'))).toBe(false);
       expect(existsSync(join(outputDir, '.claude', 'workflows', 'parallel-test-fix.js'))).toBe(false);
       const settings = JSON.parse(readFileSync(join(outputDir, '.claude', 'settings.json'), 'utf-8'));
-      expect(settings.hooks.PostToolUse[0].hooks[0].command).toBe('npm test');
+      // The real test command runs chained after a heartbeat write, not in
+      // place of it — see generateSettingsJson.spec.ts for the heartbeat
+      // mechanism's own behavioral tests.
+      expect(settings.hooks.PostToolUse[0].hooks[0].command).toContain('npm test');
+      expect(settings.hooks.PostToolUse[0].hooks[0].command).toContain('.hook-heartbeat.json');
 
       const contractFiles = readdirSync(join(outputDir, 'spec', 'contracts'));
       expect(contractFiles.length).toBeGreaterThan(0);
