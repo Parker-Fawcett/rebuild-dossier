@@ -44,17 +44,34 @@ function paramsObjectLiteral(path: string): string {
 // (SyntaxError: Unexpected end of JSON input) on this exact smoke test —
 // every time, regardless of whether the route's actual logic is correct.
 // That's not a signal about the target app; it's the generated test never
-// having sent something for `request.json()` to parse. Scoped to the HTTP
-// methods that conventionally carry a body — GET/DELETE requests with a
-// body are unusual and left alone, matching real REST conventions.
+// having sent something for `request.json()` to parse. Originally scoped to
+// POST/PUT/PATCH only, on the assumption DELETE conventionally identifies
+// its target via the URL, not a body. A genuinely third-party app (a
+// Next.js todo API, evaluated specifically because it wasn't ours) proved
+// that assumption wrong: its real DELETE handler reads `{ id }` from the
+// body, and the generated smoke test crashed against it with the identical
+// SyntaxError — not a rebuild-specific bug, confirmed by running the same
+// request against the original app's own handler. DELETE now always gets
+// an empty `{}` placeholder body too, the same minimal fix POST/PUT/PATCH
+// got before field inference existed (inferRequestBodyFields.ts) — enough
+// to prevent the crash. Deliberately not extended further: DELETE stays
+// outside METHODS_WITH_BODY, so it gets no inferred fields and no
+// success-status-trust gate below, since a DELETE that reads a lookup key
+// from its body would face the same placeholder-vs-real-record mismatch
+// already true of PUT (a fresh placeholder value won't match a real
+// record, so the handler may legitimately return "not found" instead of
+// its declared success status) — widening that trust boundary to DELETE is
+// a separate, unevaluated change this fix does not make. GET is still left
+// alone entirely; a body on GET remains genuinely unusual, unlike DELETE.
 // `fields` (from inferRequestBodyFields, best-effort static analysis of the
-// handler's own source) drives a more realistic placeholder — falls back
-// to `{}` when nothing could be inferred. Either way, a handler's own
-// validation logic then runs and correctly returns its own 4xx for missing
-// fields, which still satisfies `toBeLessThan(500)`, rather than crashing
-// before any of that logic runs.
+// handler's own source) drives a more realistic placeholder for
+// METHODS_WITH_BODY — falls back to `{}` when nothing could be inferred,
+// the same `{}` DELETE always gets since it isn't a member of that set.
+// Either way, a handler's own validation logic then runs and correctly
+// returns its own 4xx for missing fields, which still satisfies
+// `toBeLessThan(500)`, rather than crashing before any of that logic runs.
 function requestInitFor(method: string, fields: string[]): string {
-  if (!METHODS_WITH_BODY.has(method)) return `{ method: '${method}' }`;
+  if (!METHODS_WITH_BODY.has(method) && method !== 'DELETE') return `{ method: '${method}' }`;
   return `{ method: '${method}', body: JSON.stringify(${placeholderBodyLiteral(fields)}), headers: { 'Content-Type': 'application/json' } }`;
 }
 

@@ -233,7 +233,7 @@ describe('generateTests', () => {
     }
   });
 
-  it('does not send a body for GET/DELETE (Express)', () => {
+  it('does not send a body for GET (Express)', () => {
     const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-gentests-'));
     try {
       writeFileSync(
@@ -241,18 +241,44 @@ describe('generateTests', () => {
         [
           "import express from 'express';",
           'const app = express();',
-          "app.delete('/api/notes/:id', (req, res) => { res.json({ success: true }); });",
+          "app.get('/api/notes/:id', (req, res) => { res.json({ id: req.params.id }); });",
           'export default app;'
         ].join('\n')
       );
       const evidence = minimalEvidence({
-        routes: [{ path: '/api/notes/:id', method: 'DELETE', file: 'server.ts', kind: 'api', startLine: 3 }]
+        routes: [{ path: '/api/notes/:id', method: 'GET', file: 'server.ts', kind: 'api', startLine: 3 }]
       });
 
       const { visible, heldOut } = generateTests(dir, evidence, []);
       const content = [...visible, ...heldOut][0]?.content ?? '';
 
       expect(content).not.toContain('body:');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('sends an empty JSON body for DELETE, so a handler reading the request body does not crash (Express, same real, live-triggered bug as the Next.js generator)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-gentests-'));
+    try {
+      writeFileSync(
+        join(dir, 'server.ts'),
+        [
+          "import express from 'express';",
+          'const app = express();',
+          "app.delete('/api/notes', (req, res) => { const { id } = req.body; res.json({ id }); });",
+          'export default app;'
+        ].join('\n')
+      );
+      const evidence = minimalEvidence({
+        routes: [{ path: '/api/notes', method: 'DELETE', file: 'server.ts', kind: 'api', startLine: 3 }]
+      });
+
+      const { visible, heldOut } = generateTests(dir, evidence, []);
+      const content = [...visible, ...heldOut][0]?.content ?? '';
+
+      expect(content).toContain("body: JSON.stringify({})");
+      expect(content).toContain("'Content-Type': 'application/json'");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

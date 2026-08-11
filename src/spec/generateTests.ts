@@ -38,8 +38,12 @@ function importPathFor(appFile: string): string {
 // of whether the route's actual logic is correct. `fields` (best-effort
 // static analysis of the handler's own source) drives a more realistic
 // placeholder body; falls back to `{}` when nothing could be inferred.
+// Same DELETE fix as generateNextApiTests.ts, and the same deliberate
+// limit — see that file's identical helper for the real, live-triggered
+// finding (a third-party app's DELETE handler reading its body) that
+// motivated it, and why DELETE stays out of METHODS_WITH_BODY itself.
 function requestInitFor(method: string, fields: string[]): string {
-  if (!METHODS_WITH_BODY.has(method)) return `{ method: '${method}' }`;
+  if (!METHODS_WITH_BODY.has(method) && method !== 'DELETE') return `{ method: '${method}' }`;
   return `{ method: '${method}', body: JSON.stringify(${placeholderBodyLiteral(fields)}), headers: { 'Content-Type': 'application/json' } }`;
 }
 

@@ -276,18 +276,32 @@ describe('generateNextApiTests', () => {
     }
   });
 
-  it('does not send a body for GET/DELETE', () => {
+  it('does not send a body for GET', () => {
     const evidence = minimalEvidence({
-      routes: [
-        { path: '/api/notes', method: 'GET', file: 'src/app/api/notes/route.ts', kind: 'api', startLine: 1 },
-        { path: '/api/notes/:id', method: 'DELETE', file: 'src/app/api/notes/[id]/route.ts', kind: 'api', startLine: 1 }
-      ]
+      routes: [{ path: '/api/notes', method: 'GET', file: 'src/app/api/notes/route.ts', kind: 'api', startLine: 1 }]
     });
 
     const { visible, heldOut } = generateNextApiTests('irrelevant', evidence, []);
     for (const file of [...visible, ...heldOut]) {
       expect(file.content).not.toContain('body:');
       expect(file.content).not.toContain('Content-Type');
+    }
+  });
+
+  it('sends an empty JSON body for DELETE, so a handler reading the request body does not crash (real, live-triggered bug against a genuinely third-party app)', () => {
+    // export const DELETE = async (req) => { const { id } = await req.json(); ... } —
+    // a real, valid pattern (reading a lookup key from the body rather than the
+    // URL) this generator previously had no way to know about, crashing its own
+    // generated smoke test with `SyntaxError: Unexpected end of JSON input`
+    // against a correctly-implemented handler, not just against a rebuild of one.
+    const evidence = minimalEvidence({
+      routes: [{ path: '/api/notes', method: 'DELETE', file: 'src/app/api/notes/route.ts', kind: 'api', startLine: 1 }]
+    });
+
+    const { visible, heldOut } = generateNextApiTests('irrelevant', evidence, []);
+    for (const file of [...visible, ...heldOut]) {
+      expect(file.content).toContain("body: JSON.stringify({})");
+      expect(file.content).toContain("'Content-Type': 'application/json'");
     }
   });
 });
