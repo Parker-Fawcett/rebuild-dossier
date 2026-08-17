@@ -3068,6 +3068,26 @@ argument made three times in one afternoon: verification has to be layered, beca
 layer — not the agent's own account, not the instrumentation built to check it, not even a past
 claim of "this was verified" — is reliably correct on its own.
 
+## `ingest_repo` scans build output as source, confirmed by two runs against the identical app producing different signal counts
+
+Found while building a new ablation fixture, not while looking for it. `ingest_repo` was run
+against a small fixture app before any pipeline step had ever touched it — `signals: 0,
+openCases: 0`. `generate_spec` then ran against that same app (which, like every page-test
+generation pass, spawns a real `next dev` to capture pages, leaving a `.next` build directory
+behind). Re-running `ingest_repo` on the identical, functionally-unchanged source afterward
+returned `signals: 93, openCases: 14` — every one of the 14 flagged cases pointing at a comment
+inside `.next/server/**/*.js` or `.next/static/chunks/*.js`: webpack-bundled vendor code (Next.js
+and React internals), not anything in the app's own source. `ingest_repo` has no exclusion for
+`.next` the way it presumably should have one for `node_modules` — it treats compiled, bundled
+build output as source text to scan for ambiguity signals, and will flag an app differently
+depending on nothing but whether a prior pipeline run has left build artifacts lying around.
+Confirmed reproducible: deleting `.next` and re-running `ingest_repo` on the same source restored
+`signals: 0, openCases: 0`. Not yet fixed — named here as a real, general gap the same way the
+DELETE-body generator gap was named before it was fixed, not routed around silently. The
+immediate workaround (a `.gitignore` excluding `.next` in the fixture used going forward) avoids
+the symptom for that one app; it does not fix `ingest_repo` itself, and any app already carrying a
+`.next` directory from a prior `next dev`/`next build` run is exposed to the identical gap.
+
 ## Bottom line
 
 The core loop (ingest → reconcile → spec → generate → test → verify) works, on a real messy
