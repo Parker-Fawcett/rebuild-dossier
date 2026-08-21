@@ -1,5 +1,7 @@
 # rebuild-dossier
 
+[![DOI](https://zenodo.org/badge/1308271634.svg)](https://doi.org/10.5281/zenodo.22036801)
+
 An MCP server that reverse-engineers a trustworthy **rebuild spec** — a locked `CLAUDE.md`,
 `.claude/` config, and a mutation-tested test suite — out of an existing app, so any coding
 agent can rebuild it cleanly against that spec instead of guessing.
