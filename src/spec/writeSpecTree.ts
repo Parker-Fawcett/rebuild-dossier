@@ -12,6 +12,7 @@ import { generateNextApiTests } from './generateNextApiTests.js';
 import { generateGateTests, generateSecretEntryTests } from './generateGateTests.js';
 import { generatePageTests, AUTH_STORAGE_STATE_FIXTURE_RELATIVE_PATH, type SkippedPage } from './generatePageTests.js';
 import { computeUntestedContractFiles } from './computeUntestedContractFiles.js';
+import { computeTestedSourceFiles } from './computeTestedSourceFiles.js';
 import { generateTestDependencies, type TestPlacement } from './generateTestDependencies.js';
 import { pinDependencyVersions } from './pinDependencyVersions.js';
 import { generateSpecAuditorAgent, generateTestVerifierAgent } from './generateAgents.js';
@@ -229,20 +230,6 @@ async function writeSpecTreeInto(
   const visible = [...expressVisible, ...nextApiVisible, ...gateTests, ...pageResult.visible];
   const heldOut = [...expressHeldOut, ...nextApiHeldOut, ...pageResult.heldOut];
 
-  // Makes "only build what's currently failing" mechanically enforced (via
-  // the PreToolUse hook in settings.json) instead of just a sentence in the
-  // kickoff prompt a model can weigh less heavily than intended.
-  //
-  // Note (pre-existing behavior, not introduced by page tests): this is
-  // computed from coveredRouteFiles BEFORE runMutationCheck runs below — a
-  // test satisfying coveredRouteFiles unblocks its file regardless of
-  // whether the mutation check later downgrades it to weak/unrunnable, for
-  // both API and page routes alike. Deliberate — see the plan's "Decision B"
-  // for why this isn't special-cased for pages.
-  const testedSourceFiles = [...visible, ...heldOut].flatMap((f) => f.coveredRouteFiles ?? [f.sourceFile]);
-  const untestedContractFiles = computeUntestedContractFiles(evidence.routes, testedSourceFiles);
-  writeFileSync(join(outputDir, 'spec', 'untested-contracts.json'), JSON.stringify(untestedContractFiles, null, 2));
-
   const pinnedDependencies = pinDependencyVersions(repoPath, evidence.packageJson.dependencies);
 
   // Page tests spawn their own `next dev` + Chromium exactly like gate tests
@@ -294,6 +281,24 @@ export default defineConfig({
   // (never runs at all vs. runs but proves nothing) is worth reporting
   // separately, see generateSpec.ts's tool summary.
   const weak = new Set([...mutationReport.weakTestFiles, ...mutationReport.unrunnableTestFiles]);
+
+  // Makes "only build what's currently failing" mechanically enforced (via
+  // the PreToolUse hook in settings.json) instead of just a sentence in the
+  // kickoff prompt a model can weigh less heavily than intended.
+  //
+  // Computed here, after runMutationCheck above, specifically so a weak or
+  // unrunnable test does NOT count as real coverage — a route whose only
+  // test catches zero mutations is functionally untested and belongs in the
+  // blocklist. An earlier version of this computation ran before
+  // runMutationCheck and let any generated test unblock its file regardless
+  // of mutation-check outcome; that let the blocklist come back empty on
+  // apps where most tests land in weak/unrunnable (confirmed on catchandtrade
+  // multiple times), defeating the hook's actual purpose. Changed for that
+  // reason — the prior rationale for the old behavior isn't reconstructable
+  // from anything left in this repo.
+  const testedSourceFiles = computeTestedSourceFiles([...visible, ...heldOut], weak);
+  const untestedContractFiles = computeUntestedContractFiles(evidence.routes, testedSourceFiles);
+  writeFileSync(join(outputDir, 'spec', 'untested-contracts.json'), JSON.stringify(untestedContractFiles, null, 2));
 
   if (weak.size > 0) {
     mkdirSync(join(outputDir, 'tests', 'weak'), { recursive: true });

@@ -295,9 +295,15 @@ describe('writeSpecTree', () => {
       );
       expect(readFileSync(generatedTestPath, 'utf-8')).toContain("from 'next/server'");
 
-      // The generated test — wherever it landed (visible/held-out/weak) —
-      // still counts as coverage for the untested-contracts hook.
-      expect(JSON.parse(readFileSync(join(outputDir, 'spec', 'untested-contracts.json'), 'utf-8'))).toEqual([]);
+      // This fixture's generated test can't actually run here (no real
+      // `next` install to serve the route against, same limitation noted at
+      // the top of this test) — runMutationCheck marks it unrunnable, and an
+      // unrunnable test provides no real coverage, so its route correctly
+      // still shows up as untested. See computeTestedSourceFiles.spec.ts for
+      // the isolated, deterministic version of this behavior.
+      expect(JSON.parse(readFileSync(join(outputDir, 'spec', 'untested-contracts.json'), 'utf-8'))).toEqual([
+        'src/app/api/health/route.ts'
+      ]);
     } finally {
       rmSync(repoDir, { recursive: true, force: true });
       rmSync(outputDir, { recursive: true, force: true });
@@ -347,14 +353,15 @@ describe('writeSpecTree', () => {
       expect(existsSync(join(outputDir, 'vitest.config.ts'))).toBe(true);
       expect(readFileSync(join(outputDir, 'vitest.config.ts'), 'utf-8')).toContain('fileParallelism: false');
 
-      // Regression: the gate-redirect test's `sourceFile` is the ORIGINAL
-      // app's guard file (app-shell.tsx here) — used only to pick a mutation
-      // target — not the route files it actually behaviorally covers ('/' and
-      // '/home'). Using sourceFile alone here would wrongly mark both of
-      // those routes "untested" and have the PreToolUse hook block the exact
-      // files this test requires a rebuild agent to build.
+      // This fixture's gate test also can't actually run here (it needs a
+      // real `next dev` + Playwright, same limitation as the API-route test
+      // above), so all three routes correctly land in untested-contracts —
+      // the gate-redirect test's `sourceFile` (app-shell.tsx, not a route at
+      // all) vs. its `coveredRouteFiles` ('/' and '/home') distinction this
+      // test used to assert here is now covered directly, and
+      // deterministically, in computeTestedSourceFiles.spec.ts instead.
       const untested = JSON.parse(readFileSync(join(outputDir, 'spec', 'untested-contracts.json'), 'utf-8'));
-      expect(untested).toEqual(['letter/page.tsx']);
+      expect(untested.sort()).toEqual(['home/page.tsx', 'letter/page.tsx', 'page.tsx']);
     } finally {
       rmSync(repoDir, { recursive: true, force: true });
       rmSync(outputDir, { recursive: true, force: true });
