@@ -1,0 +1,26 @@
+{
+  "$schema": "https://cdn.jsdelivr.net/npm/@modelcontextprotocol/sdk@latest/server.schema.json",
+  "name": "com.parkerfawcett/rebuild-dossier",
+  "title": "Rebuild Dossier",
+  "description": "MCP server that reverse-engineers a locked rebuild spec (CLAUDE.md, .claude config, mutation-tested tests) from an existing app, so coding agents rebuild against a verified contract instead of guessing.",
+  "version": "0.2.3",
+  "homepage": "https://github.com/Parker-Fawcett/rebuild-dossier",
+  "repository": {
+    "url": "https://github.com/Parker-Fawcett/rebuild-dossier",
+    "source": "github"
+  },
+  "license": {
+    "name": "MIT",
+    "url": "https://github.com/Parker-Fawcett/rebuild-dossier/blob/master/LICENSE"
+  },
+  "authors": [
+    {
+      "name": "Parker Fawcett",
+      "url": "https://github.com/Parker-Fawcett"
+    }
+  ],
+  "keywords": ["mcp", "model-context-protocol", "code-analysis", "reverse-engineering", "ai-agents", "testing"],
+  "transport": {
+    "type": "stdio"
+  }
+}
