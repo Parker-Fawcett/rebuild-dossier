@@ -363,3 +363,11 @@ found and fixed during validation, the comparison across model tiers, and what's
 ## License
 
 [MIT](LICENSE)
+
+## Related projects
+
+Other things I build:
+
+- [Skill-Drift](https://github.com/Parker-Fawcett/Skill-Drift) — classifies diffs between AI agent skill versions as cosmetic or risk-relevant
+- [catchandtrade](https://github.com/Parker-Fawcett/catchandtrade) — full-stack trading card marketplace (live at catchandtrade.com)
+- [Message](https://github.com/Parker-Fawcett/Message) — E2EE messenger on Next.js with X3DH + Double Ratchet
