@@ -3082,11 +3082,12 @@ and React internals), not anything in the app's own source. `ingest_repo` has no
 build output as source text to scan for ambiguity signals, and will flag an app differently
 depending on nothing but whether a prior pipeline run has left build artifacts lying around.
 Confirmed reproducible: deleting `.next` and re-running `ingest_repo` on the same source restored
-`signals: 0, openCases: 0`. Not yet fixed — named here as a real, general gap the same way the
-DELETE-body generator gap was named before it was fixed, not routed around silently. The
-immediate workaround (a `.gitignore` excluding `.next` in the fixture used going forward) avoids
-the symptom for that one app; it does not fix `ingest_repo` itself, and any app already carrying a
-`.next` directory from a prior `next dev`/`next build` run is exposed to the identical gap.
+`signals: 0, openCases: 0`. **Fixed:** `.next` is now excluded the same unconditional way as
+`node_modules`, `dist`, `build`, and the rest of `listSourceFiles.ts`'s hardcoded baseline —
+never scanned as source regardless of whether a target repo's own `.gitignore` happens to
+exclude it, matching this project's own house rule that build output is not app source. A
+regression test reproduces the exact original symptom (a `.next/server/**/*.js` file containing
+a comment, present with no `.gitignore` covering it) and confirms it is no longer scanned.
 
 ## Bottom line
 

@@ -100,6 +100,26 @@ describe('listSourceFiles', () => {
     }
   });
 
+  it('excludes .next build output even with no .gitignore covering it', () => {
+    // The exact real bug: generate_spec's own page-capture step spawns a real `next dev`
+    // and leaves a .next directory behind; ingest_repo then scanned its webpack-bundled
+    // vendor code as if it were app source, flagging different signal counts on the
+    // identical app depending on nothing but whether a prior pipeline run happened.
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-listsrc-'));
+    try {
+      writeFileSync(join(dir, 'index.ts'), 'export {};');
+      mkdirSync(join(dir, '.next', 'server'), { recursive: true });
+      writeFileSync(join(dir, '.next', 'server', 'chunk.js'), '// TODO webpack vendor comment');
+
+      const files = listSourceFiles(dir).map(baseName);
+
+      expect(files).toContain('index.ts');
+      expect(files).not.toContain('chunk.js');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('works fine with no .gitignore file at all (most fixtures, many real repos)', () => {
     const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-listsrc-'));
     try {

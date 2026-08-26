@@ -7,7 +7,11 @@ const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']
 // Kept as a fast, always-on baseline even where a repo's own .gitignore
 // doesn't mention these (or has no .gitignore at all) — real .gitignore
 // awareness (below) is additive, not a replacement.
-const IGNORED_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.dossier', 'coverage']);
+// .next is build output (webpack-bundled vendor code, not app source) left behind by any
+// prior `next dev`/`next build` run — including this tool's own page-capture step. Without
+// this, ingest_repo's signal count depends on whether a build has ever happened to run,
+// not on the app's own source (docs/v0-findings.md, "ingest_repo scans build output as source").
+const IGNORED_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.dossier', 'coverage']);
 
 // Real, observed gap: the exact-match-only ignore list let a directory that
 // wasn't literally named "node_modules" (a rename, a stray backup dir, a

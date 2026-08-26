@@ -6,7 +6,10 @@ import { fileURLToPath } from 'node:url';
 import { tsMorphEngine } from './tsMorphEngine.js';
 import type { MutationSite } from './engine.js';
 
-const IGNORED_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.dossier', 'coverage']);
+// .next is build output, not source the scratch copy needs to mutate — same
+// exclusion, and same reasoning, as listSourceFiles.ts's identically-named
+// constant (docs/v0-findings.md, "ingest_repo scans build output as source").
+const IGNORED_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.dossier', 'coverage']);
 const OWN_PROJECT_ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..');
 const VITEST_ENTRY = join(OWN_PROJECT_ROOT, 'node_modules/vitest/vitest.mjs');
 const OWN_CONFIG_FILENAMES = ['vitest.config.ts', 'vitest.config.js', 'vitest.config.mts', 'vite.config.ts', 'vite.config.js', 'vite.config.mts'];
@@ -166,7 +169,10 @@ function writeAuthFixtureIfNeeded(scratchDir: string, authStorageStatePath: stri
   cpSync(authStorageStatePath, join(fixturesDir, 'auth-storage-state.json'));
 }
 
-function prepareScratchCopy(originalRepoPath: string, authStorageStatePath?: string): string {
+// Exported for direct unit testing (test/unit/mutation/prepareScratchCopy.spec.ts) — a pure
+// filesystem operation that doesn't need a real mutation run to verify, unlike the rest of
+// this module's mutation-kill behavior, which is tested end-to-end through runMutationCheck.
+export function prepareScratchCopy(originalRepoPath: string, authStorageStatePath?: string): string {
   const scratchDir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-mutation-'));
   cpSync(originalRepoPath, scratchDir, {
     recursive: true,
