@@ -3089,6 +3089,29 @@ exclude it, matching this project's own house rule that build output is not app 
 regression test reproduces the exact original symptom (a `.next/server/**/*.js` file containing
 a comment, present with no `.gitignore` covering it) and confirms it is no longer scanned.
 
+## Closing part of the Claude-Code-specific hook-liveness gap: a scripted, non-Agent-tool route to a genuine top-level session, confirmed live
+
+Section 4.5 established that Claude Code's `Agent` tool never consults a target directory's own
+`.claude/settings.json` — a subagent's hooks bind to the top-level session's root configuration
+instead, an architectural property of that launch path, not a probabilistic one more trials could
+average out. That left every Claude-Code-specific comparison needing a genuinely separate
+top-level session with no clean way to script one, short of a human manually launching and
+monitoring each trial.
+
+Tested directly rather than assumed from the CLI's own `--help` text (which states that `--bare`
+and `--safe-mode` are the only two flags that skip hooks, implying a plain invocation does not):
+a real `claude -p` subprocess, launched from outside any existing session and pointed at a
+fixture directory carrying this project's own `PostToolUse` heartbeat hook, does consult that
+directory's `.claude/settings.json`. Verified against the filesystem, not the subprocess's own
+report — `.claude/.hook-heartbeat.json` was created after a trivial `Write`-triggering task, and
+the result reproduced cleanly on two independent runs. `claude -p` is therefore a real,
+scriptable, non-Agent-tool route to a genuinely separate top-level session with live hooks — the
+first of the two paths Section 5.4 named remains open, and the "manual protocol" fallback is no
+longer necessary. This closes the *mechanism* gap; it does not by itself re-run Section 4.9's
+own weak-tier result under a confirmed-live Claude Code hook, which still needs an actual scripted
+trial harness (analogous to the OpenCode ablation's with-rep/without-rep structure) built on top
+of this mechanism.
+
 ## Bottom line
 
 The core loop (ingest → reconcile → spec → generate → test → verify) works, on a real messy
