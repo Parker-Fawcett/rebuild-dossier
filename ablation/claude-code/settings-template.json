@@ -1,0 +1,11 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      { "matcher": "Edit|Write", "hooks": [{ "type": "command", "command": "node .claude/hooks/tool-log.mjs" }] },
+      { "matcher": "Read|Bash|Glob|Grep", "hooks": [{ "type": "command", "command": "node .claude/hooks/tool-log-readonly.mjs" }] }
+    ],
+    "PostToolUse": [
+      { "matcher": "Edit|Write", "hooks": [{ "type": "command", "command": "node .claude/hooks/tool-heartbeat.mjs" }] }
+    ]
+  }
+}
