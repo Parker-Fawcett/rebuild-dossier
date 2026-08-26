@@ -7,7 +7,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/businessfawcett-cloud/rebuild-dossier.git"
+    "url": "git+https://github.com/Parker-Fawcett/rebuild-dossier.git"
   },
   "bin": {
     "rebuild-dossier": "./src/index.ts"
