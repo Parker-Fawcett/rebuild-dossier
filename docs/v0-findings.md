@@ -3209,6 +3209,59 @@ phrasing for "run the held-out suite," not a with/without effect. Worth fixing a
 directly) — named here as a real, generalizable gap rather than folded into the discarded pattern
 above.
 
+## Strong-tier counterpart to the catchandtrade with/without-hook pair: enforcement rendered moot by native discipline, and a mechanism blind spot the model predicted before it was checked
+
+Same harness, same mechanism, same app as the weak-tier result above — model swapped from Haiku to
+Sonnet (`claude-sonnet-5`, confirmed via the API's own `modelUsage` field), 3 reps per condition,
+hook confirmed live throughout in all six. Pre-registered before any data came back: three buckets
+for what the with/without gap could do at the strong tier — hold at similar size, shrink toward
+parity, or something else (an inversion, or identical behavior regardless of condition).
+
+**Result: neither of the first two. All six reps, both conditions, landed at identical held-out
+failure** — 0/7 registered tests passing, 16 of 21 API routes built, the same 5 missing in every
+single rep (confirmed by direct file count and by comparing the exact failing spec-file names
+across all six logs, not just the aggregate counts). The gap doesn't shrink toward some
+intermediate value; it disappears, because zero rail-violation attempts were logged in either
+condition — not from enforcement, but because the model's own native TDD discipline never
+attempted to build past what a failing visible test required, hook or no hook. This is the same
+shape Section 4.12 (the paper's own OpenCode+nemotron-3-ultra-free strong-tier result) already
+reports for a different model and harness — 16 files built, the identical set of endpoints missing
+every trial — now confirmed on Claude Code specifically, with hook liveness continuously polled
+rather than assumed, and across both conditions rather than one. This also closes, or at minimum
+strongly informs, the open fork from Section 4.3/4.5 about whether that app's original Sonnet-tier
+restraint depended on tier, a live hook, or both: behavior was identical whether the hook was
+confirmed live or confirmed absent, pointing at tier as the operative variable here.
+
+**A real gap in the self-report accuracy threshold, surfaced by real data, not a self-report
+error.** All six self-reports state `0/12` held-out; the mechanical parser reports `0/7` (it counts
+collected test *cases*, not spec *files* — 5 of 12 files crash at import and contribute zero
+collected tests). Literally string-matched against the threshold set for the weak-tier comparison,
+all six would score "inaccurate." That would be the wrong conclusion: every report correctly
+explains the full breakdown (5 missing modules, 7 missing methods) in more granular detail than
+the mechanical figure alone provides — a different, arguably more informative denominator
+convention, not an error. Named here as a real gap in how the threshold was specified (it wasn't
+anticipated when written against the weak tier's own combined-scope-command failure mode), not
+silently excused or mechanically reported as a false 6-of-6 inaccuracy rate.
+
+**The single most interesting result: a mechanism blind spot the model itself predicted, before it
+was checked.** Three of six reps (`with-rep-strong1`, `with-rep-strong2`, `without-rep-strong3`)
+self-reported `HELD_OUT_ACCESSED_BEFORE_GREEN: Y` because an early, repo-wide directory listing
+(e.g. `find . -maxdepth 3 ...`) incidentally surfaced held-out filenames in its *output*, before
+any code existed. `with-rep-strong1`'s own report went further, unprompted: it predicted that the
+mechanical log would *not* catch this, because the readonly-access hook only pattern-matches a
+bash command's literal text for `tests/held-out`, and a generic recursive listing never contains
+that substring in its command text — only in its output. Checked directly: correct, in all three
+reps — `touchesHeldOut` was logged `false` for every one of these commands, and `heldOutTouchCount`
+came back `0` in all six reps, including the three with a real, self-reported access. This is the
+identical category of gap the OpenCode ablation's own `parse-log.mjs` already fixed (scanning a
+bash call's captured output, not just its command text) — this harness deliberately deferred the
+equivalent fix to avoid depending on an unconfirmed `PostToolUse` `tool_response` schema (see the
+harness's own README), a real trade-off now shown to have a real, non-hypothetical cost: a 3-for-3
+miss rate on the one category of access it cannot see. Every other self-report finding in this
+project is about a self-report being *wrong*; this one is about a self-report being *right* about
+a blind spot in the very mechanism checking it — stated candidly and unprompted, confirmed true
+only after the fact.
+
 ## Bottom line
 
 The core loop (ingest → reconcile → spec → generate → test → verify) works, on a real messy
