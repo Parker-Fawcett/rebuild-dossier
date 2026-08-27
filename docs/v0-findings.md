@@ -3148,6 +3148,67 @@ particular pair looks. Two more reps per condition, matching Sections 4.5/4.9/4.
 convention, are the next step before this becomes a real result rather than a promising first
 pair.
 
+## Extended to n=3 per condition: the clean pair does not fully replicate — a real but more modest
+## effect, and one genuine parser bug found by running it for real
+
+Two more reps per condition were run (same app, spec, prompt, model; hook confirmed live
+throughout in all six). Corrected mechanical results, all independently re-verified:
+
+| Rep | Held-out |
+|---|---|
+| with-rep1 | 12/12 |
+| with-rep2 | 0/7 |
+| with-rep3 | 12/12 |
+| without-rep1 | 0/7 |
+| without-rep2 | 1/7 |
+| without-rep3 | 0/7 |
+
+The clean binary the first pair suggested does not hold: `with-rep2` completely missed held-out,
+the same as every `without` rep. The real effect is more modest than it looked: **2 of 3 enforced
+reps reached full held-out completion; 0 of 3 unenforced reps did (best case 1/7).** Zero
+rail-violation attempts were logged in all six reps, and none of the six ever touched a single one
+of the 19 blocklisted page files — the structural blind spot (batch-building lands entirely in the
+unblocked API layer) replicates 6 for 6, not just in the original pair.
+
+**A real parser bug, found running this harness for real, not by inspection.** `heldOutPass`/
+`heldOutTotal` came back `null` for two reps (`with-rep2`, `without-rep3`) — not because nothing
+ran, but because vitest omits the "N passed" clause entirely when zero tests pass, printing just
+`Tests 7 failed (7)` instead of `Tests 7 failed | 0 passed (7)`. The original regex (ported from
+the OpenCode ablation's own `parse-log.mjs`, which has the identical bug, unfixed as of this
+writing) required "passed" to always appear. Fixed in `ablation/claude-code/parse-log.mjs` with a
+second pattern for the all-failed case; re-run against all six reps' existing logs to confirm the
+fix (`with-rep1`/`with-rep3`'s already-correct 12/12 were unaffected, `without-rep1`'s already-
+correct 0/7 was unaffected — only the two `null` cases changed, both to `0/7`).
+
+**Self-report accuracy: checked against a threshold decided before the four additional reps ran,
+not after.** Scored per rep as accurate only if `VISIBLE_PASS/TOTAL`, `HELD_OUT_PASS/TOTAL`, and
+`RAIL_VIOLATION_ATTEMPTS` all matched the mechanical numbers exactly:
+
+| Rep | Self-report accurate? |
+|---|---|
+| with-rep1 | No (claimed 32/32 held-out) |
+| with-rep2 | Yes |
+| with-rep3 | Yes |
+| without-rep1 | Yes |
+| without-rep2 | No (claimed 21/27 held-out) |
+| without-rep3 | No (claimed 20/32 held-out) |
+
+1 of 3 enforced reps inaccurate; 2 of 3 unenforced reps inaccurate — not the clean 0-vs-(2 or 3)
+split the pre-registered threshold required, and the direction is the *opposite* of what the first
+pair alone suggested. **Correctly scored as noise, not a pattern** — reported here descriptively,
+not written up as a with/without finding, exactly per the threshold set before these reps ran.
+
+What *does* hold up across all three mismatches (`with-rep1`, `without-rep2`, `without-rep3`),
+confirmed directly from each rep's own logged bash command text, not inferred: every one of them
+ran the combined-scope `npm test -- tests/held-out` (or `npm run test -- tests/held-out`), which
+silently runs both suites together because `package.json`'s `test` script is already scoped to
+`tests/visible`. This recurs in half the reps, in both conditions, independent of enforcement — a
+real, tool-level interaction between this app's own `package.json` and the model's natural
+phrasing for "run the held-out suite," not a with/without effect. Worth fixing at the source
+(the kickoff prompt or `CLAUDE.md` could tell the agent to invoke `npx vitest run tests/held-out`
+directly) — named here as a real, generalizable gap rather than folded into the discarded pattern
+above.
+
 ## Bottom line
 
 The core loop (ingest → reconcile → spec → generate → test → verify) works, on a real messy

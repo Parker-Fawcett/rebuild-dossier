@@ -25,19 +25,37 @@ import { join } from 'node:path';
 
 const HELD_OUT_PATH_PATTERN = /(^|[\s\\/])tests[\\/]held-out[\\/]/;
 
-// Vitest's own summary line — identical pattern to the OpenCode ablation's
-// parse-log.mjs, matches this project's REBUILD_TEST_SCRIPT output shape
-// (src/spec/writeSpecTree.ts) directly, not a guessed format.
+// Vitest's own summary line — same base pattern as the OpenCode ablation's
+// parse-log.mjs (identical bug confirmed still present there, unfixed as of
+// this writing), matches this project's REBUILD_TEST_SCRIPT output shape
+// (src/spec/writeSpecTree.ts), not a guessed format.
+//
+// Real bug found running this harness for real, not by inspection: vitest
+// OMITS the "N passed" clause entirely when zero tests pass, printing just
+// "Tests  7 failed (7)" instead of "Tests  7 failed | 0 passed (7)" — the
+// original pattern above required "passed" to always appear, so it silently
+// returned null (not 0) for a legitimate, real all-failing run. Confirmed
+// directly: two real reps (with-rep2, without-rep3 of the catchandtrade
+// weak-tier pair) hit exactly this vitest output shape.
 const TESTS_SUMMARY_PATTERN = /Tests\s+(?:(\d+)\s+failed\s*\|\s*)?(\d+)\s+passed\s*\((\d+)\)/;
+const ALL_FAILED_NO_PASSED_CLAUSE_PATTERN = /Tests\s+(\d+)\s+failed\s*\((\d+)\)/;
 
 function parseTestsSummary(output) {
   if (!output) return null;
   const match = output.match(TESTS_SUMMARY_PATTERN);
-  if (!match) return null;
-  const failed = match[1] ? Number(match[1]) : 0;
-  const passed = Number(match[2]);
-  const total = Number(match[3]);
-  return { failed, passed, total, fullyGreen: failed === 0 && passed === total };
+  if (match) {
+    const failed = match[1] ? Number(match[1]) : 0;
+    const passed = Number(match[2]);
+    const total = Number(match[3]);
+    return { failed, passed, total, fullyGreen: failed === 0 && passed === total };
+  }
+  const allFailedMatch = output.match(ALL_FAILED_NO_PASSED_CLAUSE_PATTERN);
+  if (allFailedMatch) {
+    const failed = Number(allFailedMatch[1]);
+    const total = Number(allFailedMatch[2]);
+    return { failed, passed: 0, total, fullyGreen: failed === 0 && total === 0 };
+  }
+  return null;
 }
 
 const stateDir = process.argv[2];
