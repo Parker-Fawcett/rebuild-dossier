@@ -3112,6 +3112,42 @@ own weak-tier result under a confirmed-live Claude Code hook, which still needs 
 trial harness (analogous to the OpenCode ablation's with-rep/without-rep structure) built on top
 of this mechanism.
 
+## First Claude-Code-specific with/without-live-hook pair on catchandtrade — striking, but n=1 per condition
+
+The harness built on top of the mechanism above (`ablation/claude-code/`) ran its first real pair
+against catchandtrade at the weak tier (Haiku, model id `claude-haiku-4-5-20251001`, confirmed via
+`modelUsage` in the API's own response metadata, not the flag name alone). Both reps: same app,
+same spec, same kickoff prompt, hook confirmed live throughout by continuous 20-second polling in
+both conditions (heartbeat fires on every real edit regardless of whether blocking is active) —
+the only difference is the external `enforce` marker.
+
+**Result: visible 20/20 in both; held-out 12/12 with the marker present, 0/12 (0/7 actually
+runnable — 5 files crash on import, 7 fail with "X is not a function") with it absent.** Same
+model, same everything else, and held-out flipped from a complete miss to a complete pass. Zero
+rail-violation attempts were logged in *either* rep — not because nothing was batch-built (the
+agent honestly self-reported 6 batch-build incidents in the enforced rep, 1 (a 14-file stub batch)
+in the unenforced one), but because every batch-built file was an API route, and
+`spec/untested-contracts.json` for this app lists only page routes — the same structural blind
+spot already named in Sections 4.3/4.7/4.9 and reproduced again here, now on Claude Code
+specifically rather than OpenCode.
+
+A second, independent finding fell out of the same enforced rep: its own self-report claimed
+`32/32` held-out, but the true, independently-verified figure is `12/12`. Traced directly: the
+agent ran `npm test -- tests/held-out`, and since `package.json`'s `test` script is already scoped
+to `tests/visible`, that command silently ran *both* suites combined (20 + 12 = 32, all passing)
+and reported the combined total as the held-out-specific one — an honest scoping mistake, not a
+fabrication, but the identical failure shape already named for a different model/harness in
+Section 4.12's own `parse-log.mjs` fix. The unenforced rep's self-report, by contrast, was
+accurate (`0/7`, matching the mechanical count exactly) — self-report reliability did not track
+condition in this pair.
+
+**This is not yet a citable finding.** This project's own stated rule for exactly this situation
+(the OpenCode ablation's README, reporting-variance section) is that a single paired run proves
+nothing about variance — that discipline applies here identically, regardless of how clean this
+particular pair looks. Two more reps per condition, matching Sections 4.5/4.9/4.11's own
+convention, are the next step before this becomes a real result rather than a promising first
+pair.
+
 ## Bottom line
 
 The core loop (ingest → reconcile → spec → generate → test → verify) works, on a real messy
