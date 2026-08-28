@@ -56,6 +56,7 @@ for condition in with without; do
     cp "$SCRIPT_DIR/hooks/tool-log.mjs" "$dest/.claude/hooks/tool-log.mjs"
     cp "$SCRIPT_DIR/hooks/tool-log-readonly.mjs" "$dest/.claude/hooks/tool-log-readonly.mjs"
     cp "$SCRIPT_DIR/hooks/tool-heartbeat.mjs" "$dest/.claude/hooks/tool-heartbeat.mjs"
+    cp "$SCRIPT_DIR/hooks/tool-log-bash-output.mjs" "$dest/.claude/hooks/tool-log-bash-output.mjs"
     cp "$SCRIPT_DIR/settings-template.json" "$dest/.claude/settings.json"
 
     mkdir -p "$plugin_state_dir"

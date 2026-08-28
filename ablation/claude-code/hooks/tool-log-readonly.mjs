@@ -5,12 +5,10 @@
 // grepping tests/held-out/ without editing it is still the exact thing the
 // kickoff prompt asks not to do before the visible suite is green.
 //
-// NOT independently confirmed by this project's own code (unlike
-// tool_input.file_path, used elsewhere in production): that a Bash tool call
-// exposes its command string as `tool_input.command`. This is the single
-// largest unverified assumption behind this script — see the top-level
-// design notes, "What's confirmed vs. assumed," and check it against a real
-// run before trusting any held-out-access timing this hook produces.
+// Confirmed directly (a real PostToolUse payload for a Bash call was
+// captured and inspected): a Bash tool call exposes its command string as
+// `tool_input.command`, identical in shape at PreToolUse. Previously the
+// largest unverified assumption behind this script; no longer.
 //
 // Boundary pattern includes whitespace, not just start-of-string/path-sep —
 // ported from a prior fix to this same measurement approach, found there by

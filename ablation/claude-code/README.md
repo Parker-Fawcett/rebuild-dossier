@@ -33,28 +33,45 @@ own README documents four real bugs a dry run caught that a design review alone 
 | PreToolUse hook JSON has `cwd` and `tool_input.file_path` | **Confirmed** — `test/unit/spec/generateSettingsJson.spec.ts` constructs exactly this shape against production hooks already validated live in Sections 4.2–4.12. |
 | A plain `claude -p` invocation (no `--bare`, no `--safe-mode`) reads and enforces the target directory's `.claude/settings.json` | **Confirmed live**, twice, reproducibly (docs/v0-findings.md). |
 | `--permission-mode bypassPermissions` and `--allowedTools` avoid interactive approval prompts during an unattended run | **Confirmed against this machine's real `claude --help` output** — both flags exist and are documented that way. |
-| A Bash tool call exposes its command string as `tool_input.command` | **Assumed**, not confirmed anywhere in this project's own code (production hooks only ever match `Edit\|Write`, never `Bash`). This is the single largest unverified assumption `hooks/tool-log-readonly.mjs` depends on. **Check this in the first dry run** — if wrong, `command` will be `undefined` in every logged entry and `heldOutTouchCount` will silently undercount bash-based touches (Read-based touches, via `tool_input.file_path`, are unaffected either way). |
+| A Bash tool call exposes its command string as `tool_input.command` | **Confirmed** — a real `claude -p` PostToolUse payload for a Bash call was captured and inspected directly (`tool_input.command` present, matching this assumption exactly). |
+| A Bash tool call's PostToolUse payload exposes its actual output as `tool_response.stdout` / `tool_response.stderr` | **Confirmed** the same way, including multi-line output captured in full (`hooks/tool-log-bash-output.mjs`). |
 | Multiple pipe-separated tool names in a hook `matcher` (e.g. `"Read\|Bash\|Glob\|Grep"`) work the same way `"Edit\|Write"` already does in production | **Assumed by extension**, not separately confirmed — production only ever uses the two-tool form. |
 | Two separate hook entries for the same event (PreToolUse `Edit\|Write` and PreToolUse `Read\|Bash\|Glob\|Grep`) both actually run, uninterrupted by each other | **Deliberately not depended on either way** — each of this harness's own hook scripts is self-contained per matcher, and the OpenCode ablation's own hard lesson (a blocking hook can silently stop a sibling hook for the same tool call) is sidestepped by construction rather than answered, exactly as that project's own README recommends when the underlying platform behavior is unknown. |
 
-## Where this harness deliberately does *less* than the OpenCode version, and why
+## Where this harness used to do *less* than the OpenCode version — closed
 
-The OpenCode ablation's `parse-log.mjs` scrapes a bash tool call's own captured *output* to detect
-when the visible suite went fully green and to catch an incidental held-out-path mention in
-command output text (e.g. `find tests -type f | sort`, whose command text never says "held-out"
-but whose output does). That required confirming OpenCode's `tool.execute.after` output shape —
-done there, by direct test.
+The OpenCode ablation's `parse-log.mjs` scrapes a bash tool call's own captured *output* to catch
+an incidental held-out-path mention in command output text (e.g. `find tests -type f | sort`,
+whose command text never says "held-out" but whose output does). This harness originally did not
+— Claude Code's PostToolUse `tool_response` schema was unconfirmed, and depending on a guessed
+shape risked silently logging nothing.
 
-This harness has **not** independently confirmed Claude Code's PostToolUse `tool_response`
-schema, and deliberately avoids depending on it: `hooks/tool-heartbeat.mjs` only needs `cwd`
-(confirmed), never the tool's actual output. The cost of this choice: this harness cannot detect
-a held-out touch buried only in a bash command's *output* rather than its *command text* — a
-real, named gap (see `parse-log.mjs`'s own comment on `heldOutTouchCount`), not silently routed
-around. What replaces the OpenCode version's live-scraped visible-suite-green detection: `run-trial.sh`
-independently re-runs both test suites itself after the trial ends, exactly matching this paper's
-own dominant verification standard elsewhere ("independently verified by re-running both suites
-and reading actual error output," Sections 4.2/4.3/4.7/4.8) rather than the OpenCode ablation's
-narrower mechanical-parser standard.
+**Confirmed and closed.** A real PostToolUse payload for a Bash call was captured and inspected:
+output arrives as `tool_response.stdout` / `tool_response.stderr`, plain strings, multi-line
+output captured in full. `hooks/tool-log-bash-output.mjs` (PostToolUse, matcher `Bash`) scans both
+for the same `HELD_OUT_PATH_PATTERN` `tool-log-readonly.mjs` already used for command text, and
+`parse-log.mjs`'s `heldOutTouchCount` now merges both sources — the identical shape of fix the
+OpenCode ablation already made, ported rather than reinvented. Verified against the exact real
+miss this closes (Section 4.14's `with-rep-strong1`/`with-rep-strong2`/`without-rep-strong3`, each
+missed because their `find`/directory-listing commands never mentioned held-out in text) via
+`hooks/tool-log-bash-output.test.mjs` — confirmed the test genuinely catches the regression by
+temporarily reverting the fix and watching it fail, then restoring it.
+
+The false-positive question this fix raises — a command's output containing the bare word
+"held-out" for an unrelated reason — is handled by the same boundary the existing pattern already
+enforces: it requires the fuller `tests/held-out/` path segment, not the bare word, so ordinary
+prose use of "held-out" cannot match. For this harness's own target apps there is no legitimate
+reason for generated-app output to contain that literal path other than actually referencing the
+directory, so a match here would itself be a real signal worth investigating, not noise to
+suppress — a deliberate design choice, not an oversight, and covered by its own test case.
+
+What still differs from the OpenCode version, unchanged by this fix: `run-trial.sh` independently
+re-runs both test suites itself after the trial ends for the authoritative pass counts, rather than
+scraping a live-updating visible-suite-green result from bash output the way OpenCode's version
+does — matching this paper's own dominant verification standard elsewhere ("independently verified
+by re-running both suites and reading actual error output," Sections 4.2/4.3/4.7/4.8) rather than
+the OpenCode ablation's narrower mechanical-parser standard. That is a deliberate difference in
+which source is authoritative for the most important number this harness produces, not a gap.
 
 ## Architecture
 
@@ -76,7 +93,11 @@ a real session's own directory listing would otherwise surface it.
 - `hooks/tool-heartbeat.mjs` — PostToolUse, matcher `Edit|Write`. Writes a heartbeat to the same
   sibling state directory on every real edit — ported from this project's own production
   `WRITE_HOOK_HEARTBEAT_COMMAND`.
-- `settings-template.json` — wires the three scripts together; copied byte-identical into every rep.
+- `hooks/tool-log-bash-output.mjs` — PostToolUse, matcher `Bash`. Scans a bash call's actual
+  captured output for an incidental held-out reference that its command text alone would miss —
+  the OpenCode ablation's own fix for the identical gap, ported rather than reinvented. Covered by
+  its own regression test, `hooks/tool-log-bash-output.test.mjs`.
+- `settings-template.json` — wires the four scripts together; copied byte-identical into every rep.
 - `setup.sh` — builds N with-reps + N without-reps from one `generate_spec` output.
 - `run-trial.sh` — runs one rep: launches `claude -p` in the background, polls the heartbeat file
   every 20s for the run's full duration (not reconstructed afterward — matching Section 4.9's own
@@ -101,8 +122,14 @@ Verified in this session, without needing a live `claude` session (pure filesyst
 - `hooks/tool-log-readonly.mjs` — correctly caught a space-boundary held-out reference in a bash
   command's text (the exact shape of bug the OpenCode ablation's own dry run found).
 - `hooks/tool-heartbeat.mjs` — correctly wrote and incremented the heartbeat file.
+- `hooks/tool-log-bash-output.mjs` — correctly flags a `find`-style command's output-only held-out
+  reference (the exact real miss from Section 4.14), correctly does not flag the bare word
+  "held-out" in unrelated prose, and correctly catches a held-out reference in `stderr` as well as
+  `stdout` — all four cases in `hooks/tool-log-bash-output.test.mjs`, re-run after temporarily
+  reverting the fix to confirm the test actually catches the regression, not just that it passes.
 - `parse-log.mjs` — correctly computed every field against a real activity log plus synthetic
-  liveness-poll and test-rerun data.
+  liveness-poll and test-rerun data, including the merged before-readonly/after-bash-output
+  `heldOutTouchCount`.
 
 **Not yet verified, because it requires a real, authenticated `claude` CLI this environment does
 not have:** an actual end-to-end `claude -p` trial. Before trusting any real result from

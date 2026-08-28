@@ -3281,6 +3281,36 @@ project is about a self-report being *wrong*; this one is about a self-report be
 a blind spot in the very mechanism checking it — stated candidly and unprompted, confirmed true
 only after the fact.
 
+## Closing the touchesHeldOut output-scanning gap the strong-tier run confirmed live
+
+The gap named above — this harness's held-out-access detection scanned only a bash call's command
+text, missing an incidental exposure buried only in its *output* — is fixed. The blocker had been
+an unconfirmed Claude Code `PostToolUse` `tool_response` schema for Bash calls; a real payload was
+captured and inspected directly (`echo`, then a real multi-line `find` command mirroring the exact
+Section 4.14 miss), confirming output arrives as `tool_response.stdout` / `tool_response.stderr`,
+both plain strings, multi-line output captured in full.
+
+`ablation/claude-code/hooks/tool-log-bash-output.mjs` (new: `PostToolUse`, matcher `Bash`) scans
+both fields for the same `HELD_OUT_PATH_PATTERN` the existing command-text check already uses;
+`parse-log.mjs`'s `heldOutTouchCount` now merges both sources. Ported from the OpenCode ablation's
+own prior fix for the identical category of gap (`../parse-log.mjs`'s `heldOutTouches`), not
+reinvented independently.
+
+Covered by a real, re-runnable regression test (`tool-log-bash-output.test.mjs`, standalone —
+`ablation/` sits outside vitest's configured scope, and the sibling hooks were never given vitest
+specs either), four cases: the exact `find`-command miss from Section 4.14 (stdout), the same via
+`stderr`, a neutral command, and — the edge case worth deciding explicitly rather than leaving
+implicit — the bare word "held-out" appearing in unrelated output with no surrounding
+`tests/held-out/` path shape, which must *not* trigger. It doesn't, by construction: the pattern
+requires the fuller path segment, not the bare word. For this harness's own target apps there is no
+legitimate reason for generated-app output to contain that literal path other than actually
+referencing the directory, so a match here would itself be a real signal worth investigating, not
+noise — a deliberate design choice. Confirmed the test genuinely catches a regression, not just
+that it passes: temporarily reverted the fix, watched the two output-only cases fail, restored it.
+
+Does not retroactively change anything reported for Section 4.14 — that description is of the run
+as it happened, before this fix existed, and remains accurate as a historical record.
+
 ## Bottom line
 
 The core loop (ingest → reconcile → spec → generate → test → verify) works, on a real messy

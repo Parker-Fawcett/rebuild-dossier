@@ -5,7 +5,8 @@
       { "matcher": "Read|Bash|Glob|Grep", "hooks": [{ "type": "command", "command": "node .claude/hooks/tool-log-readonly.mjs" }] }
     ],
     "PostToolUse": [
-      { "matcher": "Edit|Write", "hooks": [{ "type": "command", "command": "node .claude/hooks/tool-heartbeat.mjs" }] }
+      { "matcher": "Edit|Write", "hooks": [{ "type": "command", "command": "node .claude/hooks/tool-heartbeat.mjs" }] },
+      { "matcher": "Bash", "hooks": [{ "type": "command", "command": "node .claude/hooks/tool-log-bash-output.mjs" }] }
     ]
   }
 }
