@@ -2726,7 +2726,7 @@ have real, non-empty untested-contracts surface.
 ## The coverage-computation gap is structural, confirmed a third independent way — and a trust blocker on earlier Madeline-sourced results was found while looking for a counterexample
 
 The QR-app section above treated its 100% result as a second data point sharpening the
-catchandtrade finding. A third, independent app — [animfix](../animfix) (a small client-side
+catchandtrade finding. A third, independent app — `animfix` (a small client-side
 animation-fidelity app, no API routes, no auth) — was checked the same way, not to confirm the
 pattern again but specifically to look for a counterexample before concluding anything broader.
 It didn't find one: `animfix-rebuild/spec/untested-contracts.json` came back `[]` too, with all
