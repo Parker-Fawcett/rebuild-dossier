@@ -9,6 +9,42 @@
     "type": "git",
     "url": "git+https://github.com/Parker-Fawcett/rebuild-dossier.git"
   },
+  "homepage": "https://github.com/Parker-Fawcett/rebuild-dossier",
+  "bugs": {
+    "url": "https://github.com/Parker-Fawcett/rebuild-dossier/issues"
+  },
+  "author": {
+    "name": "Parker Fawcett",
+    "email": "parker@parkerfawcett.com",
+    "url": "https://www.parkerfawcett.com"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "ai-agents",
+    "claude-code",
+    "agentic-ai",
+    "developer-tools",
+    "code-generation",
+    "reverse-engineering",
+    "spec-generation",
+    "mutation-testing",
+    "typescript",
+    "ai-evaluation",
+    "rebuild",
+    "software-engineering"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE",
+    "server.json"
+  ],
   "bin": {
     "rebuild-dossier": "./src/index.ts"
   },

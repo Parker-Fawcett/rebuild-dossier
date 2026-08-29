@@ -1,0 +1,32 @@
+name: Feature request
+description: Suggest a feature or improvement for rebuild-dossier
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! Please note that this is an
+        academic/research project — changes to core behavior should align
+        with the paper's design. See CONTRIBUTING.md for details.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you solving?
+      description: Describe the problem or limitation you're running into.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: What would you like to happen?
+      description: Describe the feature or change you'd like to see.
+    validations:
+      required: true
+  - type: textarea
+    id: importance
+    attributes:
+      label: Why does it matter?
+      description: Why is this important to you or to the project?
+    validations:
+      required: true

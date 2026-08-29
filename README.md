@@ -59,8 +59,11 @@ A `PostToolUse` hook runs the visible test suite after every edit.
 
 ## Quick start
 
+> **Not on npm yet.** For now, clone and run from source. Once published, this becomes
+> `npx rebuild-dossier`.
+
 ```bash
-git clone https://github.com/businessfawcett-cloud/rebuild-dossier.git
+git clone https://github.com/Parker-Fawcett/rebuild-dossier.git
 cd rebuild-dossier
 npm install
 npx playwright install chromium   # needed for crawl_site
@@ -361,6 +364,15 @@ tracked as real backlog rather than silently skipped:
 See [docs/v0-findings.md](docs/v0-findings.md) for the full, honest write-up: the real bugs
 found and fixed during validation, the comparison across model tiers, and what's still open.
 
+## Contributing
+
+Thanks for considering a contribution! This is an academic/research project — changes should
+align with the design described in the [paper](https://arxiv.org/abs/2608.23616). See
+[CONTRIBUTING.md](CONTRIBUTING.md) for setup, testing, and PR guidelines. First-timers welcome —
+look for issues tagged `good first issue` or open one and ask what's most useful.
+
 ## License
 
 [MIT](LICENSE)
+
+⭐ If rebuild-dossier helps you ship cleaner rebuilds, a star helps other developers find it.
