@@ -2,7 +2,7 @@ import * as z from 'zod/v4';
 import type { ServerContext } from '@modelcontextprotocol/server';
 import { loadCases } from '../state/caseStore.js';
 import { resolveCaseInternal } from '../reconciliation/resolveCase.js';
-import type { Case } from '../reconciliation/types.js';
+import { caseSchema, type Case } from '../reconciliation/types.js';
 import { enforcePathAllowlist } from '../security/pathAllowlist.js';
 
 
@@ -14,10 +14,16 @@ export const getCaseQueueInputSchema = z.object({
     .describe('When true, walk open cases via MCP elicitation instead of just listing them')
 });
 
+export const getCaseQueueOutputSchema = z.object({
+  open: z.number().int(),
+  cases: z.array(caseSchema)
+});
+
 export const getCaseQueueConfig = {
   title: 'Get case queue',
   description: 'Return unresolved ambiguity cases from reconciliation.',
   inputSchema: getCaseQueueInputSchema,
+  outputSchema: getCaseQueueOutputSchema,
   annotations: {
     title: 'Get case queue',
     // With interactive:false this is a pure read. But interactive:true walks
@@ -89,7 +95,10 @@ export async function getCaseQueueHandler(args: z.infer<typeof getCaseQueueInput
     open = loadCases(args.repoPath).filter((c) => c.status === 'open');
   }
 
+  const result = { open: open.length, cases: open };
+
   return {
-    content: [{ type: 'text' as const, text: JSON.stringify({ open: open.length, cases: open }, null, 2) }]
+    content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
+    structuredContent: result
   };
 }

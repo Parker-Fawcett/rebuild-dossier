@@ -18,11 +18,30 @@ export const ingestRepoInputSchema = z.object({
     )
 });
 
+export const ingestRepoOutputSchema = z.object({
+  routes: z.number().int(),
+  existingTests: z.number().int(),
+  signals: z.number().int(),
+  buildConfig: z.array(z.string()),
+  openCases: z.number().int(),
+  savedTo: z.string(),
+  monorepoHint: z
+    .object({
+      message: z.string(),
+      candidates: z.array(z.string())
+    })
+    .optional(),
+  // Only present when the interactive elicitation branch re-ingested a
+  // chosen candidate on the caller's behalf — see ingestRepoHandler below.
+  resolvedMonorepoChoice: z.string().optional()
+});
+
 export const ingestRepoConfig = {
   title: 'Ingest repo',
   description:
     'Parse package.json, tailwind/vite config, route files, and existing tests via static analysis. No LLM call.',
   inputSchema: ingestRepoInputSchema,
+  outputSchema: ingestRepoOutputSchema,
   annotations: {
     title: 'Ingest repo',
     // Writes evidence.json to the repo's own .dossier/ scratch dir, so not
@@ -72,7 +91,13 @@ async function elicitMonorepoChoice(repoPath: string, candidates: string[], ctx:
   }
 }
 
-export async function ingestRepoHandler(args: z.infer<typeof ingestRepoInputSchema>, ctx?: ServerContext) {
+// Explicit return type is required, not stylistic: this function calls
+// itself recursively (the monorepo-elicitation branch below), and TS can't
+// infer a recursive function's return type from its own body.
+export async function ingestRepoHandler(
+  args: z.infer<typeof ingestRepoInputSchema>,
+  ctx?: ServerContext
+): Promise<{ content: [{ type: 'text'; text: string }]; structuredContent: z.infer<typeof ingestRepoOutputSchema> }> {
   enforcePathAllowlist(args.path);
   const bundle = await ingestRepo(args.path);
   atomicWriteFile(evidencePath(args.path), JSON.stringify(bundle, null, 2));
@@ -89,11 +114,10 @@ export async function ingestRepoHandler(args: z.infer<typeof ingestRepoInputSche
     const chosen = await elicitMonorepoChoice(args.path, monorepoCandidates, ctx);
     if (chosen) {
       const result = await ingestRepoHandler({ path: join(args.path, chosen) }, ctx);
-      const resolvedSummary = JSON.parse(result.content[0]!.text);
+      const resolvedSummary = { ...result.structuredContent, resolvedMonorepoChoice: chosen };
       return {
-        content: [
-          { type: 'text' as const, text: JSON.stringify({ ...resolvedSummary, resolvedMonorepoChoice: chosen }, null, 2) }
-        ]
+        content: [{ type: 'text' as const, text: JSON.stringify(resolvedSummary, null, 2) }],
+        structuredContent: resolvedSummary
       };
     }
   }
@@ -117,6 +141,7 @@ export async function ingestRepoHandler(args: z.infer<typeof ingestRepoInputSche
   };
 
   return {
-    content: [{ type: 'text' as const, text: JSON.stringify(summary, null, 2) }]
+    content: [{ type: 'text' as const, text: JSON.stringify(summary, null, 2) }],
+    structuredContent: summary
   };
 }

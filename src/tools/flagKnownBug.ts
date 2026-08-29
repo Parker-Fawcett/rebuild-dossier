@@ -2,10 +2,16 @@ import * as z from 'zod/v4';
 import { addKnownBug } from '../state/knownBugs.js';
 import { buildCases } from '../reconciliation/buildCases.js';
 import { enforcePathAllowlist } from '../security/pathAllowlist.js';
+import { knownBugSchema } from '../reconciliation/types.js';
 
 export const flagKnownBugInputSchema = z.object({
   repoPath: z.string().describe('Repo path whose .dossier/ this known bug belongs to'),
   description: z.string().describe('Free-text description of a known bug, stored verbatim')
+});
+
+export const flagKnownBugOutputSchema = z.object({
+  bug: knownBugSchema,
+  openCases: z.number().int()
 });
 
 export const flagKnownBugConfig = {
@@ -13,6 +19,7 @@ export const flagKnownBugConfig = {
   description:
     'Record a known bug. Always overrides auto-resolve for any case it matches, regardless of other evidence.',
   inputSchema: flagKnownBugInputSchema,
+  outputSchema: flagKnownBugOutputSchema,
   annotations: {
     title: 'Flag known bug',
     // Appends a new bug entry with a fresh id every call — never overwrites
@@ -34,16 +41,10 @@ export async function flagKnownBugHandler(args: z.infer<typeof flagKnownBugInput
   // rather than waiting for the next unrelated ingest/crawl call.
   const cases = buildCases(args.repoPath);
 
+  const result = { bug, openCases: cases.filter((c) => c.status === 'open').length };
+
   return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(
-          { bug, openCases: cases.filter((c) => c.status === 'open').length },
-          null,
-          2
-        )
-      }
-    ]
+    content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
+    structuredContent: result
   };
 }

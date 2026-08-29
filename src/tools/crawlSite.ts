@@ -14,10 +14,18 @@ export const crawlSiteInputSchema = z.object({
   repoPath: z.string().describe('Repo path whose .dossier/ this crawl evidence should be saved under')
 });
 
+export const crawlSiteOutputSchema = z.object({
+  routesVisited: z.number().int(),
+  routesWithConsoleErrors: z.number().int(),
+  openCases: z.number().int(),
+  savedTo: z.string()
+});
+
 export const crawlSiteConfig = {
   title: 'Crawl site',
   description: 'Playwright headless crawl of reachable routes. Emits periodic progress notifications.',
   inputSchema: crawlSiteInputSchema,
+  outputSchema: crawlSiteOutputSchema,
   annotations: {
     title: 'Crawl site',
     // Writes crawl evidence to .dossier/, so not read-only. Doesn't destroy
@@ -53,6 +61,7 @@ export async function crawlSiteHandler(args: z.infer<typeof crawlSiteInputSchema
   };
 
   return {
-    content: [{ type: 'text' as const, text: JSON.stringify(summary, null, 2) }]
+    content: [{ type: 'text' as const, text: JSON.stringify(summary, null, 2) }],
+    structuredContent: summary
   };
 }

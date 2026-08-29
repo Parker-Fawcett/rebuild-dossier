@@ -1,6 +1,7 @@
 import * as z from 'zod/v4';
 import { resolveCaseInternal } from '../reconciliation/resolveCase.js';
 import { enforcePathAllowlist } from '../security/pathAllowlist.js';
+import { caseSchema } from '../reconciliation/types.js';
 
 export const resolveCaseInputSchema = z.object({
   repoPath: z.string().describe('Repo path whose .dossier/ this case belongs to'),
@@ -13,6 +14,7 @@ export const resolveCaseConfig = {
   title: 'Resolve case',
   description: 'Resolve one open case with a human decision. Always available, no elicitation capability required.',
   inputSchema: resolveCaseInputSchema,
+  outputSchema: caseSchema,
   annotations: {
     title: 'Resolve case',
     // Overwrites a case's decision regardless of its current status (see
@@ -40,6 +42,7 @@ export async function resolveCaseHandler(args: z.infer<typeof resolveCaseInputSc
   }
 
   return {
-    content: [{ type: 'text' as const, text: JSON.stringify(resolved, null, 2) }]
+    content: [{ type: 'text' as const, text: JSON.stringify(resolved, null, 2) }],
+    structuredContent: resolved
   };
 }

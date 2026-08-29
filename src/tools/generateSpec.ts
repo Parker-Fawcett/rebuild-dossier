@@ -22,6 +22,32 @@ export const generateSpecInputSchema = z.object({
     )
 });
 
+const skippedPageOutputSchema = z.object({
+  routeFile: z.string(),
+  reason: z.string()
+});
+
+export const generateSpecOutputSchema = z.object({
+  outputDir: z.string(),
+  mutationsChecked: z.number().int(),
+  weakTests: z.array(z.string()),
+  unrunnableTests: z.array(z.string()),
+  capturedPages: z.number().int(),
+  skippedPages: z.array(skippedPageOutputSchema),
+  visionClassificationEnabled: z.boolean(),
+  // Present only when the target repo has no node_modules of its own — see
+  // the missingNodeModules check below.
+  warning: z.string().optional(),
+  // Present only when skippedPages is non-empty.
+  pageCaptureNote: z.string().optional(),
+  // Present only when visionClassificationEnabled is true.
+  visionClassificationNote: z.string().optional(),
+  // Present only when one or more captured pages fell back to the regex
+  // classifier despite vision being enabled.
+  pageVisionFallbacks: z.array(skippedPageOutputSchema).optional(),
+  pageVisionFallbackNote: z.string().optional()
+});
+
 export const generateSpecConfig = {
   title: 'Generate spec',
   description:
@@ -33,6 +59,7 @@ export const generateSpecConfig = {
     'Optional: pass authStorageStatePath to reach auth-gated pages during capture — see that field\'s own description for how to ' +
     'produce it.',
   inputSchema: generateSpecInputSchema,
+  outputSchema: generateSpecOutputSchema,
   annotations: {
     title: 'Generate spec',
     // Writes an entire tree to a sibling <repo>-rebuild/ directory —
@@ -157,51 +184,45 @@ export async function generateSpecHandler(args: z.infer<typeof generateSpecInput
   // cause (missing `npm install`) is much simpler and worth stating plainly.
   const missingNodeModules = !existsSync(join(args.repoPath, 'node_modules'));
 
+  const result = {
+    outputDir,
+    mutationsChecked: mutationReport.results.length,
+    weakTests: mutationReport.weakTestFiles,
+    unrunnableTests: mutationReport.unrunnableTestFiles,
+    // Mirrors weakTests/unrunnableTests above: a generate_spec call
+    // that captured only some pages (a Playwright/next-dev hiccup on
+    // one route) must never look identical to one that captured all
+    // of them — see generatePageTests.ts's skipped-page visibility
+    // requirement.
+    capturedPages: capturedPages.length,
+    skippedPages,
+    // Always present, not conditional — whether vision classification
+    // ran at all must never be silently ambiguous from the response.
+    visionClassificationEnabled,
+    ...(missingNodeModules
+      ? {
+          warning:
+            'No node_modules found in the target repo — mutation-check results are unreliable without the target\'s own real dependencies installed. Run `npm install` in the target repo, then re-run generate_spec.'
+        }
+      : {}),
+    ...(skippedPages.length > 0
+      ? {
+          pageCaptureNote:
+            'One or more page routes could not be captured (see skippedPages) — those pages have no generated test and stay in spec/untested-contracts.json. Note that page-test generation also spawns a real `next dev` + Chromium instance, which makes generate_spec noticeably slower for apps with many pages.'
+        }
+      : {}),
+    ...(visionClassificationEnabled ? { visionClassificationNote: buildVisionClassificationNote(capturedPages.length) } : {}),
+    ...(pageVisionFallbacks.length > 0
+      ? {
+          pageVisionFallbacks,
+          pageVisionFallbackNote:
+            'One or more pages could not be vision-classified and fell back to regex-based classification for that page (see pageVisionFallbacks) — those pages\' dynamic-vs-static assertions may be less accurate.'
+        }
+      : {})
+  };
+
   return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(
-          {
-            outputDir,
-            mutationsChecked: mutationReport.results.length,
-            weakTests: mutationReport.weakTestFiles,
-            unrunnableTests: mutationReport.unrunnableTestFiles,
-            // Mirrors weakTests/unrunnableTests above: a generate_spec call
-            // that captured only some pages (a Playwright/next-dev hiccup on
-            // one route) must never look identical to one that captured all
-            // of them — see generatePageTests.ts's skipped-page visibility
-            // requirement.
-            capturedPages: capturedPages.length,
-            skippedPages,
-            // Always present, not conditional — whether vision classification
-            // ran at all must never be silently ambiguous from the response.
-            visionClassificationEnabled,
-            ...(missingNodeModules
-              ? {
-                  warning:
-                    'No node_modules found in the target repo — mutation-check results are unreliable without the target\'s own real dependencies installed. Run `npm install` in the target repo, then re-run generate_spec.'
-                }
-              : {}),
-            ...(skippedPages.length > 0
-              ? {
-                  pageCaptureNote:
-                    'One or more page routes could not be captured (see skippedPages) — those pages have no generated test and stay in spec/untested-contracts.json. Note that page-test generation also spawns a real `next dev` + Chromium instance, which makes generate_spec noticeably slower for apps with many pages.'
-                }
-              : {}),
-            ...(visionClassificationEnabled ? { visionClassificationNote: buildVisionClassificationNote(capturedPages.length) } : {}),
-            ...(pageVisionFallbacks.length > 0
-              ? {
-                  pageVisionFallbacks,
-                  pageVisionFallbackNote:
-                    'One or more pages could not be vision-classified and fell back to regex-based classification for that page (see pageVisionFallbacks) — those pages\' dynamic-vs-static assertions may be less accurate.'
-                }
-              : {})
-          },
-          null,
-          2
-        )
-      }
-    ]
+    content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
+    structuredContent: result
   };
 }

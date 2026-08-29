@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
 import { generateSpecHandler, buildVisionClassificationNote } from '../../../src/tools/generateSpec.js';
 import { VISION_PAGE_PACING_DELAY_MS } from '../../../src/spec/visionClassifier.js';
 import { evidencePath } from '../../../src/state/dossierPaths.js';
@@ -9,6 +10,7 @@ import { atomicWriteFile } from '../../../src/state/atomicWrite.js';
 import { saveCases } from '../../../src/state/caseStore.js';
 import type { EvidenceBundle } from '../../../src/ingest/evidenceSchema.js';
 import type { Case } from '../../../src/reconciliation/types.js';
+import { createServer } from '../../../src/server.js';
 
 const now = new Date(0).toISOString();
 
@@ -37,6 +39,43 @@ describe('generate_spec tool', () => {
 
       expect(result.isError).toBe(true);
       expect(existsSync(outputDir)).toBe(false);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+      rmSync(outputDir, { recursive: true, force: true });
+    }
+  });
+
+  // A handler-level call (elsewhere in this file) never exercises the SDK's
+  // real outputSchema validation — only a genuine tools/call through a
+  // connected client does, and generate_spec's output shape (several
+  // conditionally-present fields) is the riskiest of the six to get wrong.
+  it('returns structuredContent that satisfies the declared outputSchema over the real protocol', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-genspec-structured-'));
+    const outputDir = `${dir}-rebuild`;
+    try {
+      atomicWriteFile(evidencePath(dir), JSON.stringify(minimalEvidence()));
+      saveCases(dir, []);
+
+      const server = createServer();
+      const client = new Client({ name: 'test-client', version: '1.0.0' });
+      const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+      await server.connect(serverTransport);
+      await client.connect(clientTransport);
+
+      const result = await client.callTool({ name: 'generate_spec', arguments: { repoPath: dir } });
+
+      const structured = result.structuredContent as {
+        outputDir: string;
+        mutationsChecked: number;
+        weakTests: string[];
+        unrunnableTests: string[];
+        capturedPages: number;
+        skippedPages: unknown[];
+        visionClassificationEnabled: boolean;
+      };
+      expect(structured.outputDir).toBe(outputDir);
+      expect(structured.visionClassificationEnabled).toBe(false);
+      expect(Array.isArray(structured.skippedPages)).toBe(true);
     } finally {
       rmSync(dir, { recursive: true, force: true });
       rmSync(outputDir, { recursive: true, force: true });
