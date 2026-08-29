@@ -3,6 +3,7 @@
 [![DOI](https://zenodo.org/badge/1308271634.svg)](https://doi.org/10.5281/zenodo.22036801)
 [![arXiv:2608.23616](https://img.shields.io/badge/arXiv-2608.23616-b31b1b.svg)](https://arxiv.org/abs/2608.23616)
 [![smithery badge](https://smithery.ai/badge/parkerscottfawcett/rebuild-dossier)](https://smithery.ai/servers/parkerscottfawcett/rebuild-dossier)
+[![M8ven Score](https://m8ven.ai/badge/mcp/businessfawcett-cloud-rebuild-dossier-17tqsh)](https://m8ven.ai/mcp/businessfawcett-cloud-rebuild-dossier-17tqsh)
 
 An MCP server that reverse-engineers a trustworthy **rebuild spec** — a locked `CLAUDE.md`,
 `.claude/` config, and a mutation-tested test suite — out of an existing app, so any coding
