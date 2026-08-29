@@ -3471,3 +3471,59 @@ unchanged. `npm run typecheck` and `npm run build` are both clean.
 Tagged `v0.2.8-paper`, continuing the same sequential-paper-tag convention `v0.2.6-paper` used for
 a real code fix (`touchesHeldOut`) paired with closing its narrative gap — this is a real code
 change with a real, independently-verified result, not a documentation-only update.
+
+## Verifying `v0.2.8-paper` against a second target: DOM-text-stability polling generalizes beyond `driftlight`
+
+Every check behind `v0.2.8-paper` above — the regression fixtures and the "verified beyond the
+regression fixtures" real-app run — used the exact `driftlight` shape (a `requestAnimationFrame`
+counter ticking to 12,400) or `driftlight` itself: a fixture purpose-built to expose the gap this
+fix closes, this project's own weakest evidentiary tier (see the repeated caveat on hand-built,
+n=1 apps throughout this document). This section closes that gap with a second, independently-built
+app exercising a structurally different motion mechanism, built without reference to the fix's own
+implementation shape.
+
+**The app:** `glimmer`, a throwaway one-page Next.js 14 app (a fictitious note-taking product's
+landing page) — not committed anywhere, not derived from any existing fixture. Its one piece of
+real motion is a hero-headline typewriter effect: a `'use client'` component reveals
+`"Capture every fleeting idea."` one character at a time via **recursive `setTimeout` with
+randomized 30–70ms per-character jitter**, not `requestAnimationFrame` and not a fixed
+`setInterval` — a different code shape from every case `v0.2.8-paper` had exercised, and, unlike
+the standing `setInterval`-forever regression fixture, one that genuinely settles and stays settled
+rather than running forever.
+
+**Ground truth established independently, before touching the pipeline.** A separate Playwright
+script (not part of `rebuild-dossier`, not the code under test) polled `document.body.innerText`
+every 25ms against a manually-started `next dev` instance, the same "confirm it by hand first"
+discipline the original `"12,400+"` finding used. Confirmed: the page's text mutates in ~20+
+discrete steps and settles permanently at `"Capture every fleeting idea."`, with total settle time
+varying **~1.6–2.1 seconds across repeated runs** (a direct consequence of the randomized jitter) —
+never observed to change again for the remainder of a 10-second observation window. That variance
+is itself informative: it straddles the old, already-replaced 1500ms fixed wait's margin, meaning
+this case is not one a fixed-wait fix would have handled reliably even by coincidence — a
+meaningfully different stress case, not a repeat of the same margin `driftlight`'s ~1.4s counter had.
+
+**Ran the real, unmodified pipeline** — `ingestRepoHandler` then `generateSpecHandler`, the same
+two MCP tools an agent calls, with no test-only code path. Result: 1 route ingested, 0 open cases,
+1 page captured, 0 skipped/weak/unrunnable tests. The generated test's own assertion, read directly
+from its actual output, not inferred: `expect(body).toContain("Capture every fleeting idea.")` —
+the true settled value confirmed independently above, not a mid-typing snapshot. The reference
+screenshot captured for the same contract doc shows the identical settled headline — screenshot and
+DOM-text capture agree, closing the exact disagreement shape (`"0"` vs. `"104+"`, neither the true
+value) that the original `driftlight` finding exposed.
+
+**Went one step further than the original `v0.2.8-paper` verification:** rather than stop at
+inspecting the generated test's assertions, the generated test was actually executed — the rebuild
+output directory was populated with the app's own real source and its own declared dependencies
+installed, then run as its own standalone project the way a real rebuild's test suite would be.
+`npm test` passed (1/1), a real run through a fresh `next dev` instance and the DOM-text-stability
+polling loop inlined into the generated test file itself, not just the original capture path.
+
+**Conclusion:** the fix generalizes to a second, independently-built app with a structurally
+different JS-driven motion mechanism (recursive `setTimeout` character-by-character reveal with
+randomized timing vs. `requestAnimationFrame` numeric tween). This remains n=2, both still
+hand-built apps rather than something found in the wild, and both still in the same broad category
+(JS-driven, eventually-settling DOM text) — a genuinely infinite or externally-paced motion source
+(a live server-pushed value, say) is still untested. Per the governing rule this task was scoped
+under, this is a verification step only: it makes the capability fix more ready for a future,
+deliberate, batched revision pass into the manuscript — it does not itself fold anything into the
+manuscript, and no manuscript-cited number changes as a result of this section.

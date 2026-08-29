@@ -81,5 +81,10 @@ per the rule above.)
 
 - `touchesHeldOut` bash-output scanning gap (Claude Code harness) — fixed, `v0.2.6-paper`.
 - DOM-stability polling for JS-driven motion capture — fixed, `v0.2.8-paper`. Capability fix, not
-  yet folded into the manuscript — verified against `driftlight` only so far; needs a second real
-  target before it's ready to enter a revision pass.
+  yet folded into the manuscript. Now verified against a second, independently-built app (`glimmer`,
+  a `setTimeout`-driven typewriter reveal — a different motion mechanism than `driftlight`'s
+  `requestAnimationFrame` counter) in addition to `driftlight` itself — see `docs/v0-findings.md`,
+  "Verifying `v0.2.8-paper` against a second target." Still n=2 and both hand-built apps, not
+  something found in the wild, and both still the same broad category (JS-driven, eventually-
+  settling DOM text) — a genuinely infinite or externally-paced motion source is still untested.
+  Closer to ready for a revision pass than before, not yet there.
