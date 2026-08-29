@@ -12,7 +12,7 @@ responsibly.
 
 Instead, report vulnerabilities privately by email to:
 
-- **Email:** parker@parkerfawcett.com
+- **Email:** Parkerscottfawcett@gmail.com
 
 Please include as much of the following as you can:
 
