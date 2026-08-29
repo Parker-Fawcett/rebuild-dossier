@@ -1,0 +1,51 @@
+name: Bug report
+description: Report a bug in rebuild-dossier
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! Please fill in as much detail as you can.
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+      description: Describe the behavior you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What actually happened?
+      description: Describe the behavior you observed instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: |
+        The steps to reproduce the issue. A minimal example is ideal —
+        include the repository or input you were working with, and any
+        relevant commands.
+      placeholder: |
+        1. Run `npm run build`
+        2. Run `npx rebuild-dossier <repo>`
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version of rebuild-dossier
+      description: Which version are you using? (e.g. the version from package.json, or a commit hash)
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Node.js version, OS, and anything else relevant.
+    validations:
+      required: false
