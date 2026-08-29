@@ -3408,3 +3408,66 @@ auth-gated real app for page-generation, and — if visual fidelity becomes a ma
 axis rather than occasional spot checks — a fixed protocol decided before running, not adjusted
 per run, are the natural next steps) — but the core hypothesis itself is no longer resting on one
 validated example.
+
+## Closing the fixed-wait gap "Settling animations before capture" left behind: DOM-text-stability polling replaces a guessed constant
+
+A correction before the fix itself: this document has no section literally numbered "Appendix
+C.5," and "Settling animations before capture" (above) never explicitly flagged its 1500ms
+`ANIMATION_SETTLE_WAIT_MS` wait as still-open work the way Section 5.4's `touchesHeldOut` bullet
+did — it shipped as the fix, not a named gap. Real testing done for this section anyway confirmed
+that wait has a genuine, structural failure mode, not a hypothetical one: a fixed clock is
+correct only for JS-driven motion that happens to settle before the clock runs out, and is wrong
+by construction for anything that runs longer, no matter what number is chosen. The `driftlight`
+counter that motivated the original fix runs to completion in ~1.4 seconds (re-confirmed directly
+against that finding above, not a "~10s" figure floated when this task was scoped, which does not
+match the source) — the old 1500ms wait already had almost no margin against the real number.
+
+**The fix:** `ANIMATION_SETTLE_WAIT_MS`'s flat wait is replaced by `waitForDomTextStability`
+(`src/spec/generatePageTests.ts`), which polls `document.body.innerText` every 150ms and proceeds
+only once 4 consecutive reads come back byte-identical (600ms of confirmed stability) — a real
+capture-readiness signal instead of a guess, with no ceiling on how long it will wait for content
+that is still actively changing. A genuinely infinite JS-driven text mutation (not this app's
+`glow-pulse`, which is CSS-only and never touches text at all — see below) would never satisfy
+that condition on its own, so an 8000ms `DOM_STABILITY_MAX_WAIT_MS` bounds the poll loop the same
+way `MAX_REDIRECT_HOPS` bounds `waitForRedirectsToSettle`: a safety fallback, not the expected
+path. The same polling logic is inlined into the generated test's own template (a separate,
+dependency-free npm project, same reason `devServerBoilerplate()` inlines its other helpers) — a
+rebuild that faithfully reproduces long-running JS motion no longer fails its own generated test
+by being read too early.
+
+**The CSS-only case needed its own explicit check, not an assumption.** `glow-pulse` is already
+made deterministic by a separate mechanism (`injectAnimationNeutralizingOverride`'s
+`animation-iteration-count: 1` override) and never mutates DOM text, so it can't exercise this new
+poller's max-wait fallback at all — it settles on the very first read regardless of how long the
+keyframe itself would otherwise run. A dedicated fixture (an infinite `glow-pulse`-shaped keyframe
+animation, deliberately left un-neutralized in the test) confirms this directly: it resolved in
+671ms, not anywhere near the 8s fallback. Only a page whose *text* is driven by a genuinely
+never-settling JS process reaches that fallback; a fixture for that shape (a `setInterval`
+re-rendering a live counter forever) confirms the other side of the same distinction: it resolved
+in 8239ms, right at the fallback boundary, proving `waitForDomTextStability` gives up and lets
+capture proceed rather than hanging. A third fixture, reproducing `driftlight`'s own counter
+shape (0 to 12,400 over 1.4s via `requestAnimationFrame`), resolved in 2068ms with the DOM text
+correctly settled at `"12,400+"` — not a mid-count reading. All three, plus a no-motion baseline
+(663ms), are new regression tests in `test/unit/spec/generatePageTests.spec.ts`, run against a
+real Chromium instance the same way `waitForRedirectsToSettle`'s own tests already are.
+
+**Verified beyond the regression fixtures, against a real `driftlight`-shaped Next.js app, not
+just synthetic `page.route()` HTML.** A minimal fixture reproducing the exact original shape (a
+client component ticking a `useState` counter via `requestAnimationFrame` from 0 to 12,400 over
+1.4s, rendered as `{value.toLocaleString()}+ lamps lighting up homes worldwide`) was built fresh
+and run through the real `generatePageTests` pipeline end to end — real `next dev`, real Chromium,
+no mocking. The generated test's own assertions, read directly from its actual output rather than
+inferred: `expect(body).toContain("12,400")` and `expect(body).toContain("+ lamps lighting up
+homes worldwide")` — the true settled value, the same one the original 2026-08 diagnostic run
+never captured correctly with either the pre-fix sequential capture or the interim fixed-wait fix.
+
+**The full suite (522/522, 85 files) passes**, including explicit, re-run (not assumed)
+confirmation that the existing CSS-motion mechanism from the same pipeline area — keyframe/
+transition detection, the shared-stylesheet scoping fix, and the `:hover`/`:focus-within`
+pseudo-class-stripping and alternation-ordering fixes — is unaffected: `hasRealTransition`,
+`triggerConditionFor`, and every `generateContracts` stylesheet-animations-section test still pass
+unchanged. `npm run typecheck` and `npm run build` are both clean.
+
+Tagged `v0.2.8-paper`, continuing the same sequential-paper-tag convention `v0.2.6-paper` used for
+a real code fix (`touchesHeldOut`) paired with closing its narrative gap — this is a real code
+change with a real, independently-verified result, not a documentation-only update.

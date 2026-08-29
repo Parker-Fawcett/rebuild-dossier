@@ -142,7 +142,7 @@ function inferredResponseFieldsSection(repoPath: string, route: RouteEntry): str
 
 // Documentation only — never asserted against, since captures and generated
 // tests always settle animations to their end state before asserting (see
-// generatePageTests.ts's ANIMATION_SETTLE_WAIT_MS / neutralizing override).
+// generatePageTests.ts's waitForDomTextStability / neutralizing override).
 // The two subsections are gated independently — a page can have animations
 // with no transitions, or vice versa. Each entry records its trigger
 // condition (unconditional vs. a state pseudo-class like :hover) — real,

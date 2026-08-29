@@ -50,20 +50,53 @@ const HELD_OUT_EVERY = 3; // same deterministic split convention as generateTest
 const MAX_MUTATION_SITES_PER_PAGE = 3; // bounds runMutationCheck's per-site `next dev` boot cost (see runMutationCheck.ts)
 const MAX_DOM_TEXT_NODES = 60; // keeps a generated test (and the capture itself) from ballooning on a very text-heavy page
 const DEV_SERVER_READY_TIMEOUT_MS = 60_000;
-// A named heuristic, not a guarantee: bounds how long capture (and, baked
-// into the generated test template below, verification against a rebuilt
-// app) waits for JS-driven motion — a requestAnimationFrame counter, a
-// setTimeout-staged reveal — to reach its settled value before either the
-// DOM-text or screenshot capture reads the page. Real, live-triggered
-// finding this fixes: a single generate_spec call's DOM-text capture and
-// screenshot capture disagreed with each other on an animated counter's
-// value ("0" vs "104+", neither the true settled "12,400+") because they
-// were captured sequentially with no synchronization at all. Sized against
-// the real case that surfaced this (a counter settling in ~1.4s) with a
-// small margin — a JS animation that legitimately runs longer than this
-// will still be caught mid-flight; CSS-driven motion is handled
-// deterministically instead, see injectAnimationNeutralizingOverride below.
-const ANIMATION_SETTLE_WAIT_MS = 1500;
+// Replaces a former flat ANIMATION_SETTLE_WAIT_MS = 1500ms wait (see git
+// history) with a real capture-readiness signal: poll document.body.innerText
+// at short intervals and only proceed once it's stayed byte-identical across
+// several consecutive polls, instead of guessing a fixed clock long enough
+// for JS-driven motion — a requestAnimationFrame counter, a setTimeout-staged
+// reveal — to settle before either the DOM-text or screenshot capture reads
+// the page. Real, live-triggered finding this whole mechanism exists to fix:
+// a single generate_spec call's DOM-text capture and screenshot capture
+// disagreed with each other on an animated counter's value ("0" vs "104+",
+// neither the true settled "12,400+") because they were captured sequentially
+// with no synchronization at all. The fixed-wait version of this fix was
+// itself confirmed (not assumed) to fail on the same real case it was
+// written for: the driftlight counter that surfaced this actually runs to
+// ~1.4s (traced directly against the finding that motivated it, not a
+// restated "~10s" figure that turned out not to match the source) — a fixed
+// 1500ms wait already had almost no margin against that real number, and any
+// number chosen for a fixed wait is wrong for a counter that legitimately
+// runs longer, no matter what it's set to. Polling for actual stability has
+// no such ceiling by construction: it waits exactly as long as content keeps
+// changing, not a guessed constant.
+//
+// A genuinely infinite JS-driven text mutation (unlike this, a live clock
+// re-rendering every second forever, say) would never satisfy the stability
+// check on its own, so DOM_STABILITY_MAX_WAIT_MS below bounds the poll loop
+// the same way MAX_REDIRECT_HOPS bounds waitForRedirectsToSettle — a
+// safety fallback, not the expected path. Deliberately NOT what makes the
+// existing CSS-only `glow-pulse` keyframe animation (see
+// injectAnimationNeutralizingOverride below) safe: that animation never
+// touches document text at all, so this polling loop sees stable text on its
+// very first read regardless of how this constant is tuned — it's made
+// deterministic entirely by the separate animation-iteration-count: 1
+// override, and never exercises this max-wait fallback. Only a page whose
+// *text content* is driven by a genuinely never-settling JS process reaches
+// this fallback; see the dedicated regression fixture for that case in
+// generatePageTests.spec.ts; a glow-pulse-only fixture cannot stand in for
+// it, since it never reaches this code path at all.
+const DOM_STABILITY_POLL_INTERVAL_MS = 150;
+// 4 consecutive identical reads (600ms of confirmed stability at the
+// interval above) — enough to not settle on a single coincidental match
+// mid-transition (e.g. a counter that pauses briefly between animation
+// frames), without adding much latency to the common static-page case.
+const DOM_STABILITY_REQUIRED_STABLE_POLLS = 4;
+// Comfortably above the real settle time (~1.4s) this whole mechanism was
+// built against, with room for a slower CI machine or a legitimately longer
+// counter, while still bounding a genuinely infinite case to a fixed,
+// finite cost instead of hanging capture forever.
+const DOM_STABILITY_MAX_WAIT_MS = 8000;
 
 // Real, live-triggered finding (a stage-4 diagnostic run against
 // catchandtrade): a client-side redirect (`if (!token) {
@@ -75,10 +108,11 @@ const ANIMATION_SETTLE_WAIT_MS = 1500;
 // source page's own transitional pre-redirect state or the settled
 // destination, depending on incidental page-capture order (whichever page
 // happens to warm that route's compile first). Traced directly before
-// picking a number: reusing ANIMATION_SETTLE_WAIT_MS (1500ms) as this same
-// detection window still misses a realistic combined case (an ~800ms
-// effect-firing delay plus a ~3000ms cold-compile delay on the
-// destination); 5000ms correctly waits out that same combined case.
+// picking a number: reusing the animation-settle wait's old fixed value
+// (1500ms, since replaced by DOM_STABILITY_MAX_WAIT_MS's polling approach
+// above) as this same detection window still misses a realistic combined
+// case (an ~800ms effect-firing delay plus a ~3000ms cold-compile delay on
+// the destination); 5000ms correctly waits out that same combined case.
 const REDIRECT_DETECTION_WINDOW_MS = 5000;
 // The real motivating shape is one hop (a single auth-gate redirect); a
 // couple more as a safety margin against a chained redirect, bounded so a
@@ -103,6 +137,36 @@ export async function waitForRedirectsToSettle(page: Page): Promise<void> {
     // crash here.
     await page.waitForLoadState('load', { timeout: 30000 }).catch(() => {});
   }
+}
+
+// Exported for the same reason waitForRedirectsToSettle is: directly
+// testable with a real Chromium instance and page.route()-mocked responses,
+// no mocking of this function itself needed. See DOM_STABILITY_* above for
+// why this replaces a fixed wait, and why a CSS-only infinite animation
+// (glow-pulse) can never exercise the maxWaitMs fallback branch below —
+// only genuinely infinite JS-driven *text* mutation can.
+export async function waitForDomTextStability(page: Page): Promise<void> {
+  const deadline = Date.now() + DOM_STABILITY_MAX_WAIT_MS;
+  let lastText: string | null = null;
+  let stableCount = 0;
+  while (Date.now() < deadline) {
+    const text = await page.evaluate(() => document.body.innerText);
+    if (text === lastText) {
+      stableCount++;
+    } else {
+      stableCount = 1;
+      lastText = text;
+    }
+    if (stableCount >= DOM_STABILITY_REQUIRED_STABLE_POLLS) return;
+    await page.waitForTimeout(DOM_STABILITY_POLL_INTERVAL_MS);
+  }
+  // Deadline reached without ever observing DOM_STABILITY_REQUIRED_STABLE_POLLS
+  // consecutive identical reads — a genuinely infinite or abnormally slow
+  // JS-driven text mutation. Falls through and returns rather than looping
+  // forever: capture proceeds against whatever state the page is in, the
+  // same "give up and capture anyway" contract the old fixed wait always
+  // had, except this path is now only taken when content actually never
+  // settles, not unconditionally on every single page.
 }
 
 // Relative to the rebuild output dir's tests/ directory — a fixed, shared
@@ -493,11 +557,12 @@ async function capturePage(browser: Browser, baseUrl: string, route: RouteEntry,
     // different concern from animation settling (navigation vs. motion), so
     // kept as its own sequential step, not merged into the wait below.
     await waitForRedirectsToSettle(page);
-    // Bounded wait for JS-driven motion to settle — see ANIMATION_SETTLE_WAIT_MS's
-    // own doc comment. Both captures below happen after this same wait, so
-    // they can no longer disagree with each other the way a sequential,
-    // unsynchronized DOM-text-then-screenshot capture could.
-    await page.waitForTimeout(ANIMATION_SETTLE_WAIT_MS);
+    // Polls for real DOM-text stability rather than a fixed wait — see
+    // waitForDomTextStability's own doc comment. Both captures below happen
+    // only after this resolves, so they can no longer disagree with each
+    // other the way a sequential, unsynchronized DOM-text-then-screenshot
+    // capture could.
+    await waitForDomTextStability(page);
     const rawOutline = await page.evaluate(extractDomOutline);
     const domOutline: DomTextNode[] = rawOutline.slice(0, MAX_DOM_TEXT_NODES).map((node) => ({
       selectorHint: node.selectorHint,
@@ -621,14 +686,34 @@ describe(${JSON.stringify(`page: ${route.path} (from-reconciliation)`)}, () => {
       }
       await page.waitForLoadState('load', { timeout: 30000 }).catch(() => {});
     }
-    // Same bounded settle-wait the original capture used (see
-    // ANIMATION_SETTLE_WAIT_MS in generatePageTests.ts) — without this, a
+    // Same DOM-text-stability polling the original capture used (see
+    // waitForDomTextStability in generatePageTests.ts) — without this, a
     // rebuild that faithfully reproduces JS-driven motion documented in this
     // page's contract (a requestAnimationFrame counter, a staged reveal)
-    // would fail this exact assertion by being read before it settles.
+    // would fail this exact assertion by being read before it settles, or,
+    // for a legitimately longer-running counter than any fixed wait could
+    // guess, by being read too early no matter what constant was chosen.
     // Applied unconditionally, not just when this page had a detected CSS
     // animation — JS-driven motion has no CSS signal to gate on at all.
-    await page.waitForTimeout(${ANIMATION_SETTLE_WAIT_MS});
+    // Inlined rather than imported: this generated file is its own, separate
+    // npm project with no dependency on rebuild-dossier itself (same reason
+    // devServerBoilerplate() above inlines its own helpers).
+    {
+      const deadline = Date.now() + ${DOM_STABILITY_MAX_WAIT_MS};
+      let lastText = null;
+      let stableCount = 0;
+      while (Date.now() < deadline) {
+        const text = await page.evaluate(() => document.body.innerText);
+        if (text === lastText) {
+          stableCount++;
+        } else {
+          stableCount = 1;
+          lastText = text;
+        }
+        if (stableCount >= ${DOM_STABILITY_REQUIRED_STABLE_POLLS}) break;
+        await page.waitForTimeout(${DOM_STABILITY_POLL_INTERVAL_MS});
+      }
+    }
     // Tolerates the same console-error count the original capture already
     // had (some apps legitimately log a handful) but fails on NEW ones —
     // a strict-equality check here would flake on timing-sensitive warnings

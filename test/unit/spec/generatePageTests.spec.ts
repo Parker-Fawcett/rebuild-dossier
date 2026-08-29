@@ -10,6 +10,7 @@ import {
   hasRealTransition,
   triggerConditionFor,
   waitForRedirectsToSettle,
+  waitForDomTextStability,
   resolveAuthStorageState,
   AUTH_STORAGE_STATE_FIXTURE_RELATIVE_PATH
 } from '../../../src/spec/generatePageTests.js';
@@ -161,6 +162,137 @@ describe('waitForRedirectsToSettle (real browser)', () => {
       await browser.close();
     }
   }, 25000);
+});
+
+// Uses a real Playwright browser (page.route()-mocked responses, no next dev
+// or real HTTP server needed), same rationale as waitForRedirectsToSettle's
+// own describe block above: this is normal Node-side code, never serialized
+// into an isolated browser realm, so it's fully testable here. Regression
+// coverage for the two real, previously-confirmed shapes this replaces a
+// fixed wait for (see DOM_STABILITY_* in generatePageTests.ts):
+// driftlight's requestAnimationFrame counter (which a fixed 1500ms wait
+// truncated mid-count) and a genuinely infinite JS-driven text mutation
+// (which any fixed wait would either truncate or never need to bound).
+describe('waitForDomTextStability (real browser)', () => {
+  it('settles quickly on a page with no motion at all', async () => {
+    const browser = await chromium.launch();
+    try {
+      const page = await (await browser.newContext()).newPage();
+      await page.route('**/static-page', (route) =>
+        route.fulfill({ contentType: 'text/html', body: '<html><body><div>nothing moves here</div></body></html>' })
+      );
+      await page.goto('http://example.test/static-page', { waitUntil: 'load' });
+      const start = Date.now();
+      await waitForDomTextStability(page);
+      const elapsedMs = Date.now() - start;
+      // Well under the 8s max-wait fallback — a static page shouldn't pay
+      // anything close to that just to confirm nothing is changing.
+      expect(elapsedMs).toBeLessThan(3000);
+      expect(await page.textContent('body')).toContain('nothing moves here');
+    } finally {
+      await browser.close();
+    }
+  }, 15000);
+
+  it('captures the true settled value of a driftlight-shaped requestAnimationFrame counter, not a mid-count reading', async () => {
+    // Mirrors the real, live-triggered finding this whole mechanism exists
+    // to fix: driftlight's own counter runs from 0 to 12,400 over ~1.4s
+    // (confirmed against the actual finding, not a differently-remembered
+    // duration) — a fixed 1500ms wait had almost no margin against that
+    // real number and a longer-running counter would blow through it
+    // outright. Polling has no such ceiling: it simply waits for the text to
+    // stop changing.
+    const browser = await chromium.launch();
+    try {
+      const page = await (await browser.newContext()).newPage();
+      await page.route('**/driftlight-counter', (route) =>
+        route.fulfill({
+          contentType: 'text/html',
+          body: `<html><body><div id="counter">0</div><script>
+            const el = document.getElementById('counter');
+            const start = performance.now();
+            const durationMs = 1400;
+            const target = 12400;
+            function tick(now) {
+              const t = Math.min((now - start) / durationMs, 1);
+              el.textContent = Math.floor(t * target).toLocaleString() + '+';
+              if (t < 1) requestAnimationFrame(tick);
+            }
+            requestAnimationFrame(tick);
+          </script></body></html>`
+        })
+      );
+      await page.goto('http://example.test/driftlight-counter', { waitUntil: 'load' });
+      await waitForDomTextStability(page);
+      expect(await page.textContent('body')).toContain('12,400+');
+    } finally {
+      await browser.close();
+    }
+  }, 15000);
+
+  it('does not wait out an infinite CSS-only animation — DOM text with no motion settles immediately regardless', async () => {
+    // The existing CSS glow-pulse case (see injectAnimationNeutralizingOverride
+    // in generatePageTests.ts) never touches document text, so it can never
+    // exercise this function's max-wait fallback no matter how long the
+    // keyframe animation itself runs (here: forever, animation-iteration-count:
+    // infinite, deliberately NOT neutralized in this test, unlike real capture
+    // which applies that override separately) — this is the explicit
+    // distinction the max-wait fallback below exists to NOT be needed for.
+    const browser = await chromium.launch();
+    try {
+      const page = await (await browser.newContext()).newPage();
+      await page.route('**/glow-pulse-page', (route) =>
+        route.fulfill({
+          contentType: 'text/html',
+          body: `<html><head><style>
+            @keyframes glow-pulse { 0% { box-shadow: 0 0 2px #e8a548; } 50% { box-shadow: 0 0 20px #e8a548; } 100% { box-shadow: 0 0 2px #e8a548; } }
+            .cta { animation: glow-pulse 2s infinite; }
+          </style></head><body><button class="cta">Get started</button></body></html>`
+        })
+      );
+      await page.goto('http://example.test/glow-pulse-page', { waitUntil: 'load' });
+      const start = Date.now();
+      await waitForDomTextStability(page);
+      const elapsedMs = Date.now() - start;
+      // The keyframe animation never ends, but text never changes — must
+      // resolve on ordinary stable-text timing, not the 8s max-wait fallback.
+      expect(elapsedMs).toBeLessThan(3000);
+      expect(await page.textContent('body')).toContain('Get started');
+    } finally {
+      await browser.close();
+    }
+  }, 15000);
+
+  it('falls through the max-wait fallback, rather than hanging, for genuinely infinite JS-driven text mutation', async () => {
+    // The one shape that legitimately needs the safety net: text that is
+    // never going to stop changing, by design (unlike driftlight's counter,
+    // which settles). Proves this resolves — capture proceeds anyway — and
+    // does so at roughly the bounded max-wait cost, not indefinitely.
+    const browser = await chromium.launch();
+    try {
+      const page = await (await browser.newContext()).newPage();
+      await page.route('**/never-settles', (route) =>
+        route.fulfill({
+          contentType: 'text/html',
+          body: `<html><body><div id="clock"></div><script>
+            const el = document.getElementById('clock');
+            setInterval(() => { el.textContent = String(performance.now()); }, 100);
+          </script></body></html>`
+        })
+      );
+      await page.goto('http://example.test/never-settles', { waitUntil: 'load' });
+      const start = Date.now();
+      await waitForDomTextStability(page);
+      const elapsedMs = Date.now() - start;
+      // Bounded near the fallback's own budget (~8s), not the unbounded time
+      // an infinitely-changing page would otherwise force a naive "wait
+      // until stable" loop to spend.
+      expect(elapsedMs).toBeGreaterThan(6000);
+      expect(elapsedMs).toBeLessThan(11000);
+    } finally {
+      await browser.close();
+    }
+  }, 20000);
 });
 
 describe('generatePageTests preconditions', () => {
