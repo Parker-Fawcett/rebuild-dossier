@@ -162,6 +162,133 @@ describe('writeSpecTree', () => {
     }
   }, 60000);
 
+  it('does not set "type": "module" unless the original app declares it', async () => {
+    // A real regression: this used to be unconditional, regardless of what
+    // (if anything) the original app itself declared.
+    const repoDir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-writetree-repo-'));
+    const outputDir = join(tmpdir(), `rebuild-dossier-writetree-out-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    try {
+      writeFileSync(join(repoDir, 'server.ts'), "import express from 'express';\nconst app = express();\nexport default app;\n");
+
+      const evidence: EvidenceBundle = {
+        repoPath: repoDir,
+        generatedAt: now,
+        packageJson: { name: 'sample-app', scripts: {}, dependencies: {}, devDependencies: {} },
+        buildConfig: [],
+        routes: [],
+        existingTests: [],
+        signals: []
+      };
+
+      await writeSpecTree({ repoPath: repoDir, outputDir, evidence, cases: [] });
+
+      const pkg = JSON.parse(readFileSync(join(outputDir, 'package.json'), 'utf-8'));
+      expect(pkg.type).toBeUndefined();
+    } finally {
+      rmSync(repoDir, { recursive: true, force: true });
+      rmSync(outputDir, { recursive: true, force: true });
+    }
+  }, 60000);
+
+  it('mirrors "type": "module" into the generated package.json when the original app declares it', async () => {
+    const repoDir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-writetree-repo-'));
+    const outputDir = join(tmpdir(), `rebuild-dossier-writetree-out-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    try {
+      writeFileSync(join(repoDir, 'server.ts'), "import express from 'express';\nconst app = express();\nexport default app;\n");
+
+      const evidence: EvidenceBundle = {
+        repoPath: repoDir,
+        generatedAt: now,
+        packageJson: { name: 'sample-app', type: 'module', scripts: {}, dependencies: {}, devDependencies: {} },
+        buildConfig: [],
+        routes: [],
+        existingTests: [],
+        signals: []
+      };
+
+      await writeSpecTree({ repoPath: repoDir, outputDir, evidence, cases: [] });
+
+      const pkg = JSON.parse(readFileSync(join(outputDir, 'package.json'), 'utf-8'));
+      expect(pkg.type).toBe('module');
+    } finally {
+      rmSync(repoDir, { recursive: true, force: true });
+      rmSync(outputDir, { recursive: true, force: true });
+    }
+  }, 60000);
+
+  it('pins the original app\'s own TypeScript devDependencies into the generated package.json', async () => {
+    // A real regression: a TypeScript project's generated rebuild previously
+    // got no `typescript`/`@types/*` devDependencies at all, leaving a fresh
+    // rebuild agent's own `npm install` free to resolve whatever major npm
+    // currently serves — confirmed live to silently break `next dev` under
+    // an older pinned Next.js version when that landed on an incompatible
+    // major, with no other change responsible.
+    const repoDir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-writetree-repo-'));
+    const outputDir = join(tmpdir(), `rebuild-dossier-writetree-out-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    try {
+      writeFileSync(join(repoDir, 'server.ts'), "import express from 'express';\nconst app = express();\nexport default app;\n");
+      mkdirSync(join(repoDir, 'node_modules', 'typescript'), { recursive: true });
+      writeFileSync(join(repoDir, 'node_modules', 'typescript', 'package.json'), JSON.stringify({ name: 'typescript', version: '5.5.3' }));
+
+      const evidence: EvidenceBundle = {
+        repoPath: repoDir,
+        generatedAt: now,
+        packageJson: {
+          name: 'sample-app',
+          scripts: {},
+          dependencies: {},
+          // @types/node has no matching node_modules entry below — falls
+          // back to the declared range unchanged, same as any other
+          // never-installed dependency.
+          devDependencies: { typescript: '^5.5.0', '@types/node': '^20.0.0', vitest: '^3.0.0' }
+        },
+        buildConfig: [],
+        routes: [],
+        existingTests: [],
+        signals: []
+      };
+
+      await writeSpecTree({ repoPath: repoDir, outputDir, evidence, cases: [] });
+
+      const pkg = JSON.parse(readFileSync(join(outputDir, 'package.json'), 'utf-8'));
+      expect(pkg.devDependencies.typescript).toBe('5.5.3');
+      expect(pkg.devDependencies['@types/node']).toBe('^20.0.0');
+      // The original's own `vitest` devDependency is unrelated TS tooling —
+      // must not be carried over a second time or override the rebuild's own.
+      expect(pkg.devDependencies.vitest).toBe('^4.0.0');
+    } finally {
+      rmSync(repoDir, { recursive: true, force: true });
+      rmSync(outputDir, { recursive: true, force: true });
+    }
+  }, 60000);
+
+  it('adds no TypeScript devDependencies when the original app has none', async () => {
+    const repoDir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-writetree-repo-'));
+    const outputDir = join(tmpdir(), `rebuild-dossier-writetree-out-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    try {
+      writeFileSync(join(repoDir, 'server.ts'), "import express from 'express';\nconst app = express();\nexport default app;\n");
+
+      const evidence: EvidenceBundle = {
+        repoPath: repoDir,
+        generatedAt: now,
+        packageJson: { name: 'sample-app', scripts: {}, dependencies: {}, devDependencies: {} },
+        buildConfig: [],
+        routes: [],
+        existingTests: [],
+        signals: []
+      };
+
+      await writeSpecTree({ repoPath: repoDir, outputDir, evidence, cases: [] });
+
+      const pkg = JSON.parse(readFileSync(join(outputDir, 'package.json'), 'utf-8'));
+      expect(pkg.devDependencies.typescript).toBeUndefined();
+      expect(Object.keys(pkg.devDependencies).some((k) => k.startsWith('@types/'))).toBe(false);
+    } finally {
+      rmSync(repoDir, { recursive: true, force: true });
+      rmSync(outputDir, { recursive: true, force: true });
+    }
+  }, 60000);
+
   it('the generated npm test script only ever runs tests/visible, never tests/held-out or tests/weak', async () => {
     // Caught by a real fresh-agent handoff: the generator's own default
     // ("vitest run", no path) picks up every test under tests/ — visible,

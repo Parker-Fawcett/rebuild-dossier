@@ -70,6 +70,29 @@ function buildStackLines(evidence: EvidenceBundle): string[] {
   return [`lang: TypeScript / ${framework}`];
 }
 
+// TypeScript's own toolchain (the `typescript` package itself, plus any
+// `@types/*` type-declaration packages) — never assumed present, only
+// carried over when the ORIGINAL app's own package.json actually declares
+// it. A real regression: the generated package.json previously never
+// included these at all for a TypeScript project, so a fresh rebuild
+// agent's own `npm install` was free to resolve whatever `typescript`
+// major npm's registry currently serves — which silently broke `next dev`
+// under Next.js 14.2.5 when that happened to be a major newer than Next
+// itself supports (confirmed live: pinning `typescript` back down alone
+// fixed the boot, with no other change). Pinned via the same
+// pinDependencyVersions mechanism as `dependencies`, for the same reason:
+// a bare semver range doesn't guarantee landing on the version the
+// original app actually ran with.
+const TYPESCRIPT_TOOLING_PATTERN = /^(typescript|@types\/.+)$/;
+
+function typescriptToolingDependencies(devDependencies: Record<string, string>): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [name, range] of Object.entries(devDependencies)) {
+    if (TYPESCRIPT_TOOLING_PATTERN.test(name)) result[name] = range;
+  }
+  return result;
+}
+
 function sanitizeTopicKeyFilename(topicKey: string): string {
   return (
     topicKey
@@ -231,6 +254,10 @@ async function writeSpecTreeInto(
   const heldOut = [...expressHeldOut, ...nextApiHeldOut, ...pageResult.heldOut];
 
   const pinnedDependencies = pinDependencyVersions(repoPath, evidence.packageJson.dependencies);
+  const pinnedTypescriptTooling = pinDependencyVersions(
+    repoPath,
+    typescriptToolingDependencies(evidence.packageJson.devDependencies)
+  );
 
   // Page tests spawn their own `next dev` + Chromium exactly like gate tests
   // do (both reuse the shared devServerBoilerplate() — see
@@ -244,10 +271,18 @@ async function writeSpecTreeInto(
       {
         name: `${evidence.packageJson.name ?? 'app'}-rebuild`,
         private: true,
-        type: 'module',
+        // Mirrors the original app's own module system rather than forcing
+        // one unconditionally — a real regression: this used to always be
+        // `'module'`, regardless of what the original actually declared
+        // (or didn't). Omitted entirely (Node's own CommonJS default) unless
+        // the original explicitly declared `"type": "module"` itself.
+        ...(evidence.packageJson.type === 'module' ? { type: 'module' as const } : {}),
         scripts: { test: REBUILD_TEST_SCRIPT },
         ...(Object.keys(pinnedDependencies).length > 0 ? { dependencies: pinnedDependencies } : {}),
-        devDependencies: usesDevServerBoilerplate ? { vitest: '^4.0.0', playwright: '^1.61.1' } : { vitest: '^4.0.0' }
+        devDependencies: {
+          ...(usesDevServerBoilerplate ? { vitest: '^4.0.0', playwright: '^1.61.1' } : { vitest: '^4.0.0' }),
+          ...pinnedTypescriptTooling
+        }
       },
       null,
       2

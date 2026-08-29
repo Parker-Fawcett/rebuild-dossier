@@ -24,6 +24,37 @@ describe('readPackageJson', () => {
       expect(summary.scripts.test).toBe('vitest run');
       expect(summary.dependencies.express).toBe('^4.19.0');
       expect(summary.devDependencies.vitest).toBe('^4.0.0');
+      expect(summary.type).toBeUndefined();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('extracts a declared "type": "module"', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-pkg-'));
+    try {
+      writeFileSync(join(dir, 'package.json'), JSON.stringify({ type: 'module', scripts: {}, dependencies: {}, devDependencies: {} }));
+      expect(readPackageJson(dir).type).toBe('module');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('extracts a declared "type": "commonjs"', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-pkg-'));
+    try {
+      writeFileSync(join(dir, 'package.json'), JSON.stringify({ type: 'commonjs', scripts: {}, dependencies: {}, devDependencies: {} }));
+      expect(readPackageJson(dir).type).toBe('commonjs');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('ignores an invalid "type" value rather than passing it through', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-pkg-'));
+    try {
+      writeFileSync(join(dir, 'package.json'), JSON.stringify({ type: 'esnext', scripts: {}, dependencies: {}, devDependencies: {} }));
+      expect(readPackageJson(dir).type).toBeUndefined();
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

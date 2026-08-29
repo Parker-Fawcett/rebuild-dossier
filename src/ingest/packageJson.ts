@@ -24,6 +24,7 @@ export function readPackageJson(repoPath: string): PackageJsonSummary {
   const pkg = raw as Record<string, unknown>;
   return {
     name: typeof pkg.name === 'string' ? pkg.name : undefined,
+    type: pkg.type === 'module' || pkg.type === 'commonjs' ? pkg.type : undefined,
     scripts: isStringRecord(pkg.scripts) ? pkg.scripts : {},
     dependencies: isStringRecord(pkg.dependencies) ? pkg.dependencies : {},
     devDependencies: isStringRecord(pkg.devDependencies) ? pkg.devDependencies : {}

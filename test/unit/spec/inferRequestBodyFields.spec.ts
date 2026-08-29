@@ -175,6 +175,33 @@ describe('inferRequestBodyFields', () => {
     expect(inferRequestBodyFields(source, route())).toEqual(expect.arrayContaining(['name', 'message']));
   });
 
+  it('extracts field names from the same fieldnotes-shape idiom under a differently-named variable', () => {
+    // A real regression found live: the exact shape above but naming the
+    // parsed-JSON variable `raw` instead of `body` (an equally reasonable
+    // choice — arguably more descriptive, since it's the payload before
+    // validation) got ZERO fields and no validation rules at all, because
+    // every property-access pattern was hardcoded to the literal name
+    // `body`. Must keep passing.
+    const source = `
+      export async function POST(request) {
+        let raw;
+        try {
+          raw = await request.json();
+        } catch {
+          return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+        }
+
+        const subject = (raw as Record<string, unknown> | null)?.subject;
+        const body = (raw as Record<string, unknown> | null)?.body;
+
+        if (!subject || !body) {
+          return NextResponse.json({ error: 'subject and body are both required' }, { status: 400 });
+        }
+      }
+    `;
+    expect(inferRequestBodyFields(source, route())).toEqual(expect.arrayContaining(['subject', 'body']));
+  });
+
   it('extracts field names from type-asserted access with a non-null assertion', () => {
     const source = `
       export async function POST(request) {

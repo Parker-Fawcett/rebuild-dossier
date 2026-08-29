@@ -33,6 +33,12 @@ export type ExistingTestEntry = z.infer<typeof existingTestEntrySchema>;
 
 export const packageJsonSummarySchema = z.object({
   name: z.string().optional(),
+  // The original app's own module system — undefined when the field is
+  // absent or not one of these two literal values (Node's own accepted
+  // values), never guessed at. Used to mirror the original's real module
+  // system into the generated rebuild's package.json instead of forcing
+  // one unconditionally.
+  type: z.enum(['module', 'commonjs']).optional(),
   scripts: z.record(z.string(), z.string()),
   dependencies: z.record(z.string(), z.string()),
   devDependencies: z.record(z.string(), z.string())

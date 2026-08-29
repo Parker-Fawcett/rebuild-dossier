@@ -32,22 +32,55 @@ import { isolateHandlerBody } from './isolateHandlerSource.js';
 //    quoted-string keys (`{ 'name': value }`) are all dropped — same
 //    accepted-risk category as inferRequestBodyFields.ts's equivalent
 //    limitations.
-// 5. Naive bracket-depth counting doesn't parse string/template literals —
-//    a stray bracket character inside a string value could in principle
-//    throw off argument/entry boundaries. Low-probability, low-consequence
-//    (worst case: a missing/extra doc line — this module never touches
-//    test assertions at all).
+// 5. Fixed: bracket/comma/colon depth-tracking now skips over
+//    string/template literals atomically (`skipStringLiteral`), so a
+//    bracket, comma, or colon character inside a literal value no longer
+//    throws off argument/entry boundaries. A real regression this closed:
+//    `{ error: 'must be one of low, normal, high' }` — the commas inside
+//    that message were previously read as entry separators, producing a
+//    phantom field (`normal`) and a truncated value for the real `error`
+//    field. Still unhandled: a literal containing the SAME quote character
+//    unescaped is not valid JS to begin with, so this isn't a new gap.
 // 6. Only recognizes the conventional `NextResponse`/`Response`/`res`
 //    receiver names — a differently-named response object is invisible.
 
 export const IDENTIFIER_PATTERN = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 const RESPONSE_CALL_PATTERN = /\b(?:NextResponse|Response|res)\.(?:status\([^)]*\)\.)?json\s*\(/g;
+const QUOTE_CHARS = new Set<string | undefined>(["'", '"', '`']);
+
+// Every depth-tracking scan below must skip over string/template literals
+// atomically — otherwise a plain comma, brace, or colon inside a literal
+// value (e.g. an error message like `'must be one of low, normal, high'`)
+// gets misread as an entry/argument boundary. A real regression: that exact
+// message produced a phantom field named after one of its own words and a
+// truncated value for the real field. Returns the index just past the
+// closing quote (honoring `\`-escapes), or `text.length` for an
+// unterminated literal — never throws, matching this module's honest
+// bail-out philosophy elsewhere.
+function skipStringLiteral(text: string, start: number): number {
+  const quote = text[start];
+  let i = start + 1;
+  while (i < text.length) {
+    if (text[i] === '\\') {
+      i += 2;
+      continue;
+    }
+    if (text[i] === quote) return i + 1;
+    i++;
+  }
+  return text.length;
+}
 
 function findMatchingClose(text: string, openIndex: number, openChar: string, closeChar: string): number {
   let depth = 0;
   for (let i = openIndex; i < text.length; i++) {
-    if (text[i] === openChar) depth++;
-    else if (text[i] === closeChar) {
+    const c = text[i];
+    if (QUOTE_CHARS.has(c)) {
+      i = skipStringLiteral(text, i) - 1;
+      continue;
+    }
+    if (c === openChar) depth++;
+    else if (c === closeChar) {
       depth--;
       if (depth === 0) return i;
     }
@@ -64,6 +97,10 @@ function firstArgument(text: string, callOpenIndex: number): string | null {
   const start = callOpenIndex + 1;
   for (let i = callOpenIndex; i < text.length; i++) {
     const c = text[i];
+    if (QUOTE_CHARS.has(c)) {
+      i = skipStringLiteral(text, i) - 1;
+      continue;
+    }
     if (c === '(' || c === '{' || c === '[') depth++;
     else if (c === ')' || c === '}' || c === ']') {
       depth--;
@@ -81,6 +118,10 @@ function splitTopLevelEntries(inner: string): string[] {
   let start = 0;
   for (let i = 0; i < inner.length; i++) {
     const c = inner[i];
+    if (QUOTE_CHARS.has(c)) {
+      i = skipStringLiteral(inner, i) - 1;
+      continue;
+    }
     if (c === '(' || c === '{' || c === '[') depth++;
     else if (c === ')' || c === '}' || c === ']') depth--;
     else if (c === ',' && depth === 0) {
@@ -97,6 +138,10 @@ function topLevelColonIndex(entry: string): number {
   let depth = 0;
   for (let i = 0; i < entry.length; i++) {
     const c = entry[i];
+    if (QUOTE_CHARS.has(c)) {
+      i = skipStringLiteral(entry, i) - 1;
+      continue;
+    }
     if (c === '(' || c === '{' || c === '[') depth++;
     else if (c === ')' || c === '}' || c === ']') depth--;
     else if (c === ':' && depth === 0) return i;

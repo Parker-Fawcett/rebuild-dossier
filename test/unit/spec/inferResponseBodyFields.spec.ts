@@ -118,6 +118,32 @@ describe('inferResponseBodyFields', () => {
     `;
     expect(inferResponseBodyFields(source, route())).toEqual([]);
   });
+
+  it('does not split entries on a comma inside a string literal value', () => {
+    // A real regression: a plain, natural-language error message containing
+    // commas (`'priority must be one of low, normal, high'`) was previously
+    // read as THREE top-level entries, since entry-splitting didn't know it
+    // was inside a string — producing a phantom field (`normal`) and a
+    // truncated value for the real `error` field. Must extract exactly one
+    // field, with no phantom entries from the message's own punctuation.
+    const source = `
+      export async function POST(request) {
+        return NextResponse.json({ error: 'priority must be one of low, normal, high' }, { status: 400 });
+      }
+    `;
+    expect(inferResponseBodyFields(source, route())).toEqual(['error']);
+  });
+
+  it('does not split entries on a brace or colon inside a string literal value', () => {
+    const source = `
+      export async function POST(request) {
+        return NextResponse.json({ error: 'expected shape: { name, message }', id: 1 });
+      }
+    `;
+    const fields = inferResponseBodyFields(source, route());
+    expect(fields).toEqual(expect.arrayContaining(['error', 'id']));
+    expect(fields).not.toContain('message');
+  });
 });
 
 describe('inferResponseValueFormatHints', () => {
@@ -205,6 +231,19 @@ describe('inferResponseValueFormatHints', () => {
     const hints = inferResponseValueFormatHints(source, route());
     expect(hints).toEqual({ created_at: 'new Date().toISOString()' });
     expect(hints).not.toHaveProperty('id');
+  });
+
+  it('suppresses a hint for a string literal even when it contains internal commas', () => {
+    // Companion to the field-extraction regression above: the value itself
+    // is a trivial (quoted-string) literal, so no hint should be shown at
+    // all — and, now that entry-splitting is string-aware, it must not be
+    // truncated at the literal's own internal comma first.
+    const source = `
+      export async function POST(request) {
+        return NextResponse.json({ error: 'priority must be one of low, normal, high' }, { status: 400 });
+      }
+    `;
+    expect(inferResponseValueFormatHints(source, route())).toEqual({});
   });
 
   it('extracts hints from the real fieldnotes-shape idiom (type-asserted body reads, plus a same-file local declaration) for every field with a real expression', () => {
