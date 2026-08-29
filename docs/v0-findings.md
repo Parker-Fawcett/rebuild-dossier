@@ -3311,6 +3311,47 @@ that it passes: temporarily reverted the fix, watched the two output-only cases 
 Does not retroactively change anything reported for Section 4.14 — that description is of the run
 as it happened, before this fix existed, and remains accurate as a historical record.
 
+## The strong-tier single-prompt baseline fills the last empty cell in Appendix D — and surfaces a real methodological confound the mechanical counts alone would have missed
+
+Three Sonnet, single-prompt, no-spec/no-rails trials on catchandtrade (the one remaining cell in
+the weak/strong × single-prompt/spec-plus-rails design), run under a kickoff prompt reconstructed
+from Sections 4.9/4.10's own prose since the literal original was never preserved verbatim
+anywhere — that reconstruction, its phrase-by-phrase match against the paper's own claims, and the
+exhaustive git-history/disk search confirming the original is genuinely unrecoverable, are all
+committed as their own artifact (`ablation/strong-tier-single-prompt/`) rather than left in prose
+alone. All three trials reached valid completion on the first attempt, left `reference/`
+byte-identical, fabricated no Stripe integration, and self-reported route/page counts that matched
+an independent recount exactly in all three.
+
+That would have been a clean, citable extension of the strong tier's native-discipline finding —
+except that reading each trial's raw session transcript (not just its mechanical output) surfaced
+something the route/page counts alone never would have: all three trials used the `Agent` tool to
+spawn background subagents that performed most of the actual file writing, despite `Agent` not
+appearing anywhere in `--allowedTools Read,Write,Edit,Bash,Glob,Grep`. Trial 1 spawned 7 subagents,
+trial 2 spawned 4, trial 3 spawned 4 — every one a genuine, non-blocked "Async agent launched
+successfully" dispatching real build work ("Build auth/users API routes," "Port auth and profile
+pages"), each with `model: None` (confirmed to inherit the parent's Sonnet, ruling out a silent
+weaker-model confound but not an orchestration one), each completing minutes later as real
+background work. This means the experiment did not test what it was designed to test — one
+continuous agent's own build-order judgment with no spec and no rails — and `--allowedTools` did
+not actually gate the `Agent` tool in this environment, a real, previously unconfirmed limitation
+of that flag in its own right.
+
+Re-checking the batch-building measure against this finding changed the result, not just its
+interpretation: the original routes-only aggregate (a maximum of ~39% of route files in any
+69-second window) undercounted a real single-subagent batch write once page files and finer time
+windows were added — in trial 2, seven page files (`(auth)/callback`, `(auth)/login`,
+`(auth)/register`, `legal/privacy`, `legal/terms`, `onboarding`, `u/[username]`) share the
+identical one-second mtime, all from one "Port auth and profile pages" subagent finishing its
+entire assignment in one shot. No trial approaches the original weak-tier spec-plus-rails
+signature of *every* file landing in one burst, but the honest reading is: this describes what a
+swarm of independently-dispatched subagents produced in aggregate, not one agent's own pacing, and
+at least one subagent still batch-wrote its scope exactly the way a weaker model's rails violation
+does. The paper's write-up was revised before anything was tagged or pushed to state this directly
+— reference integrity, Stripe honesty, and self-report accuracy still hold regardless of which
+agent did the writing, but the claim that this shows single-agent restraint generalizing to looser
+conditions does not survive as originally stated.
+
 ## Bottom line
 
 The core loop (ingest → reconcile → spec → generate → test → verify) works, on a real messy
