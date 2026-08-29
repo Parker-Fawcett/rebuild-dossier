@@ -3,7 +3,7 @@
   "name": "com.parkerfawcett/rebuild-dossier",
   "title": "Rebuild Dossier",
   "description": "MCP server that reverse-engineers a locked rebuild spec (CLAUDE.md, .claude config, mutation-tested tests) from an existing app, so coding agents rebuild against a verified contract instead of guessing.",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "homepage": "https://github.com/Parker-Fawcett/rebuild-dossier",
   "repository": {
     "url": "https://github.com/Parker-Fawcett/rebuild-dossier",
