@@ -42,6 +42,8 @@ Six MCP tools, run from inside a normal Claude Code (or any MCP-compatible) sess
 | `get_case_queue()` / `resolve_case(id, decision)` | The ambiguity queue. Surfaces open questions via MCP elicitation when the client supports it; `resolve_case` is always available as a scripted fallback. |
 | `generate_spec()` | Only callable once the case queue is empty. Writes `CLAUDE.md`, `.claude/rules/`, `.claude/settings.json` (hooks that *mechanically* enforce the discipline — see below), `spec/contracts/*.md`, `tests/visible/` + `tests/held-out/`, and `kickoff-prompt.txt` to a clean sibling `<repo>-rebuild/` directory — never into the original repo. Runs a real mutation check before finalizing tests: deliberately breaks the original code and confirms each generated test actually catches it, downgrading any that don't. |
 
+`crawl_site` needs Chromium (`npx playwright install chromium`, below) — it isn't bundled with the server, including when installed via Smithery, so run it once first or the tool will fail.
+
 ### Rails that are mechanically enforced, not just written down
 
 A comparison run across two model tiers found that a weaker model will happily read
