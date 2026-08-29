@@ -17,6 +17,7 @@
     "start:http": "tsx src/httpServer.ts",
     "build": "tsc -p tsconfig.build.json",
     "start:http:prod": "node dist/httpServer.js",
+    "package:mcpb": "node scripts/build-mcpb.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"

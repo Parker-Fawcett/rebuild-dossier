@@ -1,0 +1,45 @@
+{
+  "manifest_version": "0.3",
+  "name": "rebuild-dossier",
+  "display_name": "Rebuild Dossier",
+  "version": "0.2.3",
+  "description": "MCP server that reverse-engineers a locked rebuild spec (CLAUDE.md, .claude config, mutation-tested tests) from an existing app, so coding agents rebuild against a verified contract instead of guessing.",
+  "author": {
+    "name": "Parker Fawcett",
+    "url": "https://github.com/Parker-Fawcett"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Parker-Fawcett/rebuild-dossier"
+  },
+  "homepage": "https://github.com/Parker-Fawcett/rebuild-dossier",
+  "license": "MIT",
+  "keywords": ["mcp", "model-context-protocol", "code-analysis", "reverse-engineering", "ai-agents", "testing"],
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/index.js"],
+      "env": {
+        "GROQ_API_KEY": "${user_config.groq_api_key}"
+      }
+    }
+  },
+  "tools_generated": true,
+  "user_config": {
+    "groq_api_key": {
+      "type": "string",
+      "title": "Groq API Key",
+      "description": "Optional. Enables vision-assisted page classification in generate_spec for Next.js targets (also requires REBUILD_DOSSIER_ENABLE_VISION_CLASSIFICATION=1 set in your own environment). Leave blank to skip.",
+      "required": false,
+      "sensitive": true
+    }
+  },
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=18.0.0"
+    }
+  }
+}
