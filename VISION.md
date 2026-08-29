@@ -43,24 +43,56 @@ currently citing?
 
 ## What Paper 1's own evidence already says about backend fidelity
 
-Not "backend cloning barely works" — something more specific and more useful to design against:
+Not "backend cloning barely works," and not simply "field names/shapes reproduce reliably"
+either — a fresh, second blind-rebuild experiment (`supportdesk`, see below) replaced that
+first-pass read with a precise, mechanistic, falsifiable claim:
 
-- Field names, shapes, and formats reproduce reliably — §4.6's notarybox result, verified via
-  matching live HTTP responses field-for-field, down to exact timestamp formatting.
-- What's actually missing is a specific, enumerable set of semantic properties the current
-  contract format has no representation for at all:
-  - Status-code conventions (200 vs. 201)
-  - Business-rule validation (accepting an incomplete record the original rejects)
-  - Error-handling structure (try/catch presence)
-  - Value-type semantics (string enum vs. number)
+- **Field names/shapes/formats reproduce reliably only when a route's response is a literal
+  object built in the same handler.** §4.6's notarybox result held because notarybox's one route
+  happened to be exactly that shape. The moment a route's success response is a bare variable
+  instead — a database row, an update result (`NextResponse.json(ticket)`,
+  `NextResponse.json(updated)`) — contract generation goes fully blind: `inferResponseBodyFields`'s
+  own documented scope (a bare-variable response is invisible) means the generated contract for
+  that route carries zero information beyond its status code. In `supportdesk`, 3 of 4 routes hit
+  this shape, and each shipped with a response contract containing nothing but an `error` field.
+  A blind-rebuild agent given only that produced content-free stub responses (`{}`) for every one
+  of them — passing every generated test (which only checks status codes and crash-safety) while
+  reproducing zero real behavior. This is a majority shape in any real app with more than trivial
+  CRUD, which is why it's the load-bearing finding, not a footnote.
+- The semantic gaps named below are still real and reconfirmed with fresh, concrete examples —
+  but the mechanism above is more fundamental: it's not just "the tests don't check business
+  rules," it's that **the contract itself carries no information to check against** for the
+  majority-shape case.
+  - Status-code conventions (200 vs. 201) — still no contract signal for a dynamic-segment route.
+  - Business-rule validation (accepting an incomplete record the original rejects) — reconfirmed;
+    `supportdesk`'s rebuild silently accepted a request missing required fields.
+  - Error-handling structure (try/catch presence) — reconfirmed; a malformed-JSON request that the
+    original rejects with a clean `400` crashed the rebuild with an unhandled `500`.
+  - Value-type semantics (string enum vs. number) — still untested directly, since the one field
+    that would have exercised it (`resolution_minutes`, a computed number) lived on a bare-variable
+    response and never reached the contract at all.
 
-These are the real, nameable gaps to design against.
+These are the real, nameable gaps to design against — `inferResponseBodyFields.ts`'s bare-variable
+limitation is the single highest-leverage one, since it's the one gap that silences every other
+signal downstream of it.
 
-## Open question, not yet resolved
+## Open question — resolved, with caveats
 
-Whether a recollection of "backend cloning doesn't work reliably" reflects the tool's current
-state or an earlier one — worth a fresh, direct check against the current tool before treating it
-as a real, current gap.
+"Backend cloning doesn't work reliably" was a stale, too-coarse recollection — it's neither fully
+true nor fully false. The `supportdesk` experiment (built specifically to re-run notarybox's
+protocol against a genuinely more complex app: enum validation, two state-transition business
+rules, a computed numeric field, five distinct status codes) replaced it with the precise
+bare-variable-response mechanism above. Two rounds of blind rebuild were run to isolate a real
+methodological confound: the first round's `--allowedTools` scoping blocked `next build`/`mkdir`/
+`rm`, and the agent worked around being unable to diagnose a missing `tsconfig.json` by silently
+converting the whole app from TypeScript to plain JavaScript — a dramatic-looking deviation that
+turned out to be an artifact of the harness, not the pipeline. A second round with those tools
+properly allowed kept the app in TypeScript and self-healed the missing `tsconfig.json`, but
+surfaced a different, also-real pipeline gap (see the log below) and, freed from fighting that
+blocker, converged even further toward content-free stub responses — strengthening rather than
+undermining the core finding. Same evidentiary bar as notarybox itself (n=1, one hand-built app);
+worth a second real target before this is fully settled, same discipline as the DOM-motion finding
+below.
 
 ## Rough shape of the components this would eventually need
 
@@ -88,3 +120,24 @@ per the rule above.)
   something found in the wild, and both still the same broad category (JS-driven, eventually-
   settling DOM text) — a genuinely infinite or externally-paced motion source is still untested.
   Closer to ready for a revision pass than before, not yet there.
+- `supportdesk` blind-rebuild experiment: resolved the open backend-fidelity question above into
+  the bare-variable-response mechanism. Four general, real correctness bugs it surfaced are now
+  fixed — narrow, cheap, general fixes, same category as `touchesHeldOut`, folded in directly, not
+  gated on anything above: comma-inside-a-string-literal entry-splitting and request-field
+  extraction hardcoded to a variable literally named `body` (both in
+  `inferResponseBodyFields.ts`/`inferRequestBodyFields.ts`); and, from the confound-isolation
+  rerun, the generated rebuild `package.json` unconditionally setting `"type": "module"` regardless
+  of what the original app itself declared, and never carrying over the original's own
+  `typescript`/`@types/*` devDependencies at all (`writeSpecTree.ts`). That last one is the
+  confirmed, sole real cause of the confound-isolation rerun's `next dev` crash — isolated directly
+  by testing each variable independently: pinning `typescript` back down alone fixed the boot with
+  `"type": "module"` still present, and removing `"type": "module"` alone (with the incompatible
+  `typescript` major left in place) did not fix it, reproducing the identical crash. The initial
+  write-up here had attributed part of the cause to `"type": "module"` too, echoing the rebuild
+  agent's own self-diagnosis without independently verifying it — that specific claim doesn't hold
+  up; corrected here. `"type": "module"` is still fixed on its own, more modest merits (consistency
+  with the rest of the pipeline's pin-to-the-original's-real-environment discipline; it also
+  produced a real, if non-fatal, module-reparse warning), not because it was ever shown to cause
+  the crash itself. The bare-variable-response limitation itself remains open — a real Phase 2
+  capability gap, not fixed here. See `docs/v0-findings.md`, "The `supportdesk` blind-rebuild
+  experiment," for the full methodology, both live-verified rebuild rounds, and the isolation test.

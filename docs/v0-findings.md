@@ -3527,3 +3527,116 @@ hand-built apps rather than something found in the wild, and both still in the s
 under, this is a verification step only: it makes the capability fix more ready for a future,
 deliberate, batched revision pass into the manuscript — it does not itself fold anything into the
 manuscript, and no manuscript-cited number changes as a result of this section.
+
+## The `supportdesk` blind-rebuild experiment: resolving VISION.md's open backend-fidelity question
+
+`VISION.md`'s Phase-2 notes carried an open question since the `notarybox` finding: whether "backend
+cloning doesn't work reliably" reflects this tool's current state or a stale impression from before
+the status-code/validation-detection work landed. Answering it required repeating `notarybox`'s
+exact protocol — build a real app, run the real pipeline, physically relocate the source, hand a
+genuinely fresh agent only the generated spec, then verify by reading the rebuild's actual code and
+running identical requests against both apps side by side — against a new app with real semantic
+complexity `notarybox` didn't have: enum validation via array-membership (`.includes(...)`, a shape
+none of the existing validation-guard detectors recognize), two distinct state-transition business
+rules (a ticket can only be closed once; escalation has a priority ceiling), a computed numeric field
+(`resolution_minutes`), and five distinct status codes (200/201/400/404/409) across four routes.
+
+**Two real bugs surfaced from reading the generated contract alone, before any blind rebuild ran.**
+`POST-api-tickets.md`'s response-fields section rendered `` `error` — computed as: `'priority must be
+one of low` `` followed by a bare `` `normal` `` entry with no computed-as line at all — a genuine,
+previously undocumented bug: `inferResponseBodyFields.ts`'s entry-splitting counts bracket/paren/brace
+depth but never tracks string-literal boundaries, so a plain comma inside a natural-language error
+message (`'priority must be one of low, normal, high'`) gets read as two additional top-level entry
+separators, producing a phantom field name lifted from the message's own words and truncating the
+real field's value. Separately, the same contract had **no "Inferred request body fields" section at
+all**, despite the handler having exactly the well-supported `if (!subject || !body)` bare-negation
+guard shape — traced to `inferRequestBodyFields.ts`'s property-access regexes being hardcoded to the
+literal variable name `body` (`\bbody\??\.`, `(body as ...)`); this fixture's handler named that
+variable `raw` (an equally reasonable choice), and got zero fields extracted, not degraded accuracy.
+Because `inferRequestValidationRules.ts` cross-references `inferRequestBodyFields`'s known-field set
+and bails to `{}` on an empty set, this one naming difference also silently blacked out validation-
+rule detection entirely — not a second bug, the same one cascading.
+
+**Both fixed directly, general and cheap, same category as `touchesHeldOut`.** `inferResponseBodyFields.ts`
+now skips string/template literals atomically (`skipStringLiteral`) in every depth-tracking scan
+(`findMatchingClose`, `firstArgument`, `splitTopLevelEntries`, `topLevelColonIndex`), closing both the
+comma-inside-a-string case found live and the previously-only-theoretical "stray bracket in a string"
+limitation the same functions already carried. `inferRequestBodyFields.ts` now discovers whichever
+identifier a handler actually assigns `await request.json()`/`await req.json()` to — via direct
+declaration or the real fieldnotes idiom's plain reassignment of an earlier `let` — and runs the
+existing property-access matching against every name found that way, `body` still checked
+unconditionally so the original convention keeps working with no explicit assignment visible. Both
+fixes shipped with regression tests reproducing the exact real source (`test/unit/spec/inferResponseBodyFields.spec.ts`,
+`test/unit/spec/inferRequestBodyFields.spec.ts`); full suite (526 tests) and typecheck stayed green.
+
+**The blind rebuild itself needed two rounds to separate a real methodological confound from a real
+pipeline finding.** Round one used `--allowedTools "Bash(npm *) Bash(node *)"` for the fresh Haiku
+agent's session — too narrow: `mkdir`, `npx`, and `rm` all got denied. The rebuild's generated
+`package.json` (via `writeSpecTree.ts`) has no `tsconfig.json` and no `typescript`/`@types/node`/
+`@types/react` in `devDependencies` at all, even though `CLAUDE.md` declares `lang: TypeScript` and
+every route file is `.ts`/`.tsx` — a real, previously undocumented gap. Blocked from `npx next
+build`/`next dev` to diagnose the resulting TypeScript-verification crash, the agent worked around it
+by silently converting the entire app from TypeScript to plain JavaScript (`.ts`→`.js`, `.tsx`→`.jsx`)
+— a dramatic, CLAUDE.md-violating deviation ("the dependency versions already pinned... are locked...
+lang: TypeScript" is explicit) that turned out to be an artifact of the harness's own tool scoping,
+not a pipeline behavior, once round two reran the identical, unmodified pipeline output with `next
+build`/`mkdir`/`rm` properly allowed: this time the agent stayed in TypeScript and self-healed the
+missing `tsconfig.json` on its own (`next dev`'s own "We detected TypeScript... and created a
+tsconfig.json for you"). It then hit a different, also-real blocker instead: `npm install` resolved
+an unpinned `typescript@7.0.2`, which Next.js 14.2.5's internal `verifyTypeScriptSetup` cannot run
+under when the generated `package.json` also unconditionally sets `"type": "module"` — confirmed
+directly by pinning `typescript` back to `5.5.3` in a scratch copy of the same rebuild output, which
+alone made `next dev` boot cleanly. Left open at first, since the confound-isolation experiment's own
+point was measuring the pipeline as it stands, not patching it mid-measurement.
+
+**Both fixed after the confound-isolation experiment finished, with the same regression-test
+discipline as the two bugs above — but only after isolating which variable was actually causal.**
+The initial write-up attributed the crash partly to `"type": "module"` too, echoing the rebuild
+agent's own self-diagnosis (*"Next.js 14.2.5 incompatibility with ES modules (`type: module` in
+package.json)"*) without independently verifying it. A direct isolation test before writing any fix
+disproved that: reproducing the exact crash again with `"type": "module"` present and
+`typescript@7.0.2` installed, then removing only `"type": "module"` while leaving `typescript@7.0.2`
+in place, reproduced the identical `TypeError: Cannot read properties of undefined (reading
+'endsWith')` — `"type": "module"` is not independently causal; the unpinned `typescript` major is the
+sole confirmed cause. `writeSpecTree.ts` now pins `typescript`/`@types/*` the same way `dependencies`
+already were (`pinDependencyVersions`, reading the real installed version from the original app's own
+`node_modules`, falling back to its declared range only if never installed) — merged additively into
+the generated `devDependencies`, never forced onto a plain-JS project that declares none. Separately,
+`"type": "module"` is now conditional on what the original app's own `package.json` actually declares
+(a new `type` field added to `packageJsonSummarySchema`/`readPackageJson`, mirroring the same
+"never guess, only carry over real evidence" discipline as everything else in `evidence.packageJson`)
+— omitted entirely (Node's own CommonJS default) unless the original explicitly opts into ESM itself.
+This is fixed on its own more modest merits (consistency with the pin-to-the-original's-real-
+environment philosophy the rest of the generator already follows; it also produced a real, if
+non-fatal, Node module-reparse warning for a CommonJS-style `next.config.js`), not because it was
+ever shown to cause the `next dev` crash itself. Confirmed live end-to-end: regenerating
+`supportdesk-rebuild`'s spec from the unmodified original app now produces a `package.json` with no
+`type` field and `typescript`/`@types/node`/`@types/react`/`@types/better-sqlite3` all pinned to the
+exact versions the original app has installed; copying the original's real route files into that
+freshly generated scaffold and running `next dev` boots clean with zero manual intervention, whereas
+before this fix it needed a hand-pinned `typescript` version to get there. Four regression tests
+added (`packageJson.spec.ts`, `writeSpecTree.spec.ts`) reproducing each case directly; full suite
+(533 tests) and typecheck stayed green. The bare-variable-response limitation itself remains open —
+a real Phase 2 capability gap, not fixed here.
+
+**The actual business-logic result, read from the rebuild's own code and confirmed live via curl
+against both apps side by side, was consistent across both rounds and sharper than `notarybox`'s own
+finding.** `POST /api/tickets` — the one route whose success response is a literal object built
+inline, not a database read — reproduced real field names, real values, and (round one) even the
+exact enum-validation error string verbatim; the other three routes (`GET /api/tickets`,
+`GET /api/tickets/:id`, `POST .../close`, `POST .../escalate` — all reading/writing through a bare
+`db.prepare(...).get()`/`.all()` variable) got no response-fields section at all, and the rebuild
+correspondingly produced either fabricated always-`200` stand-ins (round one: a `GET /:id` that never
+404s, a list endpoint that's always `[]`) or, in round two, bare `{}`/`[]` stubs for literally every
+route including the create route — content-free responses that still pass every generated test,
+since the generated suite only ever asserts status codes and crash-safety, never response-body
+content. Missing-field validation (expect `400`, got round one's silent `201` with `null` fields),
+malformed-JSON handling (expect a clean `400`, got round two's unhandled `500`), and both
+state-transition business rules (expect real `409`-gated updates, got a content-free stand-in both
+rounds) never reproduced in either round. This reconfirms the three semantic gaps `VISION.md` already
+named (status codes, business-rule validation, error-handling structure) with fresh, concrete
+examples, but the real, more consequential mechanism is `inferResponseBodyFields.ts`'s bare-variable
+limitation itself: it's the one gap that silences every other signal downstream of it for the
+majority of routes in any app with more than trivial CRUD. `VISION.md`'s backend-fidelity section and
+open question are updated accordingly. Same evidentiary bar as `notarybox` (n=1, one hand-built app,
+one model tier) — worth a second real target before being treated as fully settled.
