@@ -27,7 +27,89 @@
       }
     }
   },
-  "tools_generated": true,
+  "tools": [
+    {
+      "name": "ingest_repo",
+      "description": "Parse package.json, tailwind/vite config, route files, and existing tests via static analysis. No LLM call.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string", "description": "Absolute path to the repo to ingest" },
+          "interactive": {
+            "type": "boolean",
+            "description": "When true and 0 routes are found at a monorepo-shaped path, ask via elicitation which candidate directory is the real app, then ingest that instead"
+          }
+        },
+        "required": ["path"]
+      }
+    },
+    {
+      "name": "crawl_site",
+      "description": "Playwright headless crawl of reachable routes. Emits periodic progress notifications.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": { "type": "string", "description": "Base URL to crawl" },
+          "maxPages": { "type": "integer" },
+          "repoPath": { "type": "string", "description": "Repo path whose .dossier/ this crawl evidence should be saved under" }
+        },
+        "required": ["url", "repoPath"]
+      }
+    },
+    {
+      "name": "flag_known_bug",
+      "description": "Record a known bug. Always overrides auto-resolve for any case it matches, regardless of other evidence.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "repoPath": { "type": "string", "description": "Repo path whose .dossier/ this known bug belongs to" },
+          "description": { "type": "string", "description": "Free-text description of a known bug, stored verbatim" }
+        },
+        "required": ["repoPath", "description"]
+      }
+    },
+    {
+      "name": "get_case_queue",
+      "description": "Return unresolved ambiguity cases from reconciliation.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "repoPath": { "type": "string", "description": "Repo path whose .dossier/ case queue to read" },
+          "interactive": {
+            "type": "boolean",
+            "description": "When true, walk open cases via MCP elicitation instead of just listing them"
+          }
+        },
+        "required": ["repoPath"]
+      }
+    },
+    {
+      "name": "resolve_case",
+      "description": "Resolve one open case with a human decision. Always available, no elicitation capability required.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "repoPath": { "type": "string", "description": "Repo path whose .dossier/ this case belongs to" },
+          "id": { "type": "string" },
+          "decision": { "type": "string" },
+          "note": { "type": "string" }
+        },
+        "required": ["repoPath", "id", "decision"]
+      }
+    },
+    {
+      "name": "generate_spec",
+      "description": "Write CLAUDE.md, .claude/, spec/, tests/, and kickoff-prompt.txt to <repo>-rebuild/. Only callable once the case queue is empty.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "repoPath": { "type": "string", "description": "Repo path that was ingested; output is written to a sibling <repoPath>-rebuild/ directory" },
+          "authStorageStatePath": { "type": "string", "description": "Optional path to a Playwright storageState JSON file for reaching auth-gated pages during capture" }
+        },
+        "required": ["repoPath"]
+      }
+    }
+  ],
   "user_config": {
     "groq_api_key": {
       "type": "string",

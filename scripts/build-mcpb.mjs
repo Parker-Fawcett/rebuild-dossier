@@ -30,8 +30,11 @@ execFileSync('npm', ['install', '--omit=dev', '--no-audit', '--no-fund'], {
   stdio: 'inherit'
 });
 
-execFileSync(
-  'npx',
-  ['--yes', '@anthropic-ai/mcpb', 'pack', stagingDir, `${root}${pkg.name}-${pkg.version}.mcpb`],
-  { cwd: root, stdio: 'inherit' }
-);
+// Zipped by hand rather than `mcpb pack`: the official MCPB manifest schema
+// rejects an `inputSchema` on tools[] entries, but Smithery's registry
+// requires exactly that field to list a bundle's capabilities (confirmed
+// against @smithery/api's ServerCard.Tool type, which marks it required).
+// `mcpb validate` would reject this manifest — that's expected, not a bug.
+const outputPath = `${root}${pkg.name}-${pkg.version}.mcpb`;
+rmSync(outputPath, { force: true });
+execFileSync('zip', ['-r', '-X', outputPath, '.'], { cwd: stagingDir, stdio: 'inherit' });
