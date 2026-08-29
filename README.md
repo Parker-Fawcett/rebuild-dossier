@@ -63,7 +63,13 @@ A `PostToolUse` hook runs the visible test suite after every edit.
 ## Quick start
 
 ```bash
-git clone https://github.com/businessfawcett-cloud/rebuild-dossier.git
+npx rebuild-dossier
+```
+
+> Not yet published to npm — use the local path below for now.
+
+```bash
+git clone https://github.com/Parker-Fawcett/rebuild-dossier.git
 cd rebuild-dossier
 npm install
 npx playwright install chromium   # needed for crawl_site
@@ -367,3 +373,5 @@ found and fixed during validation, the comparison across model tiers, and what's
 ## License
 
 [MIT](LICENSE)
+
+⭐ If rebuild-dossier helps you ship cleaner rebuilds, a star helps other developers find it.
