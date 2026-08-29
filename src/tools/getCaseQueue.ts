@@ -15,8 +15,24 @@ export const getCaseQueueInputSchema = z.object({
 });
 
 export const getCaseQueueConfig = {
+  title: 'Get case queue',
   description: 'Return unresolved ambiguity cases from reconciliation.',
-  inputSchema: getCaseQueueInputSchema
+  inputSchema: getCaseQueueInputSchema,
+  annotations: {
+    title: 'Get case queue',
+    // With interactive:false this is a pure read. But interactive:true walks
+    // open cases via elicitation and calls resolveCaseInternal on each one —
+    // the same overwrite-a-decision write resolve_case performs — so the
+    // hints below describe the tool's worst case across its own valid inputs,
+    // not just the default. Not idempotent: which cases get resolved, and how,
+    // depends on what a human answers to each elicitation prompt, not just the
+    // arguments. Elicitation is a request back through the same MCP client,
+    // not an external system, so openWorldHint stays false.
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: false,
+    openWorldHint: false
+  }
 };
 
 const ELICITATION_SCHEMA = {

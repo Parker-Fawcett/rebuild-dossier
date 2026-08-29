@@ -19,9 +19,22 @@ export const ingestRepoInputSchema = z.object({
 });
 
 export const ingestRepoConfig = {
+  title: 'Ingest repo',
   description:
     'Parse package.json, tailwind/vite config, route files, and existing tests via static analysis. No LLM call.',
-  inputSchema: ingestRepoInputSchema
+  inputSchema: ingestRepoInputSchema,
+  annotations: {
+    title: 'Ingest repo',
+    // Writes evidence.json to the repo's own .dossier/ scratch dir, so not
+    // read-only — but re-ingesting the same path deterministically overwrites
+    // it with equivalent content (static AST analysis, no external state),
+    // never destroys anything the caller didn't already ask to regenerate,
+    // and touches only the local filesystem, never a network resource.
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: false
+  }
 };
 
 const MONOREPO_CHOICE_SCHEMA = {

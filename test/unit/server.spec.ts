@@ -28,4 +28,20 @@ describe('rebuild-dossier server', () => {
       ].sort()
     );
   });
+
+  // OpenAI's MCP directory (and other quality scanners, e.g. M8ven) reject a
+  // tool outright if any of its four annotation hints is missing or
+  // non-boolean — this guards against silently regressing that for an
+  // existing tool, or forgetting it entirely for a newly added one.
+  it('declares all four boolean annotation hints on every tool', async () => {
+    const { client } = await connectedClient();
+    const { tools } = await client.listTools();
+
+    for (const tool of tools) {
+      const hints = ['readOnlyHint', 'destructiveHint', 'idempotentHint', 'openWorldHint'] as const;
+      for (const hint of hints) {
+        expect(typeof tool.annotations?.[hint], `${tool.name}.${hint}`).toBe('boolean');
+      }
+    }
+  });
 });

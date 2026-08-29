@@ -23,6 +23,7 @@ export const generateSpecInputSchema = z.object({
 });
 
 export const generateSpecConfig = {
+  title: 'Generate spec',
   description:
     'Write CLAUDE.md, .claude/, spec/, tests/, and kickoff-prompt.txt to <repo>-rebuild/. Only callable once the case queue is empty. ' +
     'Optional: if the target is a Next.js app with page routes, set GROQ_API_KEY and REBUILD_DOSSIER_ENABLE_VISION_CLASSIFICATION=1 ' +
@@ -31,7 +32,23 @@ export const generateSpecConfig = {
     'they want more reliable generated page tests and this isn\'t already configured. Off by default; nothing changes if unset. ' +
     'Optional: pass authStorageStatePath to reach auth-gated pages during capture — see that field\'s own description for how to ' +
     'produce it.',
-  inputSchema: generateSpecInputSchema
+  inputSchema: generateSpecInputSchema,
+  annotations: {
+    title: 'Generate spec',
+    // Writes an entire tree to a sibling <repo>-rebuild/ directory —
+    // overwriting whatever a previous run (or anything else) left there, so
+    // destructive, not just additive. Not idempotent: page capture spawns a
+    // real `next dev` + Chromium instance, and the mutation check runs the
+    // target's own tests against deliberately-broken copies of its code —
+    // neither is guaranteed to reproduce byte-identical output run to run.
+    // openWorldHint is true because, when vision classification is enabled,
+    // this tool sends captured page screenshots and source code to Groq's API
+    // — a real external system outside this tool's own control.
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: false,
+    openWorldHint: true
+  }
 };
 
 function siblingRebuildDir(repoPath: string): string {
