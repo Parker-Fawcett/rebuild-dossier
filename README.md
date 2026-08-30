@@ -61,6 +61,8 @@ enforced by real hooks, not prose, for exactly that reason:
 
 A `PostToolUse` hook runs the visible test suite after every edit.
 
+![rebuild-dossier demo](demo.gif)
+
 ## Quick start
 
 > **Not on npm yet.** For now, clone and run from source. Once published, this becomes

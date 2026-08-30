@@ -287,6 +287,6 @@ export function resolveDelegatedResponseFields(
   return {
     fields: [...found],
     formatHints,
-    resolvedFrom: { file: relative(repoPath, moduleFile), functionName: imported.realName }
+    resolvedFrom: { file: relative(repoPath, moduleFile).replace(/\\/g, '/'), functionName: imported.realName }
   };
 }
