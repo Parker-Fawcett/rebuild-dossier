@@ -3640,3 +3640,27 @@ limitation itself: it's the one gap that silences every other signal downstream 
 majority of routes in any app with more than trivial CRUD. `VISION.md`'s backend-fidelity section and
 open question are updated accordingly. Same evidentiary bar as `notarybox` (n=1, one hand-built app,
 one model tier) — worth a second real target before being treated as fully settled.
+
+## First independent third-party reproduction of the paper's Section 7 numbers
+
+An external reader, Sheikh Nazib Ahmed, ran the exact Section 7 reproduction protocol unprompted
+and reported back: `git clone` → `git checkout v0.2.6-paper` → `npm install` (162 packages) →
+`npx playwright install chromium` → `npm test` → `npm run typecheck`, all green, with `518 passing
+(85 test files)` where the paper's own §7 text cites `512 passing (83 test files)`. Read on its own
+that looks like a discrepancy; it isn't one. The two counts are from two different tags — the paper
+cites `v0.2.2-paper`, Ahmed was pointed at the newer `v0.2.6-paper` — and this repo's own commit
+history separately confirms both figures exactly: checking out `v0.2.2-paper` and running `npm test`
+reproduces `512 passing (83 test files)` verbatim, and checking out `v0.2.6-paper` reproduces
+`518 passing (85 test files)` verbatim. Six tests and two files were added between the two tags by
+ordinary development, nothing more.
+
+This is worth logging on its own merits, separate from the number-matching: it's the first
+reproduction of this project run by someone who did not write the tool and was not trying to make
+it look good — a materially stronger evidentiary tier than every other result in this file, all of
+which are the authors' own runs against apps the authors built or chose. It confirms the Section 7
+protocol works verbatim, on a clean clone, with no undocumented setup steps. It does not, on its
+own, retire or change any claim the manuscript currently makes, so per the manuscript/findings-log
+split this stays here rather than touching the frozen submitted text — a future batched revision is
+the right place to cite external reproduction as evidence if EMSE review raises reproducibility.
+`v0.2.8-paper` is now the newest paper-tagged commit; Ahmed was deliberately pointed at `.6`, not
+left on a stale tag by accident.
