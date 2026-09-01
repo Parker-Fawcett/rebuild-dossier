@@ -42,12 +42,24 @@ Use the bug report or feature request templates. Include:
 - **For bugs:** what you expected, what actually happened, steps to reproduce, and the version you're running
 - **For features:** the problem you're solving, what you'd like to happen, and why it matters
 
+### Issue Labels
+
+- **`bug`** — the tool did something undocumented and unexpected; no existing "known limitations" comment in the relevant source file already disclaims it.
+- **`enhancement`** — the gap is already named as an accepted, in-scope-later limitation (check the source file's own "Known, named limitations" comment block before filing — if it's already there, this is the right label, not `bug`).
+- **`question`** — the right fix depends on a product/scope decision (e.g. whether the tool should ever touch a target app's live data), not just an implementation choice.
+- **`good first issue`** — self-contained, one function, a concrete repro and a specific fix already spelled out in the issue.
+- **`help wanted`** — real and worth doing, but needs more context on the surrounding pipeline than `good first issue` implies.
+- **`duplicate`** / **`invalid`** / **`wontfix`** — standard GitHub meanings.
+
+A tracking issue that catalogs several related gaps (see #3) stays open as the coordinating overview even after individual items get split into their own issues — check its comments for links to whatever it split into before assuming it's stale.
+
 ### Pull Requests
 
 - Keep them small and focused
 - Include tests for any new behavior
 - Update docs if behavior or usage changes
 - Reference the paper if your change touches the core design
+- **Merging into `main` requires both CI matrix jobs (Node 20.x and 22.x) green and at least one approving review** — branch protection enforces this for everyone but the repo owner, so don't expect a same-day merge without either.
 
 ## First-Time Contributors?
 
