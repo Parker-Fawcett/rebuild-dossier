@@ -1,0 +1,29 @@
+name: Publish to npm
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+# OIDC trusted publishing: GitHub verifies the workflow's identity to npm, so
+# no NPM_TOKEN secret is required (and none is referenced below).
+permissions:
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          registry-url: https://registry.npmjs.org/
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - run: npm publish --access public
