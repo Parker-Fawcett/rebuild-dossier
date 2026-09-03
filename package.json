@@ -3,8 +3,10 @@
   "version": "0.2.4",
   "description": "MCP server that reverse-engineers a trustworthy rebuild spec from an existing app.",
   "type": "module",
-  "private": true,
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Parker-Fawcett/rebuild-dossier.git"
@@ -46,12 +48,13 @@
     "server.json"
   ],
   "bin": {
-    "rebuild-dossier": "./src/index.ts"
+    "rebuild-dossier": "./dist/index.js"
   },
   "scripts": {
     "start": "tsx src/index.ts",
     "start:http": "tsx src/httpServer.ts",
     "build": "tsc -p tsconfig.build.json",
+    "prepare": "npm run build",
     "start:http:prod": "node dist/httpServer.js",
     "package:mcpb": "node scripts/build-mcpb.mjs",
     "test": "vitest run",
