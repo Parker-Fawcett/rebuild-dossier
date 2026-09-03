@@ -7,6 +7,10 @@ on:
 
 # OIDC trusted publishing: GitHub verifies the workflow's identity to npm, so
 # no NPM_TOKEN secret is required (and none is referenced below).
+#
+# One-time setup (web, after the package exists):
+#   https://www.npmjs.com/package/rebuild-dossier/access  ->  Publish with a Trusted
+#   Publisher  ->  GitHub Actions  ->  repo Parker-Fawcett/rebuild-dossier, workflow publish.yml
 permissions:
   id-token: write
 

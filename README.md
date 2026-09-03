@@ -66,17 +66,21 @@ A `PostToolUse` hook runs the visible test suite after every edit.
 
 ## Quick start
 
-> **Not on npm yet.** For now, clone and run from source. Once published, this becomes
-> `npx rebuild-dossier`.
+Available on npm:
 
 ```bash
-git clone https://github.com/Parker-Fawcett/rebuild-dossier.git
-cd rebuild-dossier
-npm install
-npx playwright install chromium   # needed for crawl_site
+npx rebuild-dossier@latest --help    # pull the MCP server (stdio), or:
+npm install -g rebuild-dossier        # install the CLI globally
 ```
 
-Requires **Node 20.12+** (set in `package.json` `engines`).
+`crawl_site` needs Chromium — run once so the server can drive headless Playwright:
+
+```bash
+npx playwright install chromium
+```
+
+Requires **Node 20.12+** (set in `package.json` `engines`). To run from source instead, clone the
+repo, `npm install`, and use `npm start`.
 
 Add it as an MCP server in Claude Code (or any MCP-compatible client), then in a session:
 
