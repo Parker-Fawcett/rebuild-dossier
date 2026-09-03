@@ -10,5 +10,15 @@ There are three assets:
 2. `show-hn-post.txt` - the Show HN post (HN is on-record, public, permanent)
 3. `r-mcp-post.txt` - the r/mcp post
 
-See `README.md` in this folder for the exact posting steps and the one
-dependency (the Glama claim) that gates the badge.
+## Status (as of this session)
+
+- awesome-mcp-servers PR is LIVE with the badge variant:
+  https://github.com/punkpeye/awesome-mcp-servers/pull/13529
+  The Glama server is claimed/verified, and the badge URL resolves HTTP 200.
+  If the PR is not yet merged, and you want it to carry the badge, the row in
+  this file is already the badge variant (Variant B), so nothing more is needed.
+
+## Still on Parker
+
+1. Post the Show HN and r/mcp drafts (public, on-record, in your voice).
+2. Respond to any awesome-mcp-servers maintainer feedback on PR #13529.
