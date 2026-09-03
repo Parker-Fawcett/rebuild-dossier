@@ -1,74 +1,82 @@
 # Contributing to rebuild-dossier
 
-First off, thanks for taking the time to contribute! 🎉
+Thanks for taking the time to contribute. This is an academic/research project (arXiv:2608.23616) that makes rebuild specs mechanically enforceable. Anything that strengthens that goal is welcome.
 
-This is an academic/research project, so contributions should align with the design described in the paper ([arXiv:2608.23616](https://arxiv.org/abs/2608.23616)). The goal is to make rebuild specs mechanically enforceable — anything that strengthens that goal is welcome.
-
-## Getting Started
+## Getting started (under 10 minutes)
 
 ```bash
-# Clone the repo
 git clone https://github.com/Parker-Fawcett/rebuild-dossier.git
 cd rebuild-dossier
-
-# Install dependencies
 npm install
-
-# Build
 npm run build
-
-# Run tests
 npm test
 ```
 
-## Development Workflow
+That's the whole local loop. No database, no API keys, no env vars.
 
-- **TypeScript** for all source code in `src/`
-- **Vitest** for tests — `npm test` runs the full suite
-- **tsconfig** for type checking — `npm run build` compiles everything
+## Daily commands
 
-### Making Changes
+```bash
+npm test          # vitest run — the full suite (this is what CI runs)
+npm run test:watch  # vitest in watch mode, while you develop
+npm run typecheck # tsc --noEmit
+npm run build     # tsc -p tsconfig.build.json (compiles dist/)
+```
 
-1. Fork the repo and create a branch from `main`
-2. Make your changes — keep them focused. One thing per PR.
-3. Write or update tests for any behavioral change
-4. Run `npm test` before opening a PR
-5. Update any docs that are now wrong
+## Where the code lives
 
-### Reporting Issues
+- `src/spec/` — the core: field inference, contracts, test and spec generation. Most issues touch this.
+- `src/ingest/` — route detection, package.json parsing, evidence schema.
+- `src/mutation/` — the mutation-testing engine.
+- `src/tools/` — the six MCP tool entry points.
+- `test/unit/` — mirrors `src/` one-to-one, all `*.spec.ts` (vitest, node env).
+- `test/fixtures/sample-repo/` — fixture repos used by integration tests.
 
-Use the bug report or feature request templates. Include:
+## Tests: the one convention that matters
 
-- **For bugs:** what you expected, what actually happened, steps to reproduce, and the version you're running
-- **For features:** the problem you're solving, what you'd like to happen, and why it matters
+The test layout mirrors `src/` exactly:
 
-### Issue Labels
+```
+src/spec/inferRequestBodyFields.ts      →  test/unit/spec/inferRequestBodyFields.spec.ts
+src/ingest/evidenceSchema.ts            →  test/unit/ingest/evidenceSchema.spec.ts
+```
 
-- **`bug`** — the tool did something undocumented and unexpected; no existing "known limitations" comment in the relevant source file already disclaims it.
-- **`enhancement`** — the gap is already named as an accepted, in-scope-later limitation (check the source file's own "Known, named limitations" comment block before filing — if it's already there, this is the right label, not `bug`).
-- **`question`** — the right fix depends on a product/scope decision (e.g. whether the tool should ever touch a target app's live data), not just an implementation choice.
-- **`good first issue`** — self-contained, one function, a concrete repro and a specific fix already spelled out in the issue.
-- **`help wanted`** — real and worth doing, but needs more context on the surrounding pipeline than `good first issue` implies.
-- **`duplicate`** / **`invalid`** / **`wontfix`** — standard GitHub meanings.
+Tests for the inference modules call the public function directly with **inline source strings** (no fixture files), through a small `route()` helper. Open an existing spec before writing yours — copy its shape.
 
-A tracking issue that catalogs several related gaps (see #3) stays open as the coordinating overview even after individual items get split into their own issues — check its comments for links to whatever it split into before assuming it's stale.
+If your change modifies behavior, you add or update tests and run `npm test`. It must be green.
 
-### Pull Requests
+## Issue labels (what to pick up)
 
-- Keep them small and focused
-- Include tests for any new behavior
-- Update docs if behavior or usage changes
-- Reference the paper if your change touches the core design
-- **Merging into `main` requires both CI matrix jobs (Node 20.x and 22.x) green and at least one approving review** — branch protection enforces this for everyone but the repo owner, so don't expect a same-day merge without either.
+- **`good first issue`** — self-contained, one function, the issue names the exact file, function, and the shape of the fix. Best starting point.
+- **`help wanted`** — real and worth doing, but needs more context on the surrounding pipeline than a first issue implies.
+- **`bug`** — the tool did something undocumented and unexpected, not already disclaimed in the source's "Known, named limitations" comment block.
+- **`enhancement`** — a gap already named as an accepted, in-scope-later limitation.
+- **`question`** — the right fix depends on a product/scope decision, not just an implementation choice.
 
-## First-Time Contributors?
+Check the top of a source file for its "Known, named limitations" comment block before filing. If the gap is already listed there, it's an `enhancement`, not a `bug`.
 
-This is a great place to start. Look for issues tagged `good first issue` or `help wanted`. If you don't see anything that fits, open an issue asking what would be most useful — I'm happy to pair on something.
+## Making changes
 
-## Academic Alignment
+1. Fork the repo, branch from `main`.
+2. Keep it focused. One thing per PR.
+3. Write or update tests. Run `npm test` before opening the PR.
+4. Update any docs that are now wrong.
+5. Open the PR. Reference the issue number.
 
-This project exists to validate a specific design hypothesis: that locking interface contracts before tests run, with strict one-test-at-a-time retries, improves behavioral equivalence in agent rebuild pipelines. If your contribution touches the core pipeline or evaluation logic, make sure it doesn't silently weaken that hypothesis.
+**Merging into `main`** requires both CI jobs (Node 20.x and 22.x) green and one approving review. Branch protection enforces this for everyone but the repo owner, so give review a couple of days.
+
+## Working on the core inference logic
+
+Read this before touching `infer*`/`reconcile*` internals.
+
+**The one non-negotiable rule:** auto-resolving an ambiguity requires both signal agreement *and* an affirmative signal that someone actually decided (a stated comment, a TODO admitting a bug, or a direct human answer). Silent agreement alone — code and observed behavior simply matching, with no one having said why — always becomes a question, never an auto-resolution, no matter how confident it looks.
+
+A contribution that makes the tool silently auto-resolve on agreement alone weakens the paper's hypothesis and will be sent back. If you're unsure whether a change touches this, ask in the issue before writing code.
+
+## First-time contributor?
+
+Start with a `good first issue`. If none fit, open an issue asking what would be most useful. I'm happy to pair on something.
 
 ## Questions?
 
-Open an issue. I respond within 24 hours during the workweek.
+Open an issue. I respond within 24 hours on weekdays.
