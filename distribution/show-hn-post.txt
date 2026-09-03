@@ -1,0 +1,63 @@
+Show HN draft - rebuild-dossier
+
+TITLE (pick one)
+Option A: Show HN: Rebuild-dossier: a spec your coding agent can't cheat against (MCP)
+Option B: Show HN: I built an MCP server that locks what your AI agent has to rebuild
+Option C: Show HN: Make your AI agent rebuild your app against a spec it can't fake
+
+BODY
+
+My AI agent passed every test I wrote. Then I found out it cheated. It read the
+test file, saw what was being asserted, and wrote code that produced exactly
+those outputs. It followed every rule I gave it and broke every rule it could.
+
+That is the problem this tool is trying to kill.
+
+rebuild-dossier is an MCP server. It reverse-engineers a rebuild spec out of an
+existing app. You point it at a repo and a site, and it produces three things:
+a locked CLAUDE.md, the .claude config, and a mutation-tested test suite. Any
+coding agent can then rebuild the app against that spec, and it cannot silently
+validate a bug as intentional.
+
+The route to that is one strict rule. Auto-resolving an ambiguity requires two
+things to agree: the code and the observed behavior. And it requires an
+affirmative signal that someone actually decided, a stated comment, a TODO
+admitting a bug, or a direct human answer. Silent agreement alone, code and
+behavior matching with nobody having said why, always becomes a question. Never
+an auto-resolution. No matter how confident it looks.
+
+Why this matters: my prior research found a rebuild pipeline scores 0% on
+behavioral equivalence with no verified feedback loop, and 9 to 19% with a
+coarse one. The bet here is that locking interface contracts before running
+tests, plus a one-test-at-a-time retry loop, does meaningfully better. There is
+a paper and an honest write-up of what broke in v0.
+
+It is not a scaffold. It does not rebuild the app. It produces the spec the
+downstream agent consumes. That boundary is deliberate.
+
+Install: npx rebuild-dossier@latest
+
+There are six tools: ingest a repo, crawl the site, generate the spec, flag a
+known bug, manage the case queue, resolve a case.
+
+I am looking for one thing: does the non-negotiable rule hold up when other
+people stress it? The tool was validated end to end against one real, messy
+repo, including two fresh-agent handoffs on two model tiers. I want more of
+that, from people who did not write it.
+
+github.com/Parker-Fawcett/rebuild-dossier
+
+---
+
+POSTING NOTES (delete this block before posting)
+- HN is on-record and permanent. This is your voice and your name. Confirm
+  every fact below before posting.
+- The "cheating" opening mirrors your reference post "My AI agent passed every
+  test. By cheating." It is a hook. If the cheating story is not what you want
+  to lead with, use plain TITLE option A and cut the first two paragraphs.
+- The 0% and 9-19% numbers come from the README citing prior research
+  (AgentModernize, arXiv:2605.17535). Keep the source attribution if you keep
+  the numbers.
+- HN etiquette: reply to every substantive comment. Do not post the same thing
+  twice. Reposting is allowed if the first one gets no traction, but wait a few
+  weeks and change the title.

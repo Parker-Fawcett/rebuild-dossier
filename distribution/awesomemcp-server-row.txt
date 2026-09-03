@@ -1,0 +1,42 @@
+Awesome MCP Servers PR - rebuild-dossier row
+
+WHERE IT GOES
+Section: "Developer Tools" (### 💻 <a name="developer-tools">)
+Alphabetical order within the section. Rebuild-dossier sorts under "R" (after the "r" rows, before "s" rows). Place it between "rm-rf-prod/GroundTruth-MCP" and "S" entries.
+
+THE ROW (single line, one of the two variants below)
+
+VARIANT A - no Glama badge (works TODAY, no claim needed):
+- [Parker-Fawcett/rebuild-dossier](https://github.com/Parker-Fawcett/rebuild-dossier) 📇 🏠 🍎 🪟 🐧 - MCP server that reverse-engineers a rebuild spec out of an existing app: a locked CLAUDE.md, .claude config, and mutation-tested tests, so any coding agent can rebuild the app cleanly against it. Six tools: ingest a repo, crawl the site, generate the spec, flag known bugs, manage the case queue, resolve cases. Install: `npx rebuild-dossier@latest`
+
+VARIANT B - with Glama badge (ONLY after you claim the server on Glama):
+- [Parker-Fawcett/rebuild-dossier](https://github.com/Parker-Fawcett/rebuild-dossier) [![Parker-Fawcett/rebuild-dossier MCP server](https://glama.ai/mcp/servers/Parker-Fawcett/rebuild-dossier/badges/score.svg)](https://glama.ai/mcp/servers/Parker-Fawcett/rebuild-dossier) 📇 🏠 🍎 🪟 🐧 - MCP server that reverse-engineers a rebuild spec out of an existing app: a locked CLAUDE.md, .claude config, and mutation-tested tests, so any coding agent can rebuild the app cleanly against it. Six tools: ingest a repo, crawl the site, generate the spec, flag known bugs, manage the case queue, resolve cases. Install: `npx rebuild-dossier@latest`
+
+NOTE ON VARIANT B URL: verify the actual Glama slug once you claim it. If the
+slug is not exactly "Parker-Fawcett/rebuild-dossier", copy the real URL from the
+Glama page and paste it into both the badge src and the link href above.
+
+PR TITLE
+Add Parker-Fawcett/rebuild-dossier (Developer Tools)
+
+PR TITLE IF OPENING VIA AN AGENT (their CONTRIBUTING offers a fast-track):
+Add Parker-Fawcett/rebuild-dossier (Developer Tools) 🤖🤖🤖
+
+PR BODY
+Adds the rebuild-dossier MCP server to Developer Tools.
+
+An MCP server that reverse-engineers a rebuild spec out of an existing app: a
+locked CLAUDE.md, .claude config, and mutation-tested test suite, so a coding
+agent can rebuild the app cleanly against it instead of guessing. It does not
+rebuild the app; it produces the spec, contracts, and tests a separate agent
+consumes.
+
+Six tools: ingest_repo, crawl_site, generate_spec, flag_known_bug,
+get_case_queue, resolve_case.
+
+Install: npx rebuild-dossier@latest
+
+What I checked before opening
+- Row is alphabetical within Developer Tools (under R).
+- Description matches what the repo actually does (verified against README).
+- Emoji per the Legend: 📇 TypeScript, 🏠 local, 🍎🪟🐧 macOS/Windows/Linux.

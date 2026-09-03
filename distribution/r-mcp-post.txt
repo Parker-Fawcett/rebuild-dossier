@@ -1,0 +1,33 @@
+r/mcp draft - rebuild-dossier
+
+TITLE
+I built an MCP server that reverse-engineers a "rebuild spec" out of an existing app, so a coding agent can rebuild it without guessing. Feedback wanted.
+
+BODY
+
+I made an MCP server called rebuild-dossier. It takes an existing app and produces a rebuild spec: a locked CLAUDE.md, the .claude config, and a mutation-tested test suite. Any coding agent can then rebuild the app against that spec.
+
+What it does not do: it does not rebuild the app. It produces the spec and tests that a downstream agent consumes. I kept that boundary on purpose, because the moment the tool also rebuilds, it stops being able to check its own output.
+
+The part I want reviewed is the non-negotiable rule. Auto-resolving an ambiguity requires both signal agreement and an affirmative signal that someone actually decided: a stated comment, a TODO admitting a bug, or a direct human answer. Silent agreement alone, where code and observed behavior match but nobody said why, becomes a question, never an auto-resolution. The risk this targets is real: four sources of evidence can quietly agree on the same mistake with no one having said why. That is how an AI agent validates a bug as intentional.
+
+The six tools: ingest a repo, crawl the site, generate the spec, flag a known bug, manage the case queue, resolve a case.
+
+Install: npx rebuild-dossier@latest
+
+The repo: github.com/Parker-Fawcett/rebuild-dossier
+
+There is a paper behind it and an honest write-up of what broke in v0, because the first end-to-end run against a real repo surfaced real failures. I would rather show those than pretend the loop is clean.
+
+What I am asking for: stress the rule. Try to get it to silently auto-resolve an ambiguity, or to validate a bug as intentional. If it holds, say so. If it does not hold, I want the repro.
+
+POSTING NOTES (delete this block before posting)
+- r/mcp is public and on-record. Confirm every fact before posting.
+- No link shorteners. Direct repo link is fine. Substack-style "engagement bait"
+  like "agree?" is against the spirit of the subreddit; the ask above is a real
+  technical question, so it is fine.
+- r/mcp discourages pure self-promotion. This post leads with a specific
+  technical claim and a request for a stress test, not a "check out my thing"
+  pitch. Keep it that way.
+- The "cheating" hook from the HN draft is NOT used here. This subreddit is
+  more technical and less narrative. Different framing, same facts.
