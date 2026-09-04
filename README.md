@@ -13,9 +13,10 @@ agent can rebuild it cleanly against that spec instead of guessing.
 **It does not rebuild the app.** It produces the spec, contracts, and tests a coding agent
 consumes to do that separately. This boundary is deliberate — see [Why](#why) below.
 
-> **Status: v0.** The core loop works and has been validated end-to-end against one real,
-> messy repo, including two independent fresh-agent handoffs on two model tiers. Read
-> [docs/v0-findings.md](docs/v0-findings.md) for the honest result, including what broke.
+> **Validated against a real app.** The core loop (ingest, resolve cases, generate spec) has been
+> tested end-to-end against a real, messy repo with two independent fresh-agent handoffs on two
+> model tiers, plus a mutation-tested test suite.
+> [docs/v0-findings.md](docs/v0-findings.md) covers what worked, what broke, and what's still open.
 
 ## Why
 
@@ -45,7 +46,7 @@ Six MCP tools, run from inside a normal Claude Code (or any MCP-compatible) sess
 | `get_case_queue()` / `resolve_case(id, decision)` | The ambiguity queue. Surfaces open questions via MCP elicitation when the client supports it; `resolve_case` is always available as a scripted fallback. |
 | `generate_spec()` | Only callable once the case queue is empty. Writes `CLAUDE.md`, `.claude/rules/`, `.claude/settings.json` (hooks that *mechanically* enforce the discipline — see below), `spec/contracts/*.md`, `tests/visible/` + `tests/held-out/`, and `kickoff-prompt.txt` to a clean sibling `<repo>-rebuild/` directory — never into the original repo. Runs a real mutation check before finalizing tests: deliberately breaks the original code and confirms each generated test actually catches it, downgrading any that don't. |
 
-`crawl_site` needs Chromium (`npx playwright install chromium`, below) — it isn't bundled with the server, including when installed via Smithery, so run it once first or the tool will fail.
+`crawl_site` needs Chromium (`npx playwright install chromium`, step 2 below) — it isn't bundled with the server, including when installed via Smithery, so run it once first or the tool will fail.
 
 ### Rails that are mechanically enforced, not just written down
 
@@ -73,12 +74,6 @@ npx rebuild-dossier@latest --help    # pull the MCP server (stdio), or:
 npm install -g rebuild-dossier        # install the CLI globally
 ```
 
-`crawl_site` needs Chromium — run once so the server can drive headless Playwright:
-
-```bash
-npx playwright install chromium
-```
-
 Requires **Node 20.12+** (set in `package.json` `engines`). To run from source instead, clone the
 repo, `npm install`, and use `npm start`.
 
@@ -101,7 +96,9 @@ claude mcp add rebuild-dossier -- npx -y rebuild-dossier@latest
 }
 ```
 
-Then in a session:
+Then in a session. The first call, `ingest_repo`, runs instantly with zero setup: static
+analysis only, no browser, no Chromium, no LLM call. Run it on any app to confirm the server
+is alive before committing to the full workflow:
 
 ```
 ingest_repo({ path: "/path/to/some-app" })
@@ -113,6 +110,8 @@ generate_spec({ repoPath: "/path/to/some-app" })
 This writes a clean `some-app-rebuild/` sibling directory. `cd` into it, start a **fresh**
 Claude Code session (nothing else should be in scope), and paste the contents of its
 `kickoff-prompt.txt`.
+
+If this looks useful, a star helps other developers find it.
 
 ## Operating guide
 
@@ -170,6 +169,11 @@ crawl_site({ url: "http://localhost:3000", repoPath: "/absolute/path/to/some-app
 Only useful if the app is actually running somewhere. Headless Playwright crawl of reachable
 routes, emitting progress notifications periodically — long crawls get auto-backgrounded by
 most MCP clients, and a silent multi-minute call risks being killed as unresponsive without them.
+
+This step is the only one that needs a browser. `crawl_site` drives headless Chromium, which
+isn't bundled with the server (including via Smithery), so run `npx playwright install chromium`
+once first or the tool will fail. Skip it and the rest of the workflow still works. `ingest_repo`,
+`resolve_case`, and `generate_spec` need no browser at all.
 
 ### 3. (Optional, but do this before step 4) Flag anything you already know is broken
 
