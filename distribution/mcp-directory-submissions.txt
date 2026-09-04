@@ -1,0 +1,88 @@
+========================================================
+MCP DIRECTORY SUBMISSION TEXT - rebuild-dossier
+(paste into the relevant fields; edit freely)
+========================================================
+
+--------------------------------------------------------
+1) mcp.so  ->  https://mcp.so/submit  (choose "server")
+   (free review; the paid "publish immediately" option is not needed)
+--------------------------------------------------------
+Repository URL:  https://github.com/Parker-Fawcett/rebuild-dossier
+Name:            rebuild-dossier
+Category:        Developer Tools
+Website:         https://arxiv.org/abs/2608.23616
+
+Short description (one line, click-through focused):
+MCP server that reverse-engineers a locked rebuild spec (CLAUDE.md, .claude
+config, mutation-tested tests) from an existing app, so a coding agent can
+rebuild it without guessing.
+
+Longer description / features:
+Six tools: ingest_repo, crawl_site, generate_spec, flag_known_bug,
+get_case_queue, resolve_case. It does not rebuild the app; it produces the
+spec, contracts, and tests a downstream agent consumes.
+
+Transport: stdio (default, npx) and HTTP/SSE with bearer auth.
+Install:  npx rebuild-dossier@latest
+Full setup + security config in the README.
+
+--------------------------------------------------------
+2) cursor.directory  ->  https://cursor.directory/plugins/new
+   (browser form, GitHub OAuth; this replaced the deprecated
+    cursor/mcp-servers repo)
+
+   AUTO-DETECT FIXED: a root .mcp.json now ships in the repo
+   (Open Plugins / Agent Plugins 1.0.0 schema, validated). The
+   "Scan repo" step should now find the server component. Paste
+   the repo URL and let it scan; only add manual fields if the
+   scan still misses it.
+--------------------------------------------------------
+Repo URL:     https://github.com/Parker-Fawcett/rebuild-dossier
+Title:        rebuild-dossier
+Category:     Developer Tools
+Description:  Reverse-engineers a locked rebuild spec (CLAUDE.md, .claude
+              config, mutation-tested tests) from an existing app so a
+              coding agent can rebuild it without guessing. Does not rebuild
+              the app; it produces the spec, contracts, and tests.
+Install:      stdio via  npx rebuild-dossier@latest  (the committed
+              root .mcp.json already carries this config)
+
+The committed .mcp.json (for manual reference):
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "rebuild-dossier": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "rebuild-dossier@latest"]
+    }
+  }
+}
+
+--------------------------------------------------------
+BONUS (strong ROI, low effort) - mcp.directory
+--------------------------------------------------------
+Submit Server:  https://mcp.directory  ->  Submit Server
+Same core text as above (Repo URL, name, Developer Tools category,
+description, install command).
+
+--------------------------------------------------------
+VERIFY BEFORE SUBMITTING (all already pass, re-check on the day):
+  - npx rebuild-dossier@latest --help        (clean)
+  - repo link resolves (GitHub, arxiv homepage)
+  - README has quick-start + copy-paste config
+  - root .mcp.json committed (validated vs Agent Plugins 1.0.0 schema)
+    so cursor.directory auto-detect finds the server
+
+STATUS (verified 2026-09-04):
+  - cursor.directory: submitted, in security-agent review.
+  - Glama: HAS a quality score (the awesome-mcp PR requirement is met).
+    Server Coherence A, Tool Def Quality A, Maintenance A, profile 75%.
+    Per-tool: generate_spec A 4.7, flag_known_bug A 4.2, ingest_repo A 3.9,
+    resolve_case A 3.6, crawl_site B 3.4, get_case_queue B 3.3.
+    Open gap: "No recent usage" (30d) -> use Glama "Try in Browser" to seed.
+    Optional: add glama.json to repo root.
+  - awesome-mcp-servers PR #13529: open, mergeable, all checks green,
+    has-glama label present. Awaiting maintainer merge.
+  - mcp.so + mcp.directory: NOT yet submitted (text above ready).
+========================================================

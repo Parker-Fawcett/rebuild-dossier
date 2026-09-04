@@ -1,0 +1,34 @@
+r/mcp follow-up draft - rebuild-dossier (post this, or edit then post)
+
+TITLE
+
+I broke the install command on my own MCP server and shipped it that way. Fixed now, and every path in the readme is verified. Heres the honest state.
+
+BODY
+
+Earlier this week someone posted about rebuild-dossier, the MCP server that reverse-engineers a rebuild spec out of an existing app so a coding agent can rebuild it against a locked CLAUDE.md and a mutation-tested test suite.
+
+Then I checked the actual state of the tool I pushed, and here is what I found. The primary install command in the readme, npx rebuild-dossier@latest, crashed for everyone. The bin target was missing the node shebang, so the shell tried to run an ESM file and failed on the first import statement. Every first-time user hit that wall. Zero npm installs is what that looks like in the numbers.
+
+I fixed that. 0.2.6 is live. And this time I did not trust my own readme. I ran every path you would actually take: npx, the global install, running from source, the HTTP mode, the full test suite (538 tests pass), and the typecheck. I connected through the official MCP client SDK and listed all six tools. The first command in the readme now works.
+
+So the honest part. My first posts overstated where this is at. I wrote things like 80% accuracy and zero dead code. Those are not true, and I wrote them before running the numbers. The tool is v0. It was validated end to end against one real, messy repo, with two fresh-agent handoffs on two model tiers. The write-up of what broke is in docs/v0-findings.md, and it does not flatter me. Some tests landed weak or unrunnable. The untested-contracts hook came back empty when it should not have. That is the real result, and I kept it in the repo instead of deleting it.
+
+Why I still think the idea matters. My prior research found a rebuild pipeline scores 0% on behavioral equivalence with no verified feedback loop, and 9 to 19% with a coarse one. The non-negotiable rule in this tool: an ambiguity never auto-resolves on silent agreement alone. Code and observed behavior matching, with nobody having said why, becomes a question, never a resolution. The risk that rule targets is real, and I have seen it cost real hours.
+
+The tool is not a scaffold and it does not rebuild your app. It produces the spec and tests a downstream agent consumes. That boundary is intentional.
+
+What I am asking for now is different from last time. I am not asking you to trust a claim. I am asking you to run the first command, it works now, and tell me where the rule breaks. Try to get it to silently auto-resolve an ambiguity or to validate a bug as intentional. If it holds, say so. If it breaks, I want the repro.
+
+Install: npx rebuild-dossier@latest
+Repo: github.com/Parker-Fawcett/rebuild-dossier
+
+POSTING NOTES (delete before posting)
+- Public, on-record. Every claim here is verified this session: 0.2.6 runs every
+  path, 538 tests pass, official SDK connects. Do not add numbers you did not run.
+- r/mcp discourages pure self-promotion. This post leads with an admission and a
+  concrete technical ask, not a pitch. Keep it that way.
+- The prior posts overclaimed regardless of how they were worded. The correction
+  in the third paragraph is the point, not an afterthought.
+- No em/en dashes, no rule of three, active voice. This draft was checked; keep it
+  that way if you edit.

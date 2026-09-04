@@ -1,0 +1,55 @@
+========================================================
+REBUILD-DOSSIER DIRECTORY SUBMISSIONS - copy-paste text
+(Filed in browser: https://mcp.so/submit and https://mcp.directory)
+========================================================
+
+--------------------------------------------------------
+A) mcp.so  ->  https://mcp.so/submit
+   Choose "Server". Free review path. Do NOT pay for "publish now".
+--------------------------------------------------------
+Name:              rebuild-dossier
+GitHub Repository: https://github.com/Parker-Fawcett/rebuild-dossier
+Category:          Developer Tools
+Website:           https://arxiv.org/abs/2608.23616
+
+Short description (paste in the one-line field):
+MCP server that reverse-engineers a locked rebuild spec (CLAUDE.md,
+.claude config, mutation-tested tests) from an existing app, so a coding
+agent can rebuild it cleanly instead of guessing.
+
+Longer description / about (paste in the body field):
+Six tools: ingest_repo, crawl_site, generate_spec, flag_known_bug,
+get_case_queue, resolve_case.
+
+It does not rebuild the app. It produces the spec, contracts, and tests a
+downstream agent consumes. Validated end-to-end against a real repo
+(details in docs/v0-findings.md and the arXiv paper).
+
+Transport: stdio (default, npx) and HTTP/SSE with bearer auth.
+Install:
+  npx rebuild-dossier@latest
+
+Tags: mcp-server, reverse-engineering, testing, typescript,
+      model-context-protocol, code-analysis
+
+--------------------------------------------------------
+B) mcp.directory  ->  https://mcp.directory  (Submit Server)
+--------------------------------------------------------
+Name:              rebuild-dossier
+GitHub Repository: https://github.com/Parker-Fawcett/rebuild-dossier
+Category:          Developer Tools
+Description (paste in the field):
+Reverse-engineers a locked rebuild spec (CLAUDE.md, .claude config,
+mutation-tested tests) from an existing app so a coding agent can rebuild
+it without guessing. Does not rebuild the app; it produces the spec,
+contracts, and tests a separate agent consumes.
+
+Install command:
+  npx rebuild-dossier@latest
+
+--------------------------------------------------------
+VERIFY ON THE SUBMISSION DAY (all pass today, re-confirm):
+  - npx rebuild-dossier@latest --help     (clean, server starts)
+  - GitHub repo + arXiv homepage resolve
+  - README quick-start is current
+--------------------------------------------------------

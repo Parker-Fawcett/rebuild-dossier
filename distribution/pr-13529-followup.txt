@@ -1,0 +1,36 @@
+========================================================
+PR #13529 FOLLOW-UP COMMENT
+(Parker-Fawcett/rebuild-dossier -> punkpeye/awesome-mcp-servers)
+Post as a new comment on https://github.com/punkpeye/awesome-mcp-servers/pull/13529
+========================================================
+
+Following up on the Glama requirement from the bot's last message.
+
+rebuild-dossier now has a quality score on Glama, which is what the
+check asked for. Current state:
+
+- Server Coherence: A
+- Tool Definition Quality: A
+- Maintenance: A
+- Profile completion: 75%
+- Per-tool: generate_spec A 4.7, flag_known_bug A 4.2, ingest_repo A 3.9,
+  resolve_case A 3.6, crawl_site B 3.4, get_case_queue B 3.3
+
+The Glama score badge is in the PR (commit 538778a), the has-glama label
+is set, and check-submission CI is green. The row is mergeable with no
+conflicts.
+
+One thing worth repeating since it changed after I opened this: the npm
+install path in the README was broken for first-time users and is fixed
+in 0.2.6 (the bin was missing the node shebang). Every path in the README
+has since been verified working, including npx install, global install,
+HTTP mode, the test suite (538 passing), and connecting through the
+official MCP client SDK to list all six tools.
+
+The listing is accurate as written and the install command it links to
+works. Ready to merge whenever you get to it. Thanks.
+
+========================================================
+(if a maintainer responds asking for the score proof, link:)
+https://glama.ai/mcp/servers/Parker-Fawcett/rebuild-dossier/score
+========================================================

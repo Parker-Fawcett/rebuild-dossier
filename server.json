@@ -3,7 +3,7 @@
   "name": "com.parkerfawcett/rebuild-dossier",
   "title": "Rebuild Dossier",
   "description": "MCP server that reverse-engineers a locked rebuild spec from an existing app.",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "homepage": "https://github.com/Parker-Fawcett/rebuild-dossier",
   "repository": {
     "url": "https://github.com/Parker-Fawcett/rebuild-dossier",
@@ -24,7 +24,7 @@
     {
       "registryType": "npm",
       "identifier": "rebuild-dossier",
-      "version": "0.2.5",
+      "version": "0.2.6",
       "transport": {
         "type": "stdio"
       }
