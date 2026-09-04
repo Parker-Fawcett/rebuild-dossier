@@ -82,7 +82,26 @@ npx playwright install chromium
 Requires **Node 20.12+** (set in `package.json` `engines`). To run from source instead, clone the
 repo, `npm install`, and use `npm start`.
 
-Add it as an MCP server in Claude Code (or any MCP-compatible client), then in a session:
+Then add it as an MCP server. In Claude Code, from the project you want to rebuild:
+
+```bash
+claude mcp add rebuild-dossier -- npx -y rebuild-dossier@latest
+```
+
+(or add this to your `~/.claude.json` / project `.mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "rebuild-dossier": {
+      "command": "npx",
+      "args": ["-y", "rebuild-dossier@latest"]
+    }
+  }
+}
+```
+
+Then in a session:
 
 ```
 ingest_repo({ path: "/path/to/some-app" })
