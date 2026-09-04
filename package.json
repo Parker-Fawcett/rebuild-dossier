@@ -1,6 +1,6 @@
 {
   "name": "rebuild-dossier",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "mcpName": "com.parkerfawcett/rebuild-dossier",
   "description": "MCP server that reverse-engineers a trustworthy rebuild spec from an existing app.",
   "type": "module",
