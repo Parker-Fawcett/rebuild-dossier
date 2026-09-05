@@ -29,3 +29,4 @@ pre code{background:none;border:none;padding:0}
 .footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border);text-align:center;color:#484f58;font-size:.85rem}
 .section-divider{border:none;border-top:1px solid var(--border);margin:2.5rem 0}
 @media(max-width:640px){body{padding:1rem}.hero{padding:2rem 1rem}.header{flex-direction:column;align-items:flex-start}table{font-size:.82rem}th,td{padding:.4rem .5rem}}
+<!-- rebuilt 1788637597 -->
