@@ -1,0 +1,41 @@
+name: Publish to GitHub Packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+# GITHUB_TOKEN publishes to GitHub Packages for this repo; no extra secret
+# needed. npmjs publishing (unscoped name) stays in publish.yml.
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      # GitHub Packages requires the package name to be scoped
+      # (@parker-fawcett/rebuild-dossier). npmjs keeps the unscoped name
+      # (rebuild-dossier) via publish.yml — this job rewrites the name in a
+      # fresh checkout so each registry gets the form it requires.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          registry-url: https://npm.pkg.github.com/
+          scope: '@parker-fawcett'
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Scope package name for GitHub Packages
+        run: npm pkg set name=@parker-fawcett/rebuild-dossier
+
+      - run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
