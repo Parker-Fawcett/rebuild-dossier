@@ -1,12 +1,11 @@
-name: rebuild-dossier
+name: Deploy to GitHub Pages
 
 on:
   push:
     branches: [main]
     paths:
-      - 'COMPARISONS.md'
+      - 'docs/COMPARISONS.html'
       - 'README.md'
-      - 'docs/**'
 
 permissions:
   contents: read
@@ -16,45 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Convert COMPARISONS.md to HTML
-        run: |
-          npm install -g markdown-it
-          node -e "
-            const md = require('markdown-it')({ html: true, linkify: true });
-            const fs = require('fs');
-            const content = fs.readFileSync('COMPARISONS.md', 'utf8');
-            const html = md.render(content);
-            const page = \`<!DOCTYPE html>
-<html lang='en'>
-<head>
-  <meta charset='UTF-8'>
-  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-  <title>rebuild-dossier — How It Compares</title>
-  <style>
-    body { max-width: 900px; margin: 0 auto; padding: 2rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.7; color: #333; }
-    h1 { color: #1a1a1a; border-bottom: 3px solid #0066cc; padding-bottom: 0.5rem; }
-    h2 { color: #333; margin-top: 2.5rem; border-left: 4px solid #0066cc; padding-left: 1rem; }
-    h3 { color: #555; margin-top: 1.5rem; }
-    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
-    th, td { border: 1px solid #ddd; padding: 0.5rem 0.75rem; text-align: left; }
-    th { background: #0066cc; color: white; }
-    tr:nth-child(even) { background: #f9f9f9; }
-    pre { background: #f4f4f4; padding: 1rem; border-radius: 5px; overflow-x: auto; }
-    code { background: #f4f4f4; padding: 0.2rem 0.4rem; border-radius: 3px; font-size: 0.9em; }
-    a { color: #0066cc; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    nav { margin-bottom: 2rem; }
-    nav a { margin-right: 1rem; }
-  </style>
-</head>
-<body>
-  <nav><a href='/'>Home</a> | <a href='/COMPARISONS.html'>How It Compares</a></nav>
-  \${html}
-</body>
-</html>\`;
-            fs.writeFileSync('docs/COMPARISONS.html', page);
-          "
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
