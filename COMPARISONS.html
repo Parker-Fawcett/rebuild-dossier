@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>rebuild-dossier — How It Compares</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="header">
+<h1><a href="index.html">rebuild-dossier</a></h1>
+<nav><a href="index.html">Home</a><a href="COMPARISONS.html">How It Compares</a><a href="https://github.com/Parker-Fawcett/rebuild-dossier">GitHub</a><a href="https://arxiv.org/abs/2608.23616">Paper</a></nav>
+</div>
+<h2>How rebuild-dossier compares</h2>
+<p>There is no direct equivalent to this tool, so these comparisons are against adjacent approaches people reach for when they want an AI agent to work with an existing codebase.</p>
+<h3>vs. just prompting the agent to "understand" the codebase</h3>
+<p>The default approach: point Claude Code / Cursor at a repo and ask it to make changes.</p>
+<table>
+<thead><tr><th style="width:25%"></th><th style="width:37.5%">Ad-hoc prompting</th><th style="width:37.5%">rebuild-dossier</th></tr></thead>
+<tbody>
+<tr><td><strong>Interface contracts</strong></td><td>Agent guesses from context windows</td><td>Locked in CLAUDE.md before any test runs</td></tr>
+<tr><td><strong>Ambiguity handling</strong></td><td>Resolved silently (code matching behavior looks intentional)</td><td>Auto-resolution requires signal agreement AND evidence someone decided; otherwise becomes a question</td></tr>
+<tr><td><strong>Test suite</strong></td><td>Generated ad hoc per task</td><td>Mutation-tested suite shipped with the spec</td></tr>
+<tr><td><strong>Repeatability</strong></td><td>Different run, different understanding</td><td>Same locked spec every time</td></tr>
+</tbody>
+</table>
+<div class="callout"><strong>The research motivation:</strong> prior work (AgentModernize, arXiv:2605.17535) measured 0% behavioral equivalence for rebuild pipelines without a verified feedback loop. The bet here is that locking contracts before testing, plus one-test-at-a-time retries, does better.</div>
+<h3>vs. writing a CLAUDE.md by hand</h3>
+<p>Hand-written CLAUDE.md files describe intent. They go stale the first time someone ships without updating them. A dossier is generated from the actual code and observed behavior, and it ships with tests that fail if behavior drifts from the documented contract.</p>
+<h3>vs. snapshot/freeze tools</h3>
+<p>Freeze tools capture state but give an agent no way to verify its work against that state. A dossier pairs the spec with a mutation-tested suite, so the agent gets a feedback loop, not just documentation.</p>
+<hr class="section-divider">
+<h2>What this tool deliberately does not do</h2>
+<div class="card-grid">
+<div class="card" style="border-left:4px solid var(--accent-red);"><h4 style="color:var(--accent-red);">Does not rebuild your app</h4><p>It produces the spec a coding agent consumes to do that.</p></div>
+<div class="card" style="border-left:4px solid var(--accent-orange);"><h4 style="color:var(--accent-orange);">Does not claim behavioral equivalence</h4><p>v0 findings, including what broke, are in docs/v0-findings.md.</p></div>
+<div class="card" style="border-left:4px solid var(--accent-green);"><h4 style="color:var(--accent-green);">Does not auto-resolve ambiguity without evidence</h4><p>That rule is non-negotiable by design.</p></div>
+</div>
+<footer class="footer"><p>rebuild-dossier &middot; <a href="index.html">Back to top</a> &middot; <a href="https://arxiv.org/abs/2608.23616">arXiv:2608.23616</a></p></footer>
+</body>
+</html>

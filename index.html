@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>rebuild-dossier</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="header">
+<h1><a href="index.html">rebuild-dossier</a></h1>
+<nav><a href="index.html">Home</a><a href="COMPARISONS.html">How It Compares</a><a href="https://github.com/Parker-Fawcett/rebuild-dossier">GitHub</a><a href="https://arxiv.org/abs/2608.23616">Paper</a></nav>
+</div>
+<div class="hero">
+<h2 style="border:none;margin-bottom:.5rem;">Reverse-engineer a trustworthy rebuild spec from an existing app.</h2>
+<p>An MCP server that produces a locked CLAUDE.md, .claude/ config, and a mutation-tested test suite out of your codebase. Any coding agent can rebuild against that spec instead of guessing.</p>
+<div class="badges">
+<a href="https://www.npmjs.com/package/rebuild-dossier" class="badge"><img src="https://img.shields.io/npm/v/rebuild-dossier.svg"> npm</a>
+<a href="https://smithery.ai/servers/parkerscottfawcett/rebuild-dossier" class="badge"><img src="https://img.shields.io/badge/Smithery-active-brightgreen"> Smithery</a>
+<a href="https://github.com/Parker-Fawcett/rebuild-dossier" class="badge">GitHub</a>
+<a href="https://arxiv.org/abs/2608.23616" class="badge">arXiv:2608.23616</a>
+</div>
+</div>
+<h2>How it works</h2>
+<div class="card-grid">
+<div class="card"><h4>ingest_repo</h4><p>Static analysis — routes, package.json, build config, tests, structural smell detectors. No LLM call.</p></div>
+<div class="card"><h4>crawl_site</h4><p>Headless Playwright crawl of reachable routes with progress notifications.</p></div>
+<div class="card"><h4>flag_known_bug</h4><p>Free text ambiguity flag. Stored verbatim. Always overrides auto-resolve.</p></div>
+<div class="card"><h4>get_case_queue</h4><p>The ambiguity queue. Surfaces open questions via MCP elicitation.</p></div>
+<div class="card"><h4>resolve_case</h4><p>Answer a queued question with a decision.</p></div>
+<div class="card"><h4>generate_spec</h4><p>Only once the queue is empty. Writes CLAUDE.md, spec/, tests/, and kickoff-prompt.txt to a clean sibling directory.</p></div>
+</div>
+<hr class="section-divider">
+<h2>Install</h2>
+<pre><code>npx rebuild-dossier@latest --help
+npm install -g rebuild-dossier
+brew install rebuild-dossier</code></pre>
+<p style="color:#484f58;font-size:.85rem;">Requires Node 20.12+. Add as an MCP server in Claude Code, Cursor, Windsurf, or any MCP-compatible client.</p>
+<hr class="section-divider">
+<h2>Distribution</h2>
+<div class="card-grid">
+<div class="card"><h4>npm</h4><code>rebuild-dossier@0.2.6</code></div>
+<div class="card"><h4>GitHub Packages</h4><code>@parker-fawcett/rebuild-dossier@0.2.6</code></div>
+<div class="card"><h4>Smithery</h4><p>Active, 6 tools</p></div>
+<div class="card"><h4>Official MCP Registry</h4><p>Active, DNS verified</p></div>
+<div class="card"><h4>mcp.so</h4><p>Submitted (#3957)</p></div>
+<div class="card"><h4>Homebrew</h4><p>Formula available</p></div>
+</div>
+<footer class="footer"><p>rebuild-dossier &middot; Parker Fawcett &middot; <a href="https://arxiv.org/abs/2608.23616">arXiv:2608.23616</a> &middot; MIT License</p></footer>
+</body>
+</html>
