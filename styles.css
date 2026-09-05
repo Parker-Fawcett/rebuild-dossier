@@ -12,7 +12,7 @@
 }
 
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:var(--sans);background:var(--bg);color:var(--text);line-height:1.7;max-width:none;margin:0;padding:0;background-image:radial-gradient(circle,rgba(196,98,42,0.03) 1px,transparent 1px);background-size:24px 24px}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);line-height:1.7;margin:0 calc(var(--space)*4);padding:0;max-width:1200px;margin-left:auto;margin-right:auto;background-image:radial-gradient(circle at 60% -20%,rgba(196,98,42,0.03) 1px,transparent 1px);background-size:32px 32px}
 a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
 
 /* Top rule */
