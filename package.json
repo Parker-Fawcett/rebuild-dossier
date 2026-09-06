@@ -63,7 +63,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@modelcontextprotocol/express": "2.0.0-beta.5",
+    "@modelcontextprotocol/express": "2.0.0",
     "@modelcontextprotocol/node": "2.0.0-beta.5",
     "@modelcontextprotocol/server": "2.0.0-beta.5",
     "express": "^4.19.0",
