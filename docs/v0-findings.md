@@ -3664,3 +3664,62 @@ split this stays here rather than touching the frozen submitted text — a futur
 the right place to cite external reproduction as evidence if EMSE review raises reproducibility.
 `v0.2.8-paper` is now the newest paper-tagged commit; Ahmed was deliberately pointed at `.6`, not
 left on a stale tag by accident.
+
+## Live probe: what the tools return when there is nothing to work from
+
+An external reviewer on r/mcp asked the sharp version of a question this project claims to answer:
+what happens when the server has nothing useful to return? Does it say so explicitly, or does it
+answer anyway with something plausible? I ran it live against the built server rather than
+reasoning from the source, on four inputs. The results split cleanly into two groups, and the
+second group is a genuine finding.
+
+**The tool refuses loudly when it knows it has nothing.** Three paths return `isError: true` with
+a plain-language message, verified live:
+
+- `generate_spec` on a directory that was never ingested:
+  `No evidence found for <path> — run ingest_repo first.`
+- `generate_spec` with open cases:
+  `Cannot generate spec: N case(s) still open. Resolve them via get_case_queue/resolve_case first.`
+- `generate_spec` on a 0-route, monorepo-shaped path:
+  `Cannot generate spec: 0 routes were ingested for <path> — this looks like a monorepo root...`
+  (the guard added after the `cardvault` fresh-agent handoff, above)
+
+**The tool answers "successfully" with an empty deliverable when it has nothing but the shape of
+a repo.** `generate_spec` on a genuinely route-less, non-monorepo app (a `package.json` plus one
+`index.js` that prints to stdout) passes the refusals above and produces a spec tree with
+`isError` unset, `mutationsChecked: 0`, `capturedPages: 0`. What that tree contains is the
+finding:
+
+- A `CLAUDE.md` that reads as a locked rebuild spec: non-negotiable TDD rules,
+  `spec/contracts/` referenced once as locked interface shapes, `tests/visible/` referenced twice,
+  `tests/held-out/` once, pinned-dependency language for a `package.json` that pins nothing.
+  `kickoff-prompt.txt` separately references `spec/contracts/` and `tests/visible/`.
+- `spec/untested-contracts.json` is `[]`. `spec/test-dependencies.json` is `{}`.
+- The tree contains `spec/contracts/`, `tests/visible/`, and `tests/held-out/` directories, all
+  empty. Zero contract files, zero test files. Seven files total.
+- `kickoff-prompt.txt` instructs the downstream agent to "Read spec/contracts/*.md" and "Match
+  these interface shapes exactly" against contract files that do not exist.
+
+So the deliverable is a spec that points a fresh agent at contracts and a test suite that were
+never generated (the directories exist, the files do not). That is the exact failure mode the `cardvault` monorepo fix was built to prevent,
+one input class further out: the guard there fires only when 0 routes coexist with candidate app
+directories (monorepo shape), because a genuinely route-less non-monorepo repo (a component
+library, a CLI) is a legitimate 0-route target. The blind spot is not 0 routes; it is zero of
+everything. Nothing in the pipeline distinguishes "a component library with routes: 0 but real
+signals and code" from "a directory with a package.json and nothing else," so the second one sails
+through and gets the same treatment as the first.
+
+This is deliberately documented, not fixed, per the decision logged alongside it: the r/mcp reply
+committed to running the probe and reporting the honest result, and the honest result has two
+halves. The half that refuses is real and tested. The half that produces a hollow spec for a
+hollow repo is real too, and a downstream agent pointed at that output would report confusion
+("contracts referenced but missing") the same way the `cardvault` agent reported "nothing to
+rebuild." A follow-up fix would add an emptiness guard past the route count (e.g. refuse or
+annotate when ingestion produced zero routes, zero tests, and zero signals), with the component-
+library case as the regression test it must not break. Until then the behavior is named here,
+which is the minimum this project owes its own claims.
+
+Repro (against the built dist, no fixtures needed): create a directory containing only
+`package.json` (`{}`) and `index.js` (`console.log("hi")`), run `ingest_repo` on it (succeeds,
+`routes: 0`, `signals: 0`), then run `generate_spec` on it (succeeds, `isError` unset, empty
+spec tree as described).

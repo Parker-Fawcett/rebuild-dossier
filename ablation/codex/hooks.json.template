@@ -1,0 +1,6 @@
+{
+  "hooks": {
+    "PreToolUse": [{ "command": "node .codex/hooks/tool-log.mjs" }],
+    "PostToolUse": [{ "command": "node .codex/hooks/tool-heartbeat.mjs" }]
+  }
+}

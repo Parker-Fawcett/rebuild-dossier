@@ -1,0 +1,47 @@
+r/mcp reply draft - to suckadickyoucunt, answering the "nothing useful to return" probe.
+This is the reply you committed to in your "That is true I don't think I've done that specific test
+and documented it I'll reply back soon" comment. Post as-is or edit. Facts below were verified live
+against the built server this session.
+
+---
+
+Ran the test. Here is the honest result, in two halves.
+
+When the server knows it has nothing, it says so. generate_spec returns isError: true with a real
+message for a directory that was never ingested, and for a path with open cases still unresolved.
+The monorepo-root case refuses too, with candidate directories named. Those paths are tested and
+green.
+
+The half you were probing is real, though. Point generate_spec at an app that is just a
+package.json and one index.js that prints to stdout. ingest_repo succeeds with routes: 0 and
+signals: 0. Then generate_spec also succeeds, with isError unset and mutationsChecked: 0. It
+writes a spec tree that looks valid. CLAUDE.md carries locked-contract language, kickoff-prompt.txt
+tells the rebuild agent to match spec/contracts/*.md exactly. The directories are there,
+spec/contracts, tests/visible, tests/held-out. They contain zero files. Seven files total in the
+whole tree, and none of them is a contract or a test.
+
+So the tool refuses when it knows it has nothing, and produces a hollow spec when it has the shape
+of a repo and nothing inside it. A fresh agent pointed at that output gets told to honor contracts
+and a test suite that exist only as empty directories, which is the same confusion the monorepo bug
+caused before it was fixed, one input class further out.
+
+I documented the repro and the exact output in docs/v0-findings.md instead of fixing it quietly,
+for a reason: the fix has a real constraint. A route-less repo can be legitimate. A component
+library or a CLI is a valid 0-route target, so the guard cannot just block on route count. It
+needs to check for zero routes, zero tests, and zero signals together, and it needs the
+component-library case as a regression test it must not break. That is the fix I am building, and
+I wanted the failure named before the fix lands, which is the standard this project has been held
+to all week.
+
+Thanks for pressing on it. That is exactly the probe this tool is supposed to survive, and this
+path it did not, cleanly. That is now on record in the repo.
+
+---
+Posting notes (delete before posting):
+- Public, on-record. Every claim is verified: the three refusals exist with isError: true, the
+  empty-app repro runs against built dist, the output tree is 7 files with no spec/contracts/ and
+  no tests/. docs/v0-findings.md now contains the full section "Live probe: what the tools return
+  when there is nothing to work from."
+- Do not promise a fix date. "That is the fix I am building" is a direction, not a deadline.
+- No em/en dashes in prose (the two tool messages quoted are verbatim, checked). No rule of three,
+  no AI vocabulary, active voice.
