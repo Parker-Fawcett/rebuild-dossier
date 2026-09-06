@@ -64,7 +64,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/express": "2.0.0-beta.5",
-    "@modelcontextprotocol/node": "2.0.0-beta.5",
+    "@modelcontextprotocol/node": "2.0.0",
     "@modelcontextprotocol/server": "2.0.0-beta.5",
     "express": "^4.19.0",
     "ignore": "^7.0.6",
