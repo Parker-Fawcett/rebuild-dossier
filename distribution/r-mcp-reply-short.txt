@@ -1,0 +1,24 @@
+r/mcp reply draft (short version) - to suckadickyoucunt. Shorter than the first draft, same verified facts.
+
+---
+
+Ran it. Two halves.
+
+When it knows it has nothing, it refuses. generate_spec returns isError: true with a real message for a never-ingested directory, for open cases, and for a monorepo root. Tested, green.
+
+The half you were probing is real. Point generate_spec at a dir with just a package.json and one index.js. ingest_repo succeeds, routes: 0. Then generate_spec succeeds too, isError unset, mutationsChecked: 0. It writes a spec tree that looks valid: CLAUDE.md says contracts in spec/contracts/ are locked, kickoff-prompt.txt tells the agent to match them. Those directories exist. They are empty. Seven files total, zero contracts, zero tests.
+
+So it refuses when it knows it has nothing, and produces a hollow spec when it has the shape of a repo and nothing inside. A fresh agent would get told to honor contracts that exist only as empty dirs.
+
+Documented in docs/v0-findings.md, repro included. The fix is trickier than it looks: a route-less repo can be legit (component library, CLI), so the guard can't just block on route count. Needs zero routes, zero tests, and zero signals together. That's what I'm building, with the component-library case as the regression test it must not break.
+
+Thanks for the probe. That's the kind it's supposed to survive, and this path it did not, cleanly. On record now.
+
+---
+Posting notes (delete before posting):
+- Public, on-record. Every fact verified live against built dist this session: the three refusals
+  return isError: true; the empty-app repro returns isError unset, mutationsChecked: 0; the tree is
+  7 files with spec/contracts, tests/visible, tests/held-out all present and empty. docs/v0-findings.md
+  has the full section "Live probe: what the tools return when there is nothing to work from."
+- No em/en dashes in prose. No rule of three, no AI vocabulary, active voice. "That's what I'm
+  building" is a direction, not a deadline; do not add one.

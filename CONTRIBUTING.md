@@ -79,4 +79,6 @@ Start with a `good first issue`. If none fit, open an issue asking what would be
 
 ## Questions?
 
-Open an issue. I respond within 24 hours on weekdays.
+**GitHub Discussions**: https://github.com/Parker-Fawcett/rebuild-dossier/discussions — for questions, ideas, and sharing your rebuild specs.
+
+Open an issue for bugs and feature requests. I respond within 24 hours on weekdays.

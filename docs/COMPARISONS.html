@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>rebuild-dossier — How It Compares</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif 4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="top-rule"></div>
+<div class="header">
+<h1><a href="index.html">rebuild-dossier</a></h1>
+<nav><a href="index.html">Home</a><a href="COMPARISONS.html">How It Compares</a><a href="https://github.com/Parker-Fawcett/rebuild-dossier">GitHub</a><a href="https://arxiv.org/abs/2608.23616">Paper</a></nav>
+</div>
+<section class="hero" style="margin-bottom:calc(var(--space)*6)">
+<span class="hero-tag">Reference</span>
+<h1>How rebuild-dossier compares</h1>
+<p>There is no direct equivalent to this tool, so these comparisons are against adjacent approaches people reach for when they want an AI agent to work with an existing codebase.</p>
+</section>
+<h2><span class="num">A</span>vs. just prompting the agent to "understand" the codebase</h2>
+<p style="margin-bottom:calc(var(--space)*3)">The default approach: point Claude Code / Cursor at a repo and ask it to make changes.</p>
+<table>
+<thead><tr><th style="width:25%"></th><th style="width:37.5%">Ad-hoc prompting</th><th style="width:37.5%">rebuild-dossier</th></tr></thead>
+<tbody>
+<tr><td><strong>Interface contracts</strong></td><td>Agent guesses from context windows</td><td>Locked in CLAUDE.md before any test runs</td></tr>
+<tr><td><strong>Ambiguity handling</strong></td><td>Resolved silently (code matching behavior looks intentional)</td><td>Auto-resolution requires signal agreement AND evidence someone decided; otherwise becomes a question</td></tr>
+<tr><td><strong>Test suite</strong></td><td>Generated ad hoc per task</td><td>Mutation-tested suite shipped with the spec</td></tr>
+<tr><td><strong>Repeatability</strong></td><td>Different run, different understanding</td><td>Same locked spec every time</td></tr>
+</tbody>
+</table>
+<div class="callout"><strong>The research motivation:</strong> prior work (AgentModernize, arXiv:2605.17535) measured 0% behavioral equivalence for rebuild pipelines without a verified feedback loop. The bet here is that locking contracts before testing, plus one-test-at-a-time retries, does better.</div>
+<h2><span class="num">B</span>vs. writing a CLAUDE.md by hand</h2>
+<p>Hand-written CLAUDE.md files describe intent. They go stale the first time someone ships without updating them. A dossier is generated from the actual code and observed behavior, and it ships with tests that fail if behavior drifts from the documented contract.</p>
+<h2><span class="num">C</span>vs. snapshot/freeze tools</h2>
+<p>Freeze tools capture state but give an agent no way to verify its work against that state. A dossier pairs the spec with a mutation-tested suite, so the agent gets a feedback loop, not just documentation.</p>
+<hr class="section-divider">
+<h2><span class="num">D</span>What this tool deliberately does not do</h2>
+<ul class="feature-list">
+<li><strong style="color:var(--accent);">Does not rebuild your app</strong> — It produces the spec a coding agent consumes to do that.</li>
+<li><strong style="color:var(--accent);">Does not claim behavioral equivalence</strong> — v0 findings, including what broke, are in docs/v0-findings.md.</li>
+<li><strong style="color:var(--accent);">Does not auto-resolve ambiguity without evidence</strong> — That rule is non-negotiable by design.</li>
+</ul>
+<footer class="footer"><p>rebuild-dossier &middot; <a href="index.html">Back to top</a> &middot; <a href="https://arxiv.org/abs/2608.23616">arXiv:2608.23616</a></p></footer>
+</body>
+</html>

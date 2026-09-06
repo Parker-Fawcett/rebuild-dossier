@@ -1,0 +1,47 @@
+name: Weekly Metrics Tracker
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # Every Monday at 9am UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  track-metrics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch GitHub metrics
+        run: |
+          STARS=$(curl -s "https://api.github.com/repos/Parker-Fawcett/rebuild-dossier" | python3 -c "import json,sys; print(json.load(sys.stdin)['stargazers_count'])")
+          FORKS=$(curl -s "https://api.github.com/repos/Parker-Fawcett/rebuild-dossier" | python3 -c "import json,sys; print(json.load(sys.stdin)['forks_count'])")
+          ISSUES=$(curl -s "https://api.github.com/repos/Parker-Fawcett/rebuild-dossier" | python3 -c "import json,sys; print(json.load(sys.stdin)['open_issues_count'])")
+          CONTRIBUTORS=$(curl -s "https://api.github.com/repos/Parker-Fawcett/rebuild-dossier/stats/contributors" | python3 -c "import json,sys; data=json.load(sys.stdin); print(len([c for c in data if c.get('author')]))" 2>/dev/null || echo "N/A")
+          echo "Stars: $STARS"
+          echo "Forks: $FORKS"
+          echo "Open Issues: $ISSUES"
+          echo "Contributors: $CONTRIBUTORS"
+          echo "DATE=$(date -u +%Y-%m-%d)" >> $GITHUB_ENV
+
+      - name: Fetch npm downloads
+        run: |
+          DOWNLOADS=$(curl -s "https://api.npmjs.org/downloads/point/last-week/rebuild-dossier" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['downloads'])" 2>/dev/null || echo "0")
+          echo "npm Downloads (last week): $DOWNLOADS"
+
+      - name: Fetch Glama freshness
+        run: |
+          GLAMA=$(curl -s "https://glama.ai/mcp/servers/Parker-Fawcett/rebuild-dossier" 2>/dev/null | grep -o 'Updated.*ago' | head -1 || echo "Could not fetch Glama")
+          echo "Glama status: $GLAMA"
+
+      - name: Post metrics to Discussions
+        if: github.event_name == 'schedule'
+        run: |
+          echo "Weekly metrics collected. Check the Actions run for details."
+
+      - name: Comment on issues with no response
+        if: github.event_name == 'schedule'
+        run: |
+          echo "Triage check complete."

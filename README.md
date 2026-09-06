@@ -74,6 +74,12 @@ npx rebuild-dossier@latest --help    # pull the MCP server (stdio), or:
 npm install -g rebuild-dossier        # install the CLI globally
 ```
 
+Also available via Homebrew:
+
+```bash
+brew install rebuild-dossier
+```
+
 Requires **Node 20.12+** (set in `package.json` `engines`). To run from source instead, clone the
 repo, `npm install`, and use `npm start`.
 
@@ -406,6 +412,8 @@ Thanks for considering a contribution! This is an academic/research project — 
 align with the design described in the [paper](https://arxiv.org/abs/2608.23616). See
 [CONTRIBUTING.md](CONTRIBUTING.md) for setup, testing, and PR guidelines. First-timers welcome —
 look for issues tagged `good first issue` or open one and ask what's most useful.
+
+See [How rebuild-dossier compares](docs/COMPARISONS.html) for how it differs from alternatives.
 
 ## License
 
