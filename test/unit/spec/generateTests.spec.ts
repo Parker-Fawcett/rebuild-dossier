@@ -323,4 +323,96 @@ describe('generateTests', () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  // Issue #7: named ESM app exports must generate tests, with a named import.
+  it('generates tests for a named app export, using a named import', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-gentests-'));
+    try {
+      writeFileSync(join(dir, 'server.ts'), "import express from 'express';\nexport const app = express();\n");
+      const evidence = minimalEvidence({
+        routes: [{ path: '/api/users', method: 'GET', file: 'server.ts', kind: 'api', startLine: 1 }]
+      });
+
+      const { visible, heldOut } = generateTests(dir, evidence, []);
+
+      const all = [...visible, ...heldOut];
+      expect(all).toHaveLength(1);
+      expect(all[0]?.content).toContain("import { app } from '../../server.js'");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('generates tests for an export-list app export (`export { app }`)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-gentests-'));
+    try {
+      writeFileSync(join(dir, 'server.ts'), "import express from 'express';\nconst app = express();\nexport { app };\n");
+      const evidence = minimalEvidence({
+        routes: [{ path: '/api/users', method: 'GET', file: 'server.ts', kind: 'api', startLine: 1 }]
+      });
+
+      const { visible, heldOut } = generateTests(dir, evidence, []);
+
+      const all = [...visible, ...heldOut];
+      expect(all).toHaveLength(1);
+      expect(all[0]?.content).toContain("import { app } from '../../server.js'");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('generates tests for a CommonJS app export (`module.exports = app`)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-gentests-'));
+    try {
+      writeFileSync(join(dir, 'server.js'), "const express = require('express');\nconst app = express();\nmodule.exports = app;\n");
+      const evidence = minimalEvidence({
+        routes: [{ path: '/api/users', method: 'GET', file: 'server.js', kind: 'api', startLine: 1 }]
+      });
+
+      const { visible, heldOut } = generateTests(dir, evidence, []);
+
+      const all = [...visible, ...heldOut];
+      expect(all).toHaveLength(1);
+      expect(all[0]?.content).toContain("import { app } from '../../server.js'");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  // Issue #7's exact shape: route files export only register functions while
+  // the app instance lives in an entry file the route list never mentions.
+  it('finds the app in an entry file when route files only export register functions', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-gentests-'));
+    try {
+      writeFileSync(join(dir, 'index.ts'), "import express from 'express';\nimport { registerTaskRoutes } from './routes/tasks.js';\nconst app = express();\nregisterTaskRoutes(app);\nexport default app;\n");
+      const evidence = minimalEvidence({
+        routes: [{ path: '/api/tasks', method: 'GET', file: 'routes/tasks.ts', kind: 'api', startLine: 1 }]
+      });
+
+      const { visible, heldOut } = generateTests(dir, evidence, []);
+
+      const all = [...visible, ...heldOut];
+      expect(all).toHaveLength(1);
+      expect(all[0]?.content).toContain("import app from '../../index.js'");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('still returns no tests when neither route files nor entry files export an app', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-gentests-'));
+    try {
+      writeFileSync(join(dir, 'routes.ts'), 'export function registerRoutes(app: unknown) { void app; }\n');
+      const evidence = minimalEvidence({
+        routes: [{ path: '/api/users', method: 'GET', file: 'routes.ts', kind: 'api', startLine: 1 }]
+      });
+
+      const { visible, heldOut } = generateTests(dir, evidence, []);
+
+      expect(visible).toEqual([]);
+      expect(heldOut).toEqual([]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });

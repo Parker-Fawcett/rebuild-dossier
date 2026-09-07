@@ -63,9 +63,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@modelcontextprotocol/express": "2.0.0-beta.5",
-    "@modelcontextprotocol/node": "2.0.0-beta.5",
-    "@modelcontextprotocol/server": "2.0.0-beta.5",
+    "@modelcontextprotocol/express": "2.0.0",
+    "@modelcontextprotocol/node": "2.0.0",
+    "@modelcontextprotocol/server": "2.0.0",
     "express": "^4.19.0",
     "ignore": "^7.0.6",
     "playwright": "^1.61.1",
@@ -73,7 +73,7 @@
     "zod": "^4.1.13"
   },
   "devDependencies": {
-    "@modelcontextprotocol/client": "2.0.0-beta.5",
+    "@modelcontextprotocol/client": "2.0.0",
     "@types/express": "^4.17.21",
     "@types/node": "^24.0.0",
     "tsx": "^4.20.0",
