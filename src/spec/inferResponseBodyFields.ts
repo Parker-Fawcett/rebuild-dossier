@@ -1,5 +1,6 @@
 import type { RouteEntry } from '../ingest/evidenceSchema.js';
 import { isolateHandlerBody } from './isolateHandlerSource.js';
+import { resolveBareResponseFields } from './resolveResponseVariableFields.js';
 
 // Best-effort, regex-based extraction of response-body field names from a
 // route handler's own source — companion to inferRequestBodyFields.ts,
@@ -20,8 +21,11 @@ import { isolateHandlerBody } from './isolateHandlerSource.js';
 //    TypeScript return-type interface — real follow-up work, not built
 //    here; cross-file resolution is a materially bigger, riskier increment
 //    than same-file extraction.
-// 2. A bare variable/array response (`NextResponse.json(rows)`) is
-//    invisible for the same reason.
+// 2. A bare variable/array response (`NextResponse.json(rows)`) resolves
+//    one variable hop via resolveResponseVariableFields.ts (object-literal
+//    keys, SQL column lists, or `SELECT *` through a same-file
+//    `CREATE TABLE`) — anything beyond that (cross-file schema, computed
+//    aggregates, parameter-passed rows) stays invisible, documented there.
 // 3. Multiple return sites in one handler (e.g. an early error response
 //    and a later success response) have their fields unioned together, not
 //    distinguished by status code — still more informative than nothing,
@@ -213,6 +217,15 @@ export function inferResponseBodyFields(sourceCode: string, route: RouteEntry): 
   if (!handlerBody) return [];
   const found = new Set<string>();
   literalEntriesFromResponseCalls(handlerBody).forEach((entry) => found.add(entry.key));
+  // Issue #8: a bare-variable argument (`res.json(tasks)`) carries no
+  // literal keys — resolve one variable hop (object literal, SQL column
+  // list, or SELECT * via same-file CREATE TABLE) and union the result.
+  // Anything unresolvable stays absent: an absent field is an honest gap,
+  // a guessed one would be a fabricated contract.
+  for (const arg of findResponseCallArguments(handlerBody)) {
+    if (!IDENTIFIER_PATTERN.test(arg)) continue;
+    resolveBareResponseFields(sourceCode, handlerBody, arg).forEach((name) => found.add(name));
+  }
   return [...found];
 }
 
