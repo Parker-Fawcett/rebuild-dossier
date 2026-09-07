@@ -6,6 +6,7 @@ import type { PageStylesheetAnimations, SkippedPage } from './generatePageTests.
 import { inferInteractionGatedElements } from './inferInteractionGatedElements.js';
 import { inferRequestBodyFields } from './inferRequestBodyFields.js';
 import { inferRequestValidationRules, type ValidationRule } from './inferRequestValidationRules.js';
+import { inferZodRequiredFields } from './parseZodObjectSchema.js';
 import { inferResponseBodyFields, inferResponseValueFormatHints } from './inferResponseBodyFields.js';
 import { inferSuccessStatusCode } from './inferSuccessStatusCode.js';
 import { resolveDelegatedResponseFields } from './resolveDelegatedResponseFields.js';
@@ -49,15 +50,29 @@ function sourceLine(repoPath: string, route: RouteEntry): string {
 // genuinely can't be read should surface as a real failure here, not a
 // silently-empty section.
 function validationRuleClause(rule: ValidationRule): string {
-  if (rule.kind === 'type') return `must be a \`${rule.expectedType}\``;
-  if (rule.kind === 'non-empty') return 'must be non-empty';
-  return 'required';
+  const base =
+    rule.kind === 'type'
+      ? `must be a \`${rule.expectedType}\``
+      : rule.kind === 'non-empty'
+        ? 'must be non-empty'
+        : 'required';
+  // Issue #11: a custom rejection message is part of the contract — a
+  // rebuild that validates correctly but with default Zod text still
+  // diverges observably. Carried verbatim, never asserted against.
+  return rule.message !== undefined ? `${base}, rejects with ${JSON.stringify(rule.message)}` : base;
 }
 
 function inferredFieldsSection(repoPath: string, route: RouteEntry): string | undefined {
   if (!METHODS_WITH_BODY.has(route.method ?? '')) return undefined;
   const text = readFileSync(join(repoPath, route.file), 'utf-8');
   const fields = inferRequestBodyFields(text, route);
+  // Issue #11: Zod-validated handlers rarely destructure req.body, so the
+  // handler-source list is empty exactly when a schema names the fields.
+  // Union in the schema's required names so the section (and its rule
+  // clauses, including custom messages) renders for the reported case.
+  for (const name of inferZodRequiredFields(text, route)) {
+    if (!fields.includes(name)) fields.push(name);
+  }
   if (fields.length === 0) return undefined;
   const validationRules = inferRequestValidationRules(text, route);
   return [
@@ -67,8 +82,10 @@ function inferredFieldsSection(repoPath: string, route: RouteEntry): string | un
     'a v1, regex-based heuristic — it can miss renamed destructuring, computed keys, and spread',
     'patterns, and is not a guarantee of the complete or exact shape. Where the handler rejects a',
     'missing field with an error response, that is shown too — a v1 heuristic scoped to a falsy',
-    'check, a `typeof` type-check, or an explicit non-empty-length check (e.g. `if (!name) {...}`),',
-    'not a guarantee every validation rule the handler enforces is captured.',
+    'check, a `typeof` type-check, an explicit non-empty-length check (e.g. `if (!name) {...}`),',
+    'or a Zod object schema applied to the request data (required fields and any custom rejection',
+    'messages shown verbatim) — not a guarantee every validation rule the handler enforces is',
+    'captured.',
     '',
     fields
       .map((f) => {

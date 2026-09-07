@@ -1,6 +1,7 @@
 import type { RouteEntry } from '../ingest/evidenceSchema.js';
 import { inferRequestBodyFields } from './inferRequestBodyFields.js';
 import { isolateHandlerBody } from './isolateHandlerSource.js';
+import { findZodSchemasForRoute } from './parseZodObjectSchema.js';
 
 // Best-effort, regex/brace-balancing extraction of required-field validation
 // guards from a route handler's own source — companion to
@@ -29,10 +30,11 @@ import { isolateHandlerBody } from './isolateHandlerSource.js';
 //    logic and not recognized), and an explicit non-empty-length check
 //    (`x.length === 0`, `x.length < 1` — distinct from `!x.length`, which
 //    the negated-identifier pattern already catches via its optional
-//    `[?.].*` suffix). Zod/schema-based validation (`schema.safeParse(...)`)
-//    is a structurally different mechanism (recognizing a schema object, not
-//    a bare guard clause) and is not recognized — a separate, bigger,
-//    not-yet-motivated future increment.
+//    `[?.].*` suffix). Zod object schemas applied to request data are
+//    handled separately below (issue #11) — required fields plus custom
+//    rejection messages — because recognizing a schema object is
+//    structurally different from recognizing a bare guard clause, and
+//    Zod-validated handlers rarely contain `if (!x)` guards at all.
 // 4. A guard whose block contains no 4xx status anywhere is not treated as a
 //    rejection, so it's excluded even if it negates a known field.
 // 5. Only identifiers already present in inferRequestBodyFields's result for
@@ -51,6 +53,10 @@ export interface ValidationRule {
   expression: string; // raw checked-via branch text, shown verbatim
   kind: 'required' | 'type' | 'non-empty';
   expectedType?: string; // only set for kind: 'type' — the literal type name captured from the guard
+  message?: string; // custom rejection message captured from a Zod schema
+  // argument (`.min(3, 'msg')` / `{ message: 'msg' }`) — carried into the
+  // contract so a rebuild reproduces the exact text (issue #11), never
+  // asserted against
 }
 
 function classifyBranch(branch: string): { field: string; rule: ValidationRule } | null {
@@ -103,8 +109,6 @@ export function inferRequestValidationRules(sourceCode: string, route: RouteEntr
   if (!handlerBody) return {};
 
   const knownFields = new Set(inferRequestBodyFields(sourceCode, route));
-  if (knownFields.size === 0) return {};
-
   const rules: Record<string, ValidationRule> = {};
 
   for (const m of handlerBody.matchAll(IF_PATTERN)) {
@@ -121,6 +125,24 @@ export function inferRequestValidationRules(sourceCode: string, route: RouteEntr
       const classified = classifyBranch(branch);
       if (!classified) continue;
       if (knownFields.has(classified.field)) rules[classified.field] = classified.rule;
+    }
+  }
+
+  // Issue #11: Zod schemas applied to request data are declarative required
+  // rules with (often custom) rejection messages. They fill gaps the guard
+  // scan cannot see — Zod-validated handlers rarely contain `if (!x)`
+  // guards — but never override a guard-derived rule, which describes
+  // observed handler behavior rather than declared schema. A schema field
+  // is trusted here for the same reason parseZodObjectSchema trusts it:
+  // the schema is applied to this route's request data.
+  for (const schema of findZodSchemasForRoute(sourceCode, route)) {
+    for (const field of schema.fields) {
+      if (!field.required || rules[field.name]) continue;
+      const rule: ValidationRule = { expression: field.expression, kind: 'required' };
+      const firstMessage = field.constraints.map((c) => c.message).find((msg) => msg !== undefined);
+      if (firstMessage !== undefined) rule.message = firstMessage;
+      rules[field.name] = rule;
+      knownFields.add(field.name);
     }
   }
 

@@ -5,6 +5,7 @@ import type { Case } from '../reconciliation/types.js';
 import type { GeneratedFile } from './generateContracts.js';
 import { inferRequestBodyFields } from './inferRequestBodyFields.js';
 import { inferSuccessStatusCode } from './inferSuccessStatusCode.js';
+import { inferZodRequiredFields } from './parseZodObjectSchema.js';
 import {
   concretePath,
   METHODS_WITH_BODY,
@@ -95,10 +96,20 @@ function requestInitFor(method: string, fields: string[]): string {
 // in a test, or a route's source having gone missing between ingest and
 // generation) — falling back to [] reproduces the `{}` placeholder rather
 // than crashing the whole generator over one route's missing source.
+//
+// Issue #9: Zod-validated handlers rarely destructure req.body directly
+// (they parse through a schema), so handler-source extraction finds nothing
+// and the emitted test posts `{}` — which validation rejects, demoting the
+// test to weak. When handler extraction is empty, fall back to the schema's
+// required field names. Placeholders stay plain strings (see
+// parseZodObjectSchema.ts limitation 4): enough for the dominant
+// string-with-min-length case, no worse than `{}` anywhere else.
 function inferFieldsSafely(repoPath: string, route: RouteEntry): string[] {
   try {
     const text = readFileSync(join(repoPath, route.file), 'utf-8');
-    return inferRequestBodyFields(text, route);
+    const fromSource = inferRequestBodyFields(text, route);
+    if (fromSource.length > 0) return fromSource;
+    return inferZodRequiredFields(text, route);
   } catch {
     return [];
   }

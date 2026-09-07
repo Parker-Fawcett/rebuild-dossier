@@ -415,4 +415,36 @@ describe('generateTests', () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it('posts the schema-required fields for a Zod-validated route that never destructures the body (issue #9)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-gentests-'));
+    try {
+      writeFileSync(
+        join(dir, 'server.ts'),
+        [
+          "import express from 'express';",
+          "import { z } from 'zod';",
+          'const app = express();',
+          'app.use(express.json());',
+          'const taskSchema = z.object({ title: z.string().min(1) });',
+          "app.post('/api/tasks', (req, res) => {",
+          '  const parsed = taskSchema.parse(req.body);',
+          '  res.status(201).json({ id: 1, title: parsed.title });',
+          '});',
+          'export default app;'
+        ].join('\n')
+      );
+      const evidence = minimalEvidence({
+        routes: [{ path: '/api/tasks', method: 'POST', file: 'server.ts', kind: 'api', startLine: 6 }]
+      });
+
+      const { visible, heldOut } = generateTests(dir, evidence, []);
+      const content = [...visible, ...heldOut][0]?.content ?? '';
+
+      expect(content).toContain("body: JSON.stringify({ title: 'test-value-123' })");
+      expect(content).toContain('expect(res.status).toBe(201)');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });

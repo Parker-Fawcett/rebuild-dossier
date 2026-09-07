@@ -316,7 +316,7 @@ describe('generateContracts', () => {
       const files = generateContracts(dir, routes);
 
       expect(files[0]?.content).toContain('- `message`\n');
-      expect(files[0]?.content).not.toContain('required');
+      expect(files[0]?.content).not.toContain('— required');
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -740,6 +740,35 @@ describe('generateContracts', () => {
       const files = generateContracts(dir, routes);
 
       expect(files[0]?.content).not.toContain('Interaction-gated content');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('renders Zod-required fields with custom messages even when the handler never destructures the body (issue #11)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(
+        join(dir, 'server.ts'),
+        [
+          "import { z } from 'zod';",
+          'const taskSchema = z.object({',
+          "  title: z.string().min(1, 'Title is required'),",
+          '});',
+          "app.post('/api/tasks', (req, res) => {",
+          '  const parsed = taskSchema.parse(req.body);',
+          '  res.status(201).json(parsed);',
+          '});'
+        ].join('\n')
+      );
+      const routes: RouteEntry[] = [{ path: '/api/tasks', method: 'POST', file: 'server.ts', kind: 'api', startLine: 6 }];
+
+      const files = generateContracts(dir, routes);
+
+      expect(files[0]?.content).toContain('Inferred request body fields');
+      expect(files[0]?.content).toContain(
+        '`title` — required, rejects with "Title is required" (checked via: `z.string().min(1, \'Title is required\')`)'
+      );
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
