@@ -15,13 +15,57 @@ import {
 
 const HELD_OUT_EVERY = 3; // deterministic split, not random — see generateTests below
 
-function findAppExport(repoPath: string, files: string[]): { file: string; exportName: string } | null {
-  for (const file of files) {
+interface AppExport {
+  file: string;
+  exportName: string;
+  isDefault: boolean;
+}
+
+// Real, live-triggered finding (issue #7): route files that register routes
+// via `export function registerRoutes(app, db)` carry no app export at all,
+// and apps using named exports (`export const app`, `export { app }`) or
+// CommonJS (`module.exports = app`) were invisible to the old
+// `export default`-only scan — so generation silently produced zero tests.
+// Detection is deliberately restricted to the literal `app` binding: the
+// emitted harness passes the import straight to `createServer()`, and
+// guessing at any other binding (PORT, router, config) would fabricate a
+// broken suite instead of an empty one.
+function findAppExport(repoPath: string, files: string[]): AppExport | null {
+  // Route files first (existing behavior), then conventional entry points —
+  // the app instance usually lives in index/server/app, not in a route file.
+  const entryCandidates = [
+    'index.js',
+    'index.ts',
+    'server.js',
+    'server.ts',
+    'app.js',
+    'app.ts',
+    'main.js',
+    'main.ts',
+    'src/index.js',
+    'src/index.ts',
+    'src/server.js',
+    'src/server.ts',
+    'src/app.js',
+    'src/app.ts'
+  ];
+  const ordered = [...new Set([...files, ...entryCandidates])];
+  for (const file of ordered) {
     const fullPath = join(repoPath, file);
     if (!existsSync(fullPath)) continue;
-    const text = readFileSync(fullPath, 'utf-8');
-    const match = text.match(/export\s+default\s+(\w+)/);
-    if (match) return { file, exportName: match[1]! };
+    let text: string;
+    try {
+      text = readFileSync(fullPath, 'utf-8');
+    } catch {
+      continue;
+    }
+    const def = text.match(/export\s+default\s+(\w+)/);
+    if (def) return { file, exportName: def[1]!, isDefault: true };
+    if (/export\s+(?:const|let|var)\s+app\b/.test(text)) return { file, exportName: 'app', isDefault: false };
+    if (/export\s*\{[^}]*\bapp\b[^}]*\}/.test(text)) return { file, exportName: 'app', isDefault: false };
+    if (/module\.exports\s*=\s*app\b/.test(text)) return { file, exportName: 'app', isDefault: false };
+    if (/module\.exports\s*=\s*\{[^}]*\bapp\b[^}]*\}/.test(text)) return { file, exportName: 'app', isDefault: false };
+    if (/exports\.app\s*=/.test(text)) return { file, exportName: 'app', isDefault: false };
   }
   return null;
 }
@@ -82,7 +126,14 @@ function inferSuccessStatusSafely(repoPath: string, route: RouteEntry) {
   }
 }
 
-function testFileFor(repoPath: string, route: RouteEntry, importPath: string, cases: Case[], fields: string[]): string {
+function testFileFor(
+  repoPath: string,
+  route: RouteEntry,
+  importPath: string,
+  isDefaultExport: boolean,
+  cases: Case[],
+  fields: string[]
+): string {
   const method = route.method ?? 'GET';
   const concrete = concretePath(route.path);
   const reconciliation = reconciliationAssertion(route, cases);
@@ -112,9 +163,13 @@ function testFileFor(repoPath: string, route: RouteEntry, importPath: string, ca
     );
   }
 
+  // Detection only ever yields the literal `app` binding (see
+  // findAppExport), so the local name stays `app` in both forms — only the
+  // import syntax differs.
+  const importLine = isDefaultExport ? `import app from '${importPath}';` : `import { app } from '${importPath}';`;
   return `import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createServer } from 'node:http';
-import app from '${importPath}';
+${importLine}
 
 let server;
 let baseUrl;
@@ -172,7 +227,7 @@ export function generateTests(
     const fields = inferFieldsSafely(repoPath, route);
     const file: GeneratedTestFile = {
       filename: `${sanitizeFilenameBase(route.method, route.path)}.spec.ts`,
-      content: testFileFor(repoPath, route, importPath, cases, fields),
+      content: testFileFor(repoPath, route, importPath, appExport.isDefault, cases, fields),
       sourceFile: route.file
     };
     if (index % HELD_OUT_EVERY === HELD_OUT_EVERY - 1) {
