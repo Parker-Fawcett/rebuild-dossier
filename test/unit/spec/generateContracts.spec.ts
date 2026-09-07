@@ -773,4 +773,31 @@ describe('generateContracts', () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it('lists columns for a bare-variable db response instead of an empty section (issue #8)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(
+        join(dir, 'server.js'),
+        [
+          "import express from 'express';",
+          'const app = express();',
+          "app.get('/api/tasks', async (req, res) => {",
+          "  const tasks = await db.all('SELECT id, title, dueDate, created_at FROM tasks WHERE user_id = ?', req.query.userId);",
+          '  return res.status(200).json(tasks);',
+          '});',
+          'export default app;'
+        ].join('\n')
+      );
+      const routes: RouteEntry[] = [{ path: '/api/tasks', method: 'GET', file: 'server.js', kind: 'api', startLine: 3 }];
+
+      const files = generateContracts(dir, routes);
+
+      for (const field of ['`id`', '`title`', '`dueDate`', '`created_at`']) {
+        expect(files[0]?.content).toContain(field);
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
