@@ -257,4 +257,43 @@ describe('inferRequestValidationRules', () => {
     `;
     expect(inferRequestValidationRules(source, route())).toEqual({});
   });
+
+  it('captures required fields and custom messages from an applied Zod schema (issue #11)', () => {
+    const source = [
+      "import { z } from 'zod';",
+      'const taskSchema = z.object({',
+      "  title: z.string().min(1, 'Title is required'),",
+      '  count: z.number().optional(),',
+      '});',
+      'app.post(\'/api/tasks\', (req, res) => {',
+      '  const parsed = taskSchema.parse(req.body);',
+      '  res.status(201).json(parsed);',
+      '});'
+    ].join('\n');
+    expect(inferRequestValidationRules(source, route({ path: '/api/tasks' }))).toEqual({
+      title: {
+        expression: "z.string().min(1, 'Title is required')",
+        kind: 'required',
+        message: 'Title is required'
+      }
+    });
+  });
+
+  it('lets an observed guard rule win over a Zod-declared rule for the same field', () => {
+    const source = [
+      "import { z } from 'zod';",
+      'const s = z.object({ name: z.string() });',
+      'app.post(\'/api/notes\', (req, res) => {',
+      '  const { name } = req.body;',
+      '  s.parse(req.body);',
+      '  if (!name) {',
+      "    return res.status(400).json({ error: 'name required' });",
+      '  }',
+      '  res.status(201).json({ name });',
+      '});'
+    ].join('\n');
+    expect(inferRequestValidationRules(source, route())).toEqual({
+      name: { expression: '!name', kind: 'required' }
+    });
+  });
 });
