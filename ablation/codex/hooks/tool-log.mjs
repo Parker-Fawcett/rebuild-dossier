@@ -27,7 +27,61 @@
 import { existsSync, readFileSync, appendFileSync, mkdirSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 
-const SPEC_PATH_PATTERN = /(^|[\\/])spec[\\/]/;
+// Includes \s (unlike the upstream production pattern in
+// generateSettingsJson.ts, which never needed it because it only ever tests
+// a parsed file_path) — CONFIRMED necessary on 2026-09-09: a raw shell
+// command like `printf modified > spec/dummy.txt` has "spec" preceded by a
+// space, not a path separator, and the space-less version silently failed
+// to match it, exactly the false-negative HELD_OUT_PATH_PATTERN below
+// already guards against for the same reason. Only ever applied to a parsed
+// `filePath` (always inherently a write — see extractFilePath's apply_patch
+// case below) — never to raw `command` text. See commandWritesTo below for
+// why command text needs a different, narrower check.
+const SPEC_PATH_PATTERN = /(^|[\s\\/])spec[\\/]/;
+
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// CONFIRMED necessary 2026-09-09, from a REAL trial, not a hypothetical: a
+// real `web-rebuild` trial had a `gpt-5.6-terra` session blocked twice for
+// running `find spec/contracts ... | cat ...` and `rg -n '' spec/contracts
+// --glob '*.md'` — both pure READS of spec/contracts/*.md, which the
+// kickoff prompt itself *requires* ("Read spec/contracts/*.md..."). The
+// model wasn't attempting a rail violation; it hit a false positive from
+// treating any raw-command mention of "spec/" (added to catch the
+// Bash-redirect write bypass below) the same as an actual edit, then
+// adapted its own shell phrasing twice (`rg -g '*.md'` with no path arg,
+// then `cd spec && rg contracts`) until one didn't contain the literal
+// substring — not rule-gaming, just normal retry-on-failure that happened
+// to dodge an overly broad pattern. The original production pattern
+// (generateSettingsJson.ts) never had this problem because its hook is
+// matcher-scoped to `Edit|Write` only and never sees a Bash call at all;
+// extending detection to raw command text (to catch a real write bypass
+// Codex's general-purpose Bash tool allows, confirmed separately) broke
+// that clean read/write separation. Fix: only treat command text as a
+// spec/ touch when it matches a known WRITE-shaped construct targeting a
+// spec/ path — not a bare substring match. `[^\n;&|]*?` bounds the match to
+// roughly one shell statement, so an unrelated `rm` or `>` elsewhere in a
+// `&&`/`;`/`|`-chained command doesn't spuriously connect to an unrelated
+// `spec/` mention later in the same line.
+//
+// Known, deliberately undefended gaps (documented rather than silently
+// assumed complete): `cp` into spec/ (ambiguous by argument position —
+// `cp spec/x /tmp/y` reads, `cp /tmp/y spec/x` writes — not disambiguated
+// here), a script interpreter writing a file internally (`python3 -c
+// "open('spec/x','w')..."`), `dd of=spec/x`, `install`, `rsync`. Extend this
+// list from real evidence if one of these is ever actually observed, the
+// same discipline every other fix in this file follows.
+function commandWritesTo(command, pathPatternSource) {
+  const redirect = new RegExp(String.raw`(^|[\s;&|])>>?\s*['"]?[^\s'";&|]*?(?:${pathPatternSource})`);
+  const tee = new RegExp(String.raw`\btee\b[^\n;&|]*?(?:${pathPatternSource})`);
+  const sedInPlace = new RegExp(String.raw`\bsed\b[^\n;&|]*?(-i|--in-place)\b[^\n;&|]*?(?:${pathPatternSource})`);
+  const rmMv = new RegExp(String.raw`\b(rm|mv)\b[^\n;&|]*?(?:${pathPatternSource})`);
+  return redirect.test(command) || tee.test(command) || sedInPlace.test(command) || rmMv.test(command);
+}
+
+const SPEC_WRITE_TARGET_SOURCE = String.raw`spec[\\/]`;
 
 function stateDirFor(cwd) {
   const dir = join(dirname(cwd), '.codex-plugin-state', basename(cwd));
@@ -35,13 +89,23 @@ function stateDirFor(cwd) {
   return dir;
 }
 
-// Best-effort extraction across every shape this script has a reason to
-// consider plausible. Update this list, don't just add a new script, once a
-// real dry run reveals the actual shape — keeping one place that knows
-// "what we've tried" makes the eventual fix a one-line change.
+// CONFIRMED against a real, authenticated v0.153.4 `codex exec` on
+// 2026-09-09: Codex's file-edit tool is `apply_patch`, not `Edit`/`Write`,
+// and it carries NO `file_path`-shaped field at all — the target path only
+// exists embedded inside `tool_input.command`, a unified-diff-style string
+// with headers like `*** Add File: <path>` / `*** Update File: <path>` /
+// `*** Delete File: <path>`. Every Claude-Code-shaped guess below returned
+// null against a real payload; this was a real, confirmed bug — the spec/
+// lock silently never fired (a deliberate live test edited spec/dummy.txt
+// under `enforce` and it went through uncaught) until this patch-header
+// parse was added.
+const PATCH_HEADER_PATTERN = /^\*\*\* (?:Add|Update|Delete) File: (.+)$/m;
+
 function extractFilePath(input) {
+  const patchMatch = typeof input?.tool_input?.command === 'string' && PATCH_HEADER_PATTERN.exec(input.tool_input.command);
   return (
-    input?.tool_input?.file_path ?? // Claude-Code-shaped guess
+    patchMatch?.[1] ??
+    input?.tool_input?.file_path ?? // Claude-Code-shaped guess — kept as a fallback, unconfirmed for any real Codex tool
     input?.toolInput?.filePath ?? // camelCase guess
     input?.arguments?.file_path ??
     input?.input?.file_path ??
@@ -108,22 +172,44 @@ process.stdin.on('end', () => {
     const toolNameRaw = extractToolName(input);
     const enforce = existsSync(join(stateDir, 'enforce'));
 
-    const underSpec = Boolean(filePath && SPEC_PATH_PATTERN.test(filePath));
+    // CONFIRMED against a real, authenticated v0.153.4 `codex exec` on
+    // 2026-09-09: a real trial edited spec/dummy.txt via a plain Bash
+    // redirect (`printf '...' > spec/dummy.txt`), not `apply_patch` — Codex
+    // gives the model a general-purpose Bash tool with no obligation to use
+    // the structured edit tool at all. That write went through completely
+    // unblocked on the first version of this check, which only tested the
+    // parsed `filePath` (null for a Bash call). `commandWritesTo` closes it
+    // WITHOUT the false-positive a bare substring match had (see its own
+    // comment above) — command text is checked for a write-shaped construct
+    // targeting spec/, not merely a mention of "spec/".
+    const underSpec = Boolean(
+      (filePath && SPEC_PATH_PATTERN.test(filePath)) || (command && commandWritesTo(command, SPEC_WRITE_TARGET_SOURCE))
+    );
     const touchesHeldOut = Boolean(
       (filePath && HELD_OUT_PATH_PATTERN.test(filePath)) || (command && HELD_OUT_PATH_PATTERN.test(command))
     );
 
     let untestedContract = false;
-    if (filePath) {
-      const listPath = join(cwd, 'spec', 'untested-contracts.json');
-      if (existsSync(listPath)) {
-        try {
-          const untested = JSON.parse(readFileSync(listPath, 'utf-8'));
-          const norm = filePath.replace(/\\/g, '/');
-          untestedContract = untested.some((u) => norm.endsWith(String(u).replace(/\\/g, '/')));
-        } catch {
-          // malformed untested-contracts.json — treat as no list, same as production
-        }
+    const listPath = join(cwd, 'spec', 'untested-contracts.json');
+    if ((filePath || command) && existsSync(listPath)) {
+      try {
+        const untested = JSON.parse(readFileSync(listPath, 'utf-8'));
+        const normFilePath = filePath ? filePath.replace(/\\/g, '/') : null;
+        const normCommand = command ? command.replace(/\\/g, '/') : null;
+        // Same read/write fix as underSpec above, for the same reason: a
+        // Bash command merely *mentioning* an untested contract's path
+        // (e.g. reading a sibling file that references it) isn't building
+        // it. Only a write-shaped construct targeting that exact path
+        // counts.
+        untestedContract = untested.some((u) => {
+          const needle = String(u).replace(/\\/g, '/');
+          return (
+            (normFilePath && normFilePath.endsWith(needle)) ||
+            (normCommand && commandWritesTo(normCommand, escapeRegExp(needle)))
+          );
+        });
+      } catch {
+        // malformed untested-contracts.json — treat as no list, same as production
       }
     }
 

@@ -49,6 +49,16 @@ for condition in with without; do
     cp "$SCRIPT_DIR/hooks/tool-heartbeat.mjs" "$dest/.codex/hooks/tool-heartbeat.mjs"
     cp "$SCRIPT_DIR/hooks.json.template" "$dest/.codex/hooks.json"
 
+    # CONFIRMED necessary 2026-09-09: `codex exec` refuses to run at all
+    # outside a git repository ("Not inside a trusted directory and
+    # --skip-git-repo-check was not specified") — a real trial against a
+    # non-git rep failed before a single hook could fire, summary.json's
+    # only content was "no activity-log.jsonl found ... did the hooks
+    # actually fire at all?". `generate_spec` output isn't a git repo by
+    # itself, so each rep needs its own, git-initialized independently of
+    # $SOURCE_REBUILD_DIR (never nested inside this project's own repo).
+    (cd "$dest" && git init -q && git add -A && git commit -q -m "rep baseline")
+
     mkdir -p "$plugin_state_dir"
     if [ "$condition" = "with" ]; then
       touch "$plugin_state_dir/enforce"
@@ -61,13 +71,11 @@ echo "Prepared $((REPS * 2)) rep directories under: $OUT_ROOT"
 echo ""
 echo "Sanity check before trusting any of this — confirm reps are byte-identical"
 echo "except for the external enforce marker:"
-echo "  diff -rq \"$OUT_ROOT/with-rep1\" \"$OUT_ROOT/without-rep1\""
+echo "  diff -rq -x .git \"$OUT_ROOT/with-rep1\" \"$OUT_ROOT/without-rep1\""
 echo "(expect: no output at all)"
 echo ""
-echo "BEFORE running a real trial: read ../README.md's 'One-time manual setup'"
-echo "section — Codex requires trusting the hook definitions once per machine,"
-echo "and that step is NOT automated by this script (unconfirmed CLI syntax —"
-echo "see the confirmed-vs-assumed table)."
+echo "No manual hook-trust step needed — run-trial.sh passes"
+echo "--dangerously-bypass-hook-trust (see ../README.md for why)."
 echo ""
 echo "Then run ./run-trial.sh \"$OUT_ROOT/with-rep1\" <model> for a single rep,"
 echo "by hand, before trusting run-all.sh with anything."

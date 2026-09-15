@@ -26,8 +26,26 @@
 #                                a trial, same justification both prior
 #                                harnesses give for their own auto-approve
 #                                flags).
-#   --ask-for-approval never     Drops the interactive approval prompt
-#                                without touching sandbox scope.
+#   (No --ask-for-approval flag: CONFIRMED against a real, authenticated
+#   v0.153.4 `codex exec` on 2026-09-08 — that flag does not exist on this
+#   version. `--sandbox workspace-write` alone already prints
+#   `approval: never` in the exec banner with no interactive prompt, so
+#   nothing else is needed to get the non-interactive behavior the removed
+#   flag was standing in for.)
+#   --dangerously-bypass-hook-trust  Confirmed real (2026-09-09) — `codex
+#                                hooks trust approve`, this harness's
+#                                original assumed non-interactive path, does
+#                                not exist as a subcommand at all (`codex
+#                                --help`'s full command list has no `hooks`
+#                                entry). Without this flag, every rep would
+#                                stall waiting for interactive trust
+#                                approval an unattended N=3 run has no human
+#                                to give. This flag's own stated purpose is
+#                                "automation that already vets hook sources"
+#                                — exactly this harness's situation, since
+#                                hooks/*.mjs are this project's own scripts,
+#                                not a third party's. Deliberate choice, made
+#                                with the user, not a default.
 #
 # KNOWN REAL RISK, not hypothetical: public bug reports describe
 # --full-auto combined with --sandbox workspace-write hanging indefinitely
@@ -83,7 +101,7 @@ $(cat "$SCRIPT_DIR/trial-prompt-suffix.txt")"
 echo "Running trial in $REP_DIR with model $MODEL (max ${MAX_RUN_SECONDS}s) ..."
 codex exec \
   --sandbox workspace-write \
-  --ask-for-approval never \
+  --dangerously-bypass-hook-trust \
   --model "$MODEL" \
   "$PROMPT" \
   > "$STATE_DIR/transcript.log" 2>&1 &

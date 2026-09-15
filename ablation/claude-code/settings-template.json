@@ -7,6 +7,9 @@
     "PostToolUse": [
       { "matcher": "Edit|Write", "hooks": [{ "type": "command", "command": "node .claude/hooks/tool-heartbeat.mjs" }] },
       { "matcher": "Bash", "hooks": [{ "type": "command", "command": "node .claude/hooks/tool-log-bash-output.mjs" }] }
+    ],
+    "SubagentStop": [
+      { "matcher": ".*", "hooks": [{ "type": "command", "command": "node .claude/hooks/subagent-stop-verify.mjs", "timeout": 120 }] }
     ]
   }
 }

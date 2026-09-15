@@ -22,9 +22,40 @@
 import { existsSync, readFileSync, writeFileSync, appendFileSync, mkdirSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 
-const HELD_OUT_PATH_PATTERN = /(^|[\s\\/])tests[\\/]held-out[\\/]/;
+// Requires a non-whitespace character immediately after the trailing slash
+// (`(?=\S)`), UNLIKE tool-log.mjs's own copy of this same-looking pattern —
+// deliberately different, not copy-paste drift. CONFIRMED necessary
+// 2026-09-09, from a real trial, not a hypothetical: a real `web-rebuild`
+// trial flagged `heldOutTouchCount: 2` when only one real touch (the single
+// permitted final `npx vitest run tests/held-out` run) occurred. The other
+// "touch" was the OUTPUT of `cat CLAUDE.md` — required reading, step 1 of
+// the kickoff prompt — whose own rules text literally contains the sentence
+// "tests/held-out/ exist specifically to catch this...". A bare substring
+// scan of PostToolUse *output* can't tell that apart from a real directory
+// listing revealing an actual held-out filename (e.g.
+// `tests/held-out/GET-foo.spec.ts`, the original confirmed real catch this
+// pattern exists for) — prose always has a space or sentence-punctuation
+// right after the trailing slash; a real path continues directly into a
+// filename. This lookahead is deliberately NOT applied to tool-log.mjs's
+// PreToolUse *command*-text check: a command genuinely targeting held-out
+// (e.g. `ls tests/held-out/`) can legitimately END right at that trailing
+// slash with nothing after it, and requiring a following character there
+// would turn a real, intended catch into a false NEGATIVE instead — a worse
+// failure mode than the false positive being fixed here. No false positive
+// was observed on the command-text side; this fix only touches the one
+// place a false positive was actually confirmed.
+const HELD_OUT_PATH_PATTERN = /(^|[\s\\/])tests[\\/]held-out[\\/](?=\S)/;
 
+// CONFIRMED against a real, authenticated v0.153.4 `codex exec` on
+// 2026-09-09: `tool_response` is a plain string (e.g. for Bash, the raw
+// combined output text; for apply_patch, a summary like "Exit code: 0 ...
+// Success. Updated the following files: ..."), never an object with
+// `.stdout`/`.stderr` — every Claude-Code-shaped guess below returned
+// undefined against a real payload. The plain-string case is checked first.
 function extractOutput(input) {
+  if (typeof input?.tool_response === 'string') {
+    return { stdout: input.tool_response, stderr: null };
+  }
   const stdout = input?.tool_response?.stdout ?? input?.toolResponse?.stdout ?? input?.output?.stdout ?? input?.result?.stdout ?? null;
   const stderr = input?.tool_response?.stderr ?? input?.toolResponse?.stderr ?? input?.output?.stderr ?? input?.result?.stderr ?? null;
   return { stdout, stderr };

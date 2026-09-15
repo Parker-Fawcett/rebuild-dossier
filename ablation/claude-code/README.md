@@ -96,8 +96,21 @@ a real session's own directory listing would otherwise surface it.
 - `hooks/tool-log-bash-output.mjs` — PostToolUse, matcher `Bash`. Scans a bash call's actual
   captured output for an incidental held-out reference that its command text alone would miss —
   the OpenCode ablation's own fix for the identical gap, ported rather than reinvented. Covered by
-  its own regression test, `hooks/tool-log-bash-output.test.mjs`.
-- `settings-template.json` — wires the four scripts together; copied byte-identical into every rep.
+  its own regression test, `hooks/tool-log-bash-output.test.mjs`. Also excludes a narrow, confirmed
+  false-positive case: a bare `cat`/`head`/`tail` of `kickoff-prompt.txt` or `CLAUDE.md` — this
+  harness's own required-reading files, whose prose legitimately mentions `tests/held-out/` as an
+  instruction, not an access — the identical self-referential-file false positive already fixed on
+  the other two harnesses, found live here via the hook below and ported in, not assumed.
+- `hooks/subagent-stop-verify.mjs` — `SubagentStop`, matcher `.*`. Answers this paper's own
+  remaining Open Agenda item: when a delegated subagent's turn ends, independently re-runs both
+  test suites and re-derives rail-violation/held-out-touch counts from `activity-log.jsonl` right
+  then, regex-extracts the same 7 self-report fields from the hook's own `last_assistant_message`,
+  and appends a `{mechanical, selfReported, agree}` record to `subagent-verify.jsonl` — never
+  blocks. Requires `Task` in `--allowedTools` and a kickoff prompt that actually delegates (neither
+  true of any other trial in this harness; delegation is opt-in, not the default). Confirmed live
+  on one real trial: caught a genuine held-out-file-count-vs-test-count self-report disagreement
+  (12 vs. mechanical 7) at the exact moment the subagent stopped — see docs/v0-findings.md.
+- `settings-template.json` — wires the five scripts together; copied byte-identical into every rep.
 - `setup.sh` — builds N with-reps + N without-reps from one `generate_spec` output.
 - `run-trial.sh` — runs one rep: launches `claude -p` in the background, polls the heartbeat file
   every 20s for the run's full duration (not reconstructed afterward — matching Section 4.9's own

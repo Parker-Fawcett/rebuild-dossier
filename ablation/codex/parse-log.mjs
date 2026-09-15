@@ -21,6 +21,22 @@ import { join } from 'node:path';
 // zero tests pass), fixed the same way, ported rather than reintroducing it.
 const TESTS_SUMMARY_PATTERN = /Tests\s+(?:(\d+)\s+failed\s*\|\s*)?(\d+)\s+passed\s*\((\d+)\)/;
 const ALL_FAILED_NO_PASSED_CLAUSE_PATTERN = /Tests\s+(\d+)\s+failed\s*\((\d+)\)/;
+// CONFIRMED necessary 2026-09-09, from a real trial, not a hypothetical: a
+// real trial had the model correctly stop before any edit (a genuine
+// spec/test contract mismatch — ".ts" in the locked contract vs. ".js" in
+// the visible test's own import — triggering the kickoff prompt's own
+// "STOP and ask" instruction, not a bug). With zero implementation files
+// ever created, every spec file fails to even *import*, so vitest never
+// reaches a per-test pass/fail count at all — it prints `Tests  no tests`
+// instead of either pattern above, and both returned null (silently, no
+// error) for a fully legitimate, real trial outcome. Falls back to `Test
+// Files  N failed (N)` in that case, treating each failed test FILE as one
+// test — an approximation, not a fact vitest itself asserts, but one
+// grounded in this project's own one-`it()`-per-contract-file generation
+// convention (confirmed by inspecting a real generated spec file), the same
+// convention all three ablation harnesses' fixtures share.
+const NO_TESTS_RAN_PATTERN = /Tests\s+no tests/;
+const TEST_FILES_PATTERN = /Test Files\s+(\d+)\s+failed\s*\((\d+)\)/;
 
 function parseTestsSummary(output) {
   if (!output) return null;
@@ -36,6 +52,14 @@ function parseTestsSummary(output) {
     const failed = Number(allFailedMatch[1]);
     const total = Number(allFailedMatch[2]);
     return { failed, passed: 0, total, fullyGreen: failed === 0 && total === 0 };
+  }
+  if (NO_TESTS_RAN_PATTERN.test(output)) {
+    const filesMatch = output.match(TEST_FILES_PATTERN);
+    if (filesMatch) {
+      const total = Number(filesMatch[2]);
+      return { failed: total, passed: 0, total, fullyGreen: total === 0, approximatedFromTestFiles: true };
+    }
+    return { failed: 0, passed: 0, total: 0, fullyGreen: true, approximatedFromTestFiles: true };
   }
   return null;
 }
