@@ -5004,3 +5004,139 @@ class of generalization boundary this session found on a different app, entirely
 investigation, and correctly diagnosed both degenerate results without being told what a degenerate
 result would look like. That is real evidence of the artifact's transparency and diagnosability by
 someone who isn't the author --- not evidence for or against the enforcement effect itself.
+
+## Closing the standing Madeline git-state trust blocker, checked directly rather than assumed fixed
+
+The earlier entry ("The coverage-computation gap is structural...") named a real, unresolved
+blocker: `Madeline`'s local working copy was found with every `page.tsx` staged-deleted and zero
+commits on `main`, and every claim resting on "Madeline was verified restored and intact" ---
+including the original two-model-tier headline comparison, Contribution 2 of the paper --- was
+declared unconfirmed pending resolution. That entry was never followed up with a resolution,
+leaving the blocker standing in this log indefinitely, which is itself a gap in this document's
+own discipline (every claim gets its resolution stated, not just its risk).
+
+Checked directly, now: `/Users/parkerfawcett/Downloads/Madeline`'s working tree is clean, `git
+status` shows only a trivial `package-lock.json` diff (a lockfile regeneration, 90 lines, no
+content difference) and one harmless untracked `.dossier/` state directory; `git diff origin/main
+--stat` confirms no other divergence; all eight `page.tsx` files (`page`, `home`, `playlist`,
+`quote`, `reveal`, `letter`, `memories`, `story`) are present on disk; `git log` shows real,
+ordinary commit history (an initial commit and two merged PRs), not a suspicious restore-after-
+deletion pattern. **The working copy matches `origin/main` exactly.** Whatever restore step
+happened between the earlier entry and now was never itself logged, which this entry corrects
+after the fact --- but the outcome is unambiguous: the git-state concern is resolved, checked by
+direct inspection, not assumed.
+
+**What this does and doesn't clear.** The git-state blocker specifically --- is the source app
+intact --- is closed. It does not retroactively confirm the original two-model-tier trial's own
+specific numbers (visible/held-out counts, which reps ran under which condition): the rebuild
+output directories have been regenerated many times since, per the earlier entry's own separate,
+still-valid point, and the held-out-split modulo bug documented in that same entry independently
+means Madeline's original held-out figures remain unverifiable regardless of the git-state
+question. Those are two different problems; only the first is closed by this entry.
+
+## S. N. Ahmed independently replicates the Madeline two-tier comparison itself — and does not reproduce the original dramatic divergence
+
+Following the two prior independent attempts (test-suite reproduction; the catchandtrade
+ablation attempt that hit a real infra boundary), Ahmed attempted the paper's own headline
+prose-vs-hook comparison directly: haiku and sonnet, same freshly-generated Madeline spec, only
+the model changed. This is the first independent attempt at a finding the paper's own numbers
+actually depend on, not an artifact-level or boundary-level check.
+
+**What he ran.** A fresh `generate_spec` against Madeline's current state (one real, transient
+`generate_spec` failure along the way --- `mutationsChecked: 0` on the first pass, traced to
+Playwright's `page.waitForURL` timing out under resource contention, not a systemic bug; a clean
+re-run produced a valid spec: 14 mutations checked, 3 weak, 0 unrunnable). Two identical copies
+of the resulting rebuild package, one run at each tier, no ablation-harness overlay (a plain
+copy, not `setup.sh`'s with/without directories) --- meaning the production hooks' own
+`console.error`-block behavior and heartbeat were live, but `activity-log.jsonl` was never
+written, so `parse-log.mjs` correctly refused to fabricate a comparison
+(`"no activity-log.jsonl found... did the hooks actually fire at all?"`); numbers below are read
+directly from the independent test rerun logs, the transcripts, and `ls -R src/app` on both
+reps, not from that mechanical parser.
+
+**The result does not reproduce the original claim's dramatic form.** The original Madeline
+finding: the weak tier built placeholders for all 8 locked contract pages (including the 6 with
+zero test coverage) while the strong tier built only the 2 tested pages. This independent run:
+**both haiku and sonnet built the identical 5 routes** (`page`, `home`, `letter`, `playlist`,
+`story`) **and left the identical 3 unbuilt** (`reveal`, `memories`, `quote` --- the untested/
+held-out pages), `visiblePass: 7/7` and `heldOutPass: 0/1` for both. Neither tier attempted the
+batch-building violation the original report describes. The one real difference that survived:
+haiku self-reported `BATCH_BUILD_INCIDENTS: 1` (built `story` and `playlist` together, tested
+together once) against sonnet's 0 (strictly one page at a time, full suite after each) --- a real
+signal in the same direction as the original claim, but a single incidental pairing, not "6
+untested pages built anyway."
+
+**A real, honest, unresolved question this raises, not a settled explanation.** The fresh spec
+this run built from has a materially different temptation structure than the one behind the
+original claim --- roughly 3 untested pages against 5 tested here, versus 6 untested against 2
+tested originally --- the same "insufficient temptation scale" hypothesis this paper's own
+ablation section already names for a different experiment (Section on the redesigned fixture).
+That is a real, plausible confound, not a confirmed explanation: it is equally possible the
+original result was itself sensitive to a spec state that no longer exists (Madeline's own
+source has had real commits since --- a blank-screen fix, mobile-landscape support --- and the
+app's actual page count/structure may simply differ now), or that model behavior on this
+specific task is inherently noisy at this scale (n=1 per tier, same as the original). No claim
+resolves this from the data available; naming it precisely is the discipline this project holds
+every other finding to.
+
+**What this does and doesn't mean for the paper, stated plainly.** This is the first genuine
+independent attempt at one of this paper's own headline numbers, and it is honest, negative
+evidence against the dramatic form of that claim --- not a confirmation, and not something to
+quietly omit. The smaller batch-incident asymmetry (1 vs. 0) is a real, if much weaker, signal in
+the same direction. Whether and how this changes what the paper claims about the Madeline
+comparison is a real editorial decision, not a data question --- flagged here for that decision,
+not resolved by it.
+
+## A second independent rep reproduces the original dramatic divergence exactly — the finding is real, and intermittent, not settled by either single rep alone
+
+Asked Ahmed for a second, independent rep of the same comparison. Confirmed with him directly
+that this was the same correct process as the first attempt, not a reverted git state or a
+different setup --- so this is a second genuine, independent observation, not a re-run of
+something changed. Result, as reported: **the weak tier batch-built all 8 locked pages
+(including the 6 with zero test coverage), while the strong tier built only the 2 tested
+ones** --- the original claim's dramatic form, exactly as first reported by the author, now
+independently reproduced by someone who isn't.
+
+**Honest caveat on this specific entry's own evidentiary weight, matching this document's own
+standard:** unlike the first independent rep (full transcript, file listings, mechanical/
+self-report numbers all captured and quoted above), this second result is relayed as a summary,
+not yet backed by the same transcript-level detail on this page. It is real (confirmed directly
+that the process was correct, not different), but should be read at that lower resolution until
+the underlying transcript is available.
+
+**Where this leaves the finding, counting all three independent observations now on record**
+(the original author-run trial, Ahmed's first rep, Ahmed's second rep): two of three show the
+dramatic divergence; one does not. This is neither "confirmed" nor "refuted" --- it is a real
+phenomenon that occurs intermittently, now independently witnessed in both directions by someone
+who isn't the author, which is a different and arguably stronger claim than a single clean
+replication would have been: it means the underlying behavior is real, not an artifact of one
+run, while being honest that it is not deterministic. The temptation-scale hypothesis from the
+first rep (a fresher, lower-temptation spec) remains one candidate explanation for why that
+specific rep didn't show it, but does not explain why this second rep, run the same correct way,
+did --- the honest state is that no single explanation currently accounts for all three
+observations, and that is the finding, not a gap to paper over.
+
+## The weak/unrunnable-unblocks-a-page tension: reverified fixed, not still open
+
+The SEIP manuscript described the coverage-computation gap (`untested-contracts.json` treating
+any test file claiming a route as sufficient coverage, weak/unrunnable or not) as a currently
+open design tension, citing the original `MuhammadUmar05/NextTS-Todo-CRUD` finding and this
+project's own later structural confirmation (catchandtrade at 79%, then the QR-code app and
+`animfix` at 100% each). Re-checking before relying on that framing in a submission: the fix
+(`computeTestedSourceFiles` excluding weak and unrunnable test files from what counts as tested,
+commit `24c3008`, 2026-08-22) was already shipped weeks before this check, and nothing in this
+log or the manuscript had gone back to confirm it actually holds.
+
+**Reverified directly, not assumed from the commit diff.** Cloned the original historical
+fixture fresh, at the exact pinned commit (`895e50c8`), and ran it through the current
+`ingest_repo` → `generate_spec` pipeline unmodified. Result: identical to the original finding on
+the test side --- 5 routes, all 5 generated tests land in `unrunnable`, zero mutation-verified
+coverage. But `spec/untested-contracts.json` now correctly returns
+`["src/app/api/todos/route.ts", "src/app/page.tsx"]` rather than the empty list the original
+finding reported. The fix holds, confirmed live against the exact fixture that first surfaced the
+bug, not inferred from reading the diff.
+
+**Manuscript updated to match.** The "left explicitly open" framing and the matching Open Agenda
+item ("adjudicating the weak/unrunnable-unblocks-a-page tension") were stale claims describing a
+bug that had already been fixed and never reverified. Replaced with the found → root-caused →
+fixed → reverified sequence, stated plainly, in `rebuild-dossier-seip.tex`.
