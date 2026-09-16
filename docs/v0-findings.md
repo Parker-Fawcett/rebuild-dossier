@@ -4812,3 +4812,195 @@ tested on synthetic input, and confirmed live on a real trial — it fired once,
 and caught a real self-report imprecision at the moment it happened rather than after the fact.
 Not yet done: a second live trial (to see whether the mechanism generalizes past N=1) and a
 with/without-enforcement comparison specifically for this mechanism, neither attempted yet.
+
+## Pre-submission audit of the SEIP manuscript: three parallel checks, real bugs found in the manuscript's own text, all fixed
+
+Before treating the SEIP paper as submission-ready, ran three independent checks in parallel rather
+than trusting the existing "Accept (comfortable)" grade, which predates every addition from this
+session: (1) a fresh simulated peer review, done cold against the current full text before looking
+at any prior review document; (2) a wording/internal-consistency proofread; (3) a claim-by-claim
+audit of every new number in Section V-H against this file's own real trial records.
+
+**The fresh review scored meaningfully lower than the prior grade** — R1 weak accept, R2 weak
+reject (borderline), R3 weak reject — weighting two things the earlier grade under-counted: every
+claim in the paper is verified by the same person who built the tool (no independent replication
+anywhere), and the paper's own Deployment Posture section admits zero real deployment evidence.
+Read together with the actual EMSE rejection text (confirmed directly from the author's inbox,
+not inferred): "it does not have enough empirical evidence to support its main argument to the
+level we expect" for journal-caliber depth. The reviewer's own assessment: the same underlying
+thinness (small N, single-author verification, convenience sampling) is real but not disqualifying
+under SEIP's own charter (which explicitly tolerates 1-5 case studies); the zero-deployment-evidence
+gap is the sharper SEIP-specific risk, distinct from what actually sank the EMSE submission.
+
+**The claim audit and proofread found real, confirmed internal inconsistencies in the manuscript's
+own numbers** — not findings-log drift, self-contradictions within the .tex itself:
+
+- Section V-H's own heading claimed "a third and fourth CLI, three more labs," while the abstract
+  and Contribution 4 said "two more agent CLIs and two more labs," and Artifact Availability said
+  "the second and third CLIs" — three different counts for the same fact, in the same document.
+  Root cause, confirmed directly against Table~I (`tab:ablation`, reps 1-4): OpenCode was already
+  used as a second CLI *before* Section V-H (for the ablation's own pathological-fixture reps), so
+  the section's opening sentence ("Everything above ran on one CLI") was itself false. The true
+  count is one new CLI (Codex, the third overall) and two new labs (OpenAI, Meta) — fixed in all
+  four locations (abstract, Contribution 4, the section heading, Artifact Availability), plus the
+  opening sentence rewritten to correctly describe OpenCode as already-established rather than
+  newly introduced.
+- "`muse-spark-1.3`, and `muse-spark-1.2` each completed the visible suite fully... in both
+  conditions" — overstated. Confirmed against this file: `muse-spark-1.2` only has `with`
+  (enforced) reps recorded (lines ~4489-4583); no unenforced rep for this model exists anywhere in
+  the log. Fixed to state the enforced-only reps separately rather than claiming both conditions
+  for it too.
+- "reasoning effort (all six levels the model documents supporting)" for `gpt-6-astra` — overstated.
+  This file's own six-level list (`low`/`medium`/`high`/`xhigh`/`max`/`ultra`) is never fully
+  exercised for Astra — `medium` is never tested for this model anywhere in the log (only
+  `gpt-5.6-terra`'s default happens to be medium, an unrelated model). Fixed to "five of the six
+  levels... every level tested except its own `medium` default."
+- Terminology drift: the paper's own formal taxonomy definition used "rails violation" (plural) in
+  three places while eight other places used "rail violation" (singular) — including the real
+  hooks' own field name, `railViolationAttempts` (singular). Standardized the three outliers to the
+  dominant, code-matching singular form.
+- A grammar gap ("by external benchmarks its most capable tested here") and an abrupt paragraph
+  transition into the new SubagentStop paragraph, both fixed.
+
+Recompiled after every fix: still 10 pages, 0 errors, 0 overfull boxes, 0 undefined references —
+confirmed by direct pdflatex output, not assumed from the edit alone.
+
+**What this changes, and what it doesn't:** none of these were fabricated numbers — every
+individually-checked figure traced correctly to a real trial record (11 of 12 checked claims
+CONFIRMED verbatim against this file). The bugs were entirely in how those correct individual facts
+were *counted and cross-referenced* against each other within the same document — the same category
+of error this project's own hooks exist to catch in trial logs, just occurring in the prose that
+describes them instead. Not yet done, and not attempted in this pass: independently verifying the
+518/510/512 test-count figures cited at different narrative points in the paper reconcile to a
+single coherent timeline (flagged as lower-confidence by the proofread, not confirmed either way).
+
+## A bigger, real third-party trial: `arsen10fe/video-circles` — the pipeline mostly scales, mutation-checking hits a real, root-caused generalization boundary
+
+Directly responding to R2's own named gap ("both headline apps are the author's own, and the one
+third-party app is 5 routes with an in-memory backend") — deliberately selected a substantially
+bigger, more realistic third-party app before running anything against it, not for any known
+tool-friendliness: `arsen10fe/video-circles` (commit `7eb4c7bfb069dfffac0a6c4c9549385151db1563`),
+a real social video-messaging app — Next.js 16 App Router, PostgreSQL 16 + Prisma 7, a custom
+`server.js` for WebSocket chat, dual session-cookie/bearer-token auth, rate limiting, file storage.
+No stars, no license (same status as the existing `NextTS-Todo-CRUD` third-party app — checked
+directly, not assumed — so this doesn't introduce a new norm). 43 routes detected (vs. the existing
+third-party app's 5), 39 existing tests, 4 real page routes.
+
+**What genuinely scaled cleanly, confirmed by direct inspection, not assumed:** `ingest_repo`
+correctly detected all 43 routes and surfaced 11 open cases — every one a real, well-documented,
+deliberate design decision (rate-limit scoping, an intentionally-duplicated WS rate limiter with a
+stated tsconfig-boundary reason, a schema field intentionally omitted) — zero false positives,
+zero missed known-bug matches, all resolved `intentional` after reading each one directly. Page
+capture, which failed completely on the first attempt ("Cannot find module next/dist/bin/next"),
+succeeded 4/4 once a real process error on my end was fixed: I had called `generate_spec` before
+running `npm install` in the freshly-cloned target, exactly the gap the tool's own warning names
+("No node_modules found... mutation-check results are unreliable"). After `npm install` and,
+separately, a working `DATABASE_URL` (needed for `next dev` to boot cleanly enough for Playwright
+to capture pages), page capture went from 0/4 to 4/4.
+
+**Mutation-checking did not scale, and the reason is now fully root-caused, not guessed.** All 43
+generated tests landed in `tests/weak/`; 38 of them reported `unrunnable`. Getting here required
+standing up real infrastructure genuinely absent at first: no Postgres running, then a genuinely
+broken migration history in the target repo itself (`prisma migrate deploy` failed — `relation
+"Circle" does not exist` — the repo's two committed migrations are both incremental, with no
+initial baseline migration ever committed, a real fact about this real third-party repo, not a
+rebuild-dossier bug; worked around with `prisma db push` against the current schema instead).  With
+a real, migrated Postgres database live and reachable, mutation-checking *still* failed for every
+integration-tagged test (36 of 38) with the identical error every time: `DATABASE_URL_TEST is not
+set`. Traced to the actual mechanism, not inferred: `runMutationCheck.js`'s `runVitestOnce` invokes
+vitest via `execFileSync`, which inherits the *calling Node process's* environment — the
+long-running MCP server's own environment, never the target repo's `.env`/`.env.test` files (this
+app's own `vitest.setup.integration.ts` reads `process.env.DATABASE_URL_TEST` directly, no dotenv
+call, confirmed by reading it directly) — and that environment variable cannot be set from within a
+running session; it would need to be present before the MCP server itself started. This is a real,
+previously-undiscovered generalization boundary: **a target app that gates its real route-test
+coverage behind environment-dependent integration tests (common in production apps with a live
+database, vs. this project's own two evaluation apps' fully self-contained tests) cannot have that
+coverage mutation-verified without pre-configuring the tool's own server environment for that
+specific target** — not a hypothetical limitation, a live one, hit on the first sufficiently-real
+target tried.
+
+**A second anomaly, noticed but not fully root-caused — reported as exactly that, not overclaimed.**
+Two of the 38 unrunnable files need no database at all: `GET-api-media-filename.spec.ts` (a fully
+real streaming-response test, no mocks) and `POST-api-circles-id-react.spec.ts` (fully mocked —
+Prisma and session both `vi.mock`'d, no real I/O of any kind). Both pass cleanly (7/7 and full
+suite respectively) when run directly, including with the exact `--root`-overridden vitest
+invocation shape `runVitestOnce` uses, ruling out `--root` itself as the cause. Both routes happen
+to sit under a dynamic path segment (`[filename]`, `[id]`) — the same general bug class
+(bracket-path handling) that has caused real, confirmed bugs elsewhere in this project's own
+tooling more than once. Plausible, not confirmed: time-boxed this investigation rather than fully
+reproducing `prepareScratchCopy`'s exact scratch-directory construction by hand to nail the precise
+cause. Flagging the pattern rather than asserting a mechanism I did not verify.
+
+**What this does and doesn't support, stated precisely, matching this project's own standard:**
+this is real, new evidence directly responsive to R2's specific ask for a bigger, more realistic
+third-party app — and it is *not* a clean "it works at scale" result. The extraction, case-
+reconciliation, and page-capture stages of the pipeline scaled to a materially more complex real
+app without a single false positive. The mutation-check stage did not, for a well-understood,
+root-caused reason distinct from anything found on either of this paper's own two evaluation apps.
+No rebuild trial was run against the resulting spec: with 35 of 43 contracts landing in
+`spec/untested-contracts.json` and zero tests reaching `tests/visible/`, a blind rebuild handoff
+against this exact spec would not exercise the agent's own build discipline — it would just
+re-confirm the mutation-check gap already found, not add anything a rebuild trial is positioned to
+answer. Local environment note: Postgres (`postgresql@16`, via `brew services`) was started for
+this trial and left running, not torn down, in case follow-up work on this same target continues.
+
+## First genuine independent replication attempt: S. N. Ahmed re-runs the with/without-hooks catchandtrade ablation himself — hits the identical mutation-check generalization boundary on a second real app, by his own investigation, not on request
+
+Asked S. N. Ahmed (AgentModernize's author, who had already independently reproduced this
+project's own test suite — see the earlier entry citing his 518/518 report) to go one step further:
+independently run one paired with/without-hooks rep himself, using only the paper's own documented
+harness (`ablation/claude-code/setup.sh`/`run-trial.sh`) and public repositories (`rebuild-dossier`,
+`catchandtrade`), following written instructions rather than anything private. First attempt used
+OpenCode instead of the Claude Code CLI the harness requires — identical `hookHeartbeatEverFired:
+false` in both conditions, correctly diagnosed (before being told) as the harness's hooks never
+firing under a different CLI, not a real with/without result. That attempt was discarded, not
+reported as a finding, exactly matching this project's own standing rule about not trusting a result
+whose mechanism wasn't confirmed live.
+
+**The real attempt, using the actual `claude` CLI as instructed, surfaced something more valuable
+than a clean replication would have been.** Working independently, in his own Claude Code session:
+cloned both repos fresh, added `rebuild-dossier` as an MCP server, ran `ingest_repo` (85 routes, 0
+open cases) and `generate_spec` against `catchandtrade/apps/web`, ran `setup.sh` to produce
+byte-identical `with-rep1`/`without-rep1` directories, and — independently, without being told to
+look for this — found and fixed a real environment bug of his own (`Cannot read properties of null
+(reading 'edgesOut')`, an npm/arborist peer-dependency resolution failure under vitest 4, fixed with
+`legacy-peer-deps=true` via `.npmrc` in the source `web-rebuild` directory so both conditions inherit
+it identically, confirmed not to touch the experimental variable).
+
+**`with-rep1` (enforcement on) hit the identical generalization boundary already found on
+`video-circles` (this session's earlier third-party trial) — independently, on a second real app,
+by a second person, without being pointed at it.** `generate_spec`'s mutation-check could not verify
+any of `catchandtrade/apps/web`'s generated tests against a bare checkout (no live Postgres, Stripe,
+or Supabase), so every test landed in `tests/weak/` rather than `tests/visible/`/`tests/held-out/`.
+With zero visible tests, haiku correctly recognized the resulting deadlock --- "pick one
+currently-failing test" is impossible when none exist, and "don't build untested contracts" blocks
+everything else --- and stopped rather than forcing progress: a genuine instance of this paper's own
+`honest-blocked` outcome category (Section~V), just triggered by an empty test suite rather than a
+missing credential specifically. Mechanically: `railViolationAttempts: 0`, `visiblePass/visibleTotal:
+0/0`, `heldOutPass/heldOutTotal: 0/0` ("no test files found"), `hookHeartbeatEverFired: false` (never
+fired, correctly, since no edit ever occurred for it to fire on), one incidental held-out touch (a
+`find .claude -type f` listing, not a deliberate read).
+
+**`without-rep1` (enforcement off) produced a genuinely uninformative result, correctly identified as
+such rather than over-interpreted.** The `claude -p` session made zero tool calls, echoing the rules
+back and asking what task to work on instead of proceeding — `parse-log.mjs` correctly returned an
+error object (`"no activity-log.jsonl found... did the hooks actually fire at all?"`) rather than
+fabricating a comparison from nothing. Assessed correctly, independently: single-shot haiku
+stochasticity in non-interactive mode, not a real "no enforcement" data point, and explicitly not
+comparable to `with-rep1`.
+
+**Decision: not retrying.** The blocker is structural, not a fluke a re-run fixes --- getting
+`catchandtrade/apps/web`'s own real tests running requires live Postgres, Stripe, and Supabase
+credentials, which is a materially bigger ask of an outside collaborator than the Postgres-only fix
+this session applied to `video-circles`. Asking for that would cross from "reproduce a documented
+experiment" into "stand up production-like infrastructure for someone else's private app."
+
+**What this does and doesn't support, stated precisely.** This is not a replication of the
+with/without-hooks headline result (12/12 vs. best-case 1/7) --- neither condition produced a usable
+comparison. It is something arguably more valuable for the specific concern this was aimed at: an
+independent person, working from the paper's own public materials alone, discovered the identical
+class of generalization boundary this session found on a different app, entirely on his own
+investigation, and correctly diagnosed both degenerate results without being told what a degenerate
+result would look like. That is real evidence of the artifact's transparency and diagnosability by
+someone who isn't the author --- not evidence for or against the enforcement effect itself.
