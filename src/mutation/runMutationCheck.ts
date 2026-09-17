@@ -1,7 +1,8 @@
 import { cpSync, existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { createRequire } from 'node:module';
+import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tsMorphEngine } from './tsMorphEngine.js';
 import type { MutationSite } from './engine.js';
@@ -11,16 +12,45 @@ import type { MutationSite } from './engine.js';
 // constant (docs/v0-findings.md, "ingest_repo scans build output as source").
 const IGNORED_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.dossier', 'coverage']);
 const OWN_PROJECT_ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..');
-const VITEST_ENTRY = join(OWN_PROJECT_ROOT, 'node_modules/vitest/vitest.mjs');
+const ownRequire = createRequire(import.meta.url);
+
+// A real, previously-undiscovered bug this replaces: `join(OWN_PROJECT_ROOT,
+// 'node_modules', pkg)` assumes `pkg` is nested directly under this
+// package's own node_modules, which is only true for a local dev checkout
+// (`npm install` inside a single-package repo). Under `npx <pkg>@latest` —
+// this project's own documented, only end-user install method — npm hoists
+// dependencies to the npx cache's top-level node_modules instead, so that
+// literal path never exists even though the package genuinely is installed
+// and importable. Using `require.resolve` walks the real Node resolution
+// algorithm (which checks every ancestor node_modules, hoisted or not) and
+// derives the entry from wherever it actually lands, instead of guessing one
+// fixed layout. Confirmed live: `vitest`/`playwright` both resolved via the
+// old literal check inside this repo's own dev checkout, and both silently
+// failed to resolve the identical way under a real `npx rebuild-dossier@latest`
+// install — every generated test came back `unrunnable` for every target app,
+// regardless of that app's own content, independent of anything this tool's
+// mutation logic was actually trying to measure.
+function resolveOwnPackageDir(pkg: string): string | undefined {
+  try {
+    return dirname(ownRequire.resolve(`${pkg}/package.json`, { paths: [OWN_PROJECT_ROOT] }));
+  } catch {
+    return undefined;
+  }
+}
+
+function resolveVitestEntry(): string {
+  const vitestDir = resolveOwnPackageDir('vitest');
+  return vitestDir ? join(vitestDir, 'vitest.mjs') : join(OWN_PROJECT_ROOT, 'node_modules/vitest/vitest.mjs');
+}
+
+const VITEST_ENTRY = resolveVitestEntry();
 const OWN_CONFIG_FILENAMES = ['vitest.config.ts', 'vitest.config.js', 'vitest.config.mts', 'vite.config.ts', 'vite.config.js', 'vite.config.mts'];
 
 // playwright is never a real target app's own dependency — it's only ever
 // needed by the gate tests THIS tool generates. Once a target has its own
 // real node_modules (true for every real app), that became the sole source
 // and playwright silently stopped resolving, so every gate-test mutation
-// check against a real app failed at import time. vitest itself doesn't need
-// this treatment — it resolves its own package internally regardless of the
-// project root, since it's the process orchestrating the run.
+// check against a real app failed at import time.
 const TEST_ONLY_TOOLING_PACKAGES = ['playwright'];
 
 function symlinkEntry(target: string, linkPath: string): void {
@@ -93,8 +123,8 @@ function linkNodeModules(originalRepoPath: string, scratchDir: string): void {
 
   for (const pkg of TEST_ONLY_TOOLING_PACKAGES) {
     if (ownEntries.has(pkg)) continue;
-    const ownProjectPkgPath = join(OWN_PROJECT_ROOT, 'node_modules', pkg);
-    if (existsSync(ownProjectPkgPath)) {
+    const ownProjectPkgPath = resolveOwnPackageDir(pkg);
+    if (ownProjectPkgPath) {
       symlinkEntry(ownProjectPkgPath, join(scratchNodeModules, pkg));
     }
   }
@@ -215,7 +245,19 @@ const VITEST_RUN_TIMEOUT_MS = 120_000;
 
 function runVitestOnce(scratchDir: string, testFilePath: string): boolean {
   try {
-    const output = execFileSync('node', [VITEST_ENTRY, 'run', testFilePath, '--root', scratchDir, '--reporter=json', '--no-color'], {
+    // A real regression, confirmed live: vitest 4.1.11 (still satisfying this
+    // project's own "^4.0.0" range, so any fresh install can silently pick it
+    // up) fails to match an ABSOLUTE test-file filter against --root on
+    // macOS, where /tmp is itself a symlink to /private/tmp — vitest 4.1.10
+    // canonicalizes consistently and matches fine; 4.1.11 apparently doesn't,
+    // so the filter and the collected file path disagree by that one symlink
+    // hop and the run reports "No test files found" for every target,
+    // regardless of the test's own content. A path relative to `cwd` (already
+    // set to scratchDir below) sidesteps the mismatch entirely rather than
+    // depending on this tool staying pinned behind whatever vitest version
+    // happens to fix it.
+    const relativeTestFilePath = relative(scratchDir, testFilePath);
+    const output = execFileSync('node', [VITEST_ENTRY, 'run', relativeTestFilePath, '--root', scratchDir, '--reporter=json', '--no-color'], {
       encoding: 'utf-8',
       // `--root` only tells vitest where to resolve test files/config from —
       // it does NOT change the child process's own process.cwd(). Without
