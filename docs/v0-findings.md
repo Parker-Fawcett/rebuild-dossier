@@ -5140,3 +5140,79 @@ bug, not inferred from reading the diff.
 item ("adjudicating the weak/unrunnable-unblocks-a-page tension") were stale claims describing a
 bug that had already been fixed and never reverified. Replaced with the found → root-caused →
 fixed → reverified sequence, stated plainly, in `rebuild-dossier-seip.tex`.
+
+## Item C fixture design surfaces a critical bug: mutation-check never ran under the documented npx install
+
+Building `mossgate` (a purpose-built eight-page nursery-site fixture, publicly committed at
+[Parker-Fawcett/mossgate](https://github.com/Parker-Fawcett/mossgate) before any pipeline run,
+this time — see "Manuscript updated to match" above for why that discipline matters) to answer
+this project's own still-open question ("A fixture that tests hypothesis (2) directly... would
+be a natural next step") — designed with real volume (8 total pages, not rail2-fixture's 1) and
+ordinary shape (every page shares the same layout/component patterns, none deliberately broken or
+conspicuously slow) — every single generated page test came back `unrunnable`, regardless of
+content, on the first two runs.
+
+**Root-caused, not assumed.** Manually reproduced `passesBaseline` against the actual generated
+test content using this repo's own local dev source — it passed cleanly. The real `generate_spec`
+MCP tool call kept failing identically. The difference: this project's own `.mcp.json` launches
+`npx -y rebuild-dossier@latest`, not the local checkout — and `npx`-installed dependencies get
+hoisted to the npx cache's top-level `node_modules`, not nested under
+`rebuild-dossier/node_modules` the way a local dev checkout's `npm install` lays them out.
+`runMutationCheck.ts`'s own `VITEST_ENTRY`/`TEST_ONLY_TOOLING_PACKAGES` lookups used a literal
+`join(OWN_PROJECT_ROOT, 'node_modules', pkg)` path — correct for a dev checkout, silently wrong
+under hoisting. Worse: `vitest` was a `devDependency`, meaning `npx rebuild-dossier@latest` never
+installed it *at all*, hoisted or not — confirmed directly by inspecting the actual npx cache
+(`~/.npm/_npx/*/node_modules/rebuild-dossier`): `node_modules/vitest` simply doesn't exist there.
+Every `execFileSync('node', [VITEST_ENTRY, ...])` call threw `ENOENT`, caught, reported as
+`unrunnable` — for every target app, regardless of that app's own content, for anyone consuming
+this tool exactly as its own README instructs. Confirmed this wasn't just a local-repo artifact by
+reproducing the real install shape directly: `npm run build` → `npm pack` → fresh `npm install` of
+the tarball into an empty project (the same layout `npx` produces) — `node_modules/vitest` genuinely
+absent, `node_modules/rebuild-dossier/node_modules/playwright` also absent (hoisted to the parent
+instead).
+
+**Fixed two ways, both verified against that same real, simulated install, not just against the
+local dev checkout.** (1) Moved `vitest` to `dependencies`. (2) Replaced the literal
+`node_modules`-nesting assumption in both `VITEST_ENTRY` and the `TEST_ONLY_TOOLING_PACKAGES`
+overlay with `require.resolve('<pkg>/package.json', { paths: [OWN_PROJECT_ROOT] })` — Node's own
+resolution algorithm, which finds a package regardless of which ancestor `node_modules` it landed
+in. Re-packed and reinstalled after the fix: `passesBaseline` now actually launches vitest.
+
+**A second, independent bug surfaced immediately once the first one stopped masking it.** With
+vitest now launching, every mossgate target still failed baseline — `"No test files found"` on a
+file that plainly exists. Isolated to a single variable: vitest 4.1.11 (the version this project's
+own `"^4.0.0"` range resolves to *today*, replacing whatever 4.1.10 happened to already be cached
+locally from an earlier install) fails to match an *absolute* test-file path against `--root` when
+they disagree by exactly one symlink hop — on this machine, `/tmp` symlinks to `/private/tmp`,
+`--root` gets canonicalized through it, the raw absolute filter argument doesn't, and vitest 4.1.11
+apparently stopped tolerating that mismatch (4.1.10, tested side by side on the identical trivial
+fixture, matches fine). Confirmed by elimination: a trivial single-assertion test file, no Next.js,
+no config, reproduces the identical pass/fail split purely as a function of which vitest version
+runs it. Fixed by passing a path relative to `cwd` (already `scratchDir`) instead of absolute —
+version-independent, and correct regardless of whether a future vitest release changes this again.
+
+**What this means, stated plainly.** The mutation-check pre-trust filter — Contribution 1's actual
+enforcement mechanism, and the thing every weak/unrunnable/visible split in this entire project
+depends on — has never worked for anyone who installed this tool exactly the way its own README
+says to, only for someone running a full local dev checkout (this project's own evaluation
+methodology throughout). Confirmed the fix doesn't just look right: reran the full 563-test suite
+(all passing) and re-verified `mossgate` end-to-end through the fixed, simulated-real install —
+`mutationsChecked: 8` (was 0), a real, non-trivial three-way split (3 visible, 2 held-out, 3
+correctly rail-2-blocked in `untested-contracts.json`), not the uniform all-unrunnable result every
+run produced before. Committed and pushed (`cbe1be2`) to `main`. Not yet republished to npm —
+`rebuild-dossier@0.2.6`, the version `npx rebuild-dossier@latest` actually installs today, still
+has both bugs, so anyone using the tool as documented right now is still affected until a new
+version is published.
+
+## `mossgate`, a purpose-built temptation fixture, verified working end to end
+
+With the bug above fixed, `mossgate` (eight pages, all sharing the same layout/component
+patterns, none deliberately broken) now classifies as: **visible** (about, care-guides, visit — 3
+pages the agent is shown and must make pass), **held-out** (root/home, contact — 2 pages hidden
+from the agent, checked only at the end), **rail-2-blocked** (events, faq, plants — 3 pages
+`untested-contracts.json` correctly lists as write-blocked). This is a real three-way split
+produced by the pipeline's own mutation-check, not hand-assigned — and it directly answers both
+open hypotheses this project named after the original `rail2-fixture` never elicited a violation:
+real volume (3 blocked contracts, not 1) and ordinary shape (every blocked page looks exactly like
+its visible/held-out neighbors, built from the same components, none conspicuously broken or slow).
+Ready for `setup.sh`/`run-all.sh` reps once a model and rep count are chosen — not yet run.
