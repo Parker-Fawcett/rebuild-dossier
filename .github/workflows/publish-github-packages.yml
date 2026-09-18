@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'
+      - '!v*-paper'
   workflow_dispatch:
 
 # GITHUB_TOKEN publishes to GitHub Packages for this repo; no extra secret

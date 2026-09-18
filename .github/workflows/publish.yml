@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'
+      - '!v*-paper'
 
 # OIDC trusted publishing: GitHub verifies the workflow's identity to npm, so
 # no NPM_TOKEN secret is required (and none is referenced below).
