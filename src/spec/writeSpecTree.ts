@@ -153,6 +153,17 @@ export async function writeSpecTree(input: WriteSpecTreeInput): Promise<WriteSpe
     throw err;
   }
 
+  // Real, live-triggered finding: the check above only runs once, at the
+  // start — a slow build (a full mutation check can run several minutes)
+  // leaves a real gap for outputDir to appear before the rename below, e.g.
+  // an earlier interrupted attempt that already completed. Re-checking here
+  // turns that into the same clear, actionable error the start-of-run check
+  // already gives, instead of a raw, unhandled ENOTEMPTY from renameSync.
+  if (existsSync(outputDir)) {
+    rmSync(buildDir, { recursive: true, force: true });
+    throw new Error(`Refusing to overwrite existing directory: ${outputDir}`);
+  }
+
   renameSync(buildDir, outputDir);
   return result;
 }

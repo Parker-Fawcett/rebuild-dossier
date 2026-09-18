@@ -521,6 +521,51 @@ describe('writeSpecTree', () => {
     }
   });
 
+  it('refuses to overwrite outputDir if it appears mid-generation, instead of crashing on the final rename', async () => {
+    // Real, live-triggered finding (docs/v0-findings.md): the check above
+    // only runs once, at the start. A slow build (a full mutation check can
+    // run several minutes) leaves a real window for outputDir to appear
+    // before the final renameSync — e.g. an earlier interrupted attempt
+    // that already completed — which used to surface as a raw, unhandled
+    // ENOTEMPTY instead of this tool's own clear error. Simulated here
+    // without a mock: nothing before writeSpecTreeInto's own first `await`
+    // (generatePageTests) ever touches outputDir, so creating it
+    // synchronously right after calling writeSpecTree — before awaiting —
+    // is guaranteed by JS's run-to-completion semantics to land inside that
+    // real window, not a timing guess.
+    const repoDir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-writetree-repo-'));
+    const outputDir = join(tmpdir(), `rebuild-dossier-writetree-race-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    try {
+      const evidence: EvidenceBundle = {
+        repoPath: repoDir,
+        generatedAt: now,
+        packageJson: { scripts: {}, dependencies: {}, devDependencies: {} },
+        buildConfig: [],
+        routes: [],
+        existingTests: [],
+        signals: []
+      };
+
+      const promise = writeSpecTree({ repoPath: repoDir, outputDir, evidence, cases: [] });
+      mkdirSync(outputDir, { recursive: true });
+      writeFileSync(join(outputDir, 'marker.txt'), 'simulates an earlier attempt that already completed');
+
+      await expect(promise).rejects.toThrow('Refusing to overwrite existing directory');
+
+      // The concurrent attempt's own output must survive untouched, and no
+      // build-dir litter should be left behind in the parent directory.
+      expect(readFileSync(join(outputDir, 'marker.txt'), 'utf-8')).toBe(
+        'simulates an earlier attempt that already completed'
+      );
+      const parentEntries = readdirSync(dirname(outputDir));
+      const leftoverTempDirs = parentEntries.filter((e) => e.startsWith('.tmp-') && e.includes('writetree-race'));
+      expect(leftoverTempDirs).toEqual([]);
+    } finally {
+      rmSync(repoDir, { recursive: true, force: true });
+      rmSync(outputDir, { recursive: true, force: true });
+    }
+  });
+
   it('never leaves a partial output directory behind when generation fails partway through', async () => {
     // Real, live-triggered finding: an MCP client that times out waiting for
     // generate_spec (a real, multi-minute call for a real app) has no way to
