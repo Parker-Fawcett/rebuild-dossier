@@ -800,4 +800,36 @@ describe('generateContracts', () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it('adds a captured-page-text section listing static text nodes for a page route', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(join(dir, 'page.tsx'), 'export default function Home() { return null; }');
+      const routes: RouteEntry[] = [{ path: '/', file: 'page.tsx', kind: 'page', startLine: 1 }];
+
+      const files = generateContracts(dir, routes, [], [], [], false, [
+        { routeFile: 'page.tsx', staticText: ['Welcome to Duskframe Ops', 'Internal use only'] }
+      ]);
+
+      expect(files[0]?.content).toContain('Captured page text');
+      expect(files[0]?.content).toContain('"Welcome to Duskframe Ops"');
+      expect(files[0]?.content).toContain('"Internal use only"');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('omits the captured-page-text section entirely when no captured text was recorded for a route', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-contracts-'));
+    try {
+      writeFileSync(join(dir, 'page.tsx'), 'export default function Home() { return null; }');
+      const routes: RouteEntry[] = [{ path: '/', file: 'page.tsx', kind: 'page', startLine: 1 }];
+
+      const files = generateContracts(dir, routes, [], [], [], false, []);
+
+      expect(files[0]?.content).not.toContain('Captured page text');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });

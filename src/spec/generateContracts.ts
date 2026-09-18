@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { RouteEntry } from '../ingest/evidenceSchema.js';
 import type { AssetManifestEntry } from './assetManifestSchema.js';
-import type { PageStylesheetAnimations, SkippedPage } from './generatePageTests.js';
+import type { PageCapturedText, PageStylesheetAnimations, SkippedPage } from './generatePageTests.js';
 import { inferInteractionGatedElements } from './inferInteractionGatedElements.js';
 import { inferRequestBodyFields } from './inferRequestBodyFields.js';
 import { inferRequestValidationRules, type ValidationRule } from './inferRequestValidationRules.js';
@@ -201,6 +201,30 @@ function stylesheetAnimationsSection(animations: PageStylesheetAnimations): stri
     .join('\n');
 }
 
+// Documentation only in the sense that a rebuild agent isn't required to
+// copy this verbatim if it has a better source (e.g. the original source,
+// where available) — but for a page whose test lives in tests/held-out/,
+// this section is the ONLY legitimate source of the page's exact required
+// text at all, since the test itself is off-limits until the visible suite
+// is green, and the contract previously carried no real text (see
+// PageCapturedText's own doc comment). Static text only — dynamic content
+// (currency, dates, live counts) is excluded because the generated test
+// doesn't assert it verbatim either, and documenting a moving value as fixed
+// would be actively wrong, not just incomplete.
+function capturedTextSection(capturedText: PageCapturedText): string {
+  return [
+    '## Captured page text (static content only — the source of truth for exact wording)',
+    '',
+    "Text nodes classified as static during capture, in DOM order. This is the page's exact",
+    'required content for anything not covered by a visible test you can read directly —',
+    'in particular, for a held-out page, this section (not the withheld test) is where its',
+    'exact wording comes from.',
+    '',
+    capturedText.staticText.map((text) => `- ${JSON.stringify(text)}`).join('\n'),
+    ''
+  ].join('\n');
+}
+
 // Documentation only — never asserted against, and deliberately never
 // interacts with the target page itself (see
 // inferInteractionGatedElements.ts's own header for why: simulating a click
@@ -253,13 +277,15 @@ export function generateContracts(
   assetManifest: AssetManifestEntry[] = [],
   skippedPages: SkippedPage[] = [],
   pageStylesheetAnimations: PageStylesheetAnimations[] = [],
-  capturedWithAuthSession = false
+  capturedWithAuthSession = false,
+  pageCapturedText: PageCapturedText[] = []
 ): GeneratedFile[] {
   return routes.map((route) => {
     const title = route.method ? `${route.method} ${route.path}` : route.path;
     const asset = assetManifest.find((a) => a.metadata.routeFile === route.file);
     const skipped = skippedPages.find((s) => s.routeFile === route.file);
     const animations = pageStylesheetAnimations.find((a) => a.routeFile === route.file);
+    const capturedText = pageCapturedText.find((c) => c.routeFile === route.file);
 
     const content = [
       `# Contract: ${title}`,
@@ -279,6 +305,8 @@ export function generateContracts(
       inferredResponseFieldsSection(repoPath, route),
       '',
       animations ? stylesheetAnimationsSection(animations) : undefined,
+      '',
+      capturedText ? capturedTextSection(capturedText) : undefined,
       '',
       interactionGatedSection(repoPath, route),
       '',

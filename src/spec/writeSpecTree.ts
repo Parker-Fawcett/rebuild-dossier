@@ -210,7 +210,8 @@ async function writeSpecTreeInto(
     pageResult.assetManifest,
     pageResult.skippedPages,
     pageResult.pageStylesheetAnimations,
-    pageResult.usedAuthStorageState
+    pageResult.usedAuthStorageState,
+    pageResult.pageCapturedText
   )) {
     writeFileSync(join(outputDir, 'spec', 'contracts', file.filename), file.content);
   }

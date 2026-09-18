@@ -316,6 +316,7 @@ describe('generatePageTests preconditions', () => {
       visionClassificationEnabled: false,
       pageVisionFallbacks: [],
       pageStylesheetAnimations: [],
+      pageCapturedText: [],
       usedAuthStorageState: false
     });
   });

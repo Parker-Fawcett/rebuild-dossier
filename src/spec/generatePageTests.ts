@@ -195,6 +195,24 @@ export interface PageStylesheetAnimations {
   transitionUsages: TransitionUsage[];
 }
 
+// Static (non-dynamic) DOM text, captured the same way the generated test's
+// own assertions are, but surfaced into the contract doc rather than kept
+// only inside the withheld test file. Closes a real gap named in
+// docs/v0-findings.md ("Held-out leakage through repeated re-running"): a
+// held-out page's contract previously carried no real text at all (only a
+// signature and a screenshot), so the ONLY legitimate way to learn a page's
+// exact required content was reading the test itself — forbidden for
+// held-out pages by the workspace's own rules. Re-running the withheld test
+// and reading its failure diff then became the only way to get that content,
+// which is exactly the leakage this field is meant to close. Dynamic text
+// (kind: 'dynamic') is deliberately excluded — it isn't asserted verbatim by
+// the generated test either, and documenting a live-fetched or counting
+// value as fixed content would be actively misleading, not helpful.
+export interface PageCapturedText {
+  routeFile: string;
+  staticText: string[];
+}
+
 export interface GeneratePageTestsResult {
   visible: GeneratedTestFile[];
   heldOut: GeneratedTestFile[];
@@ -205,6 +223,7 @@ export interface GeneratePageTestsResult {
   visionClassificationEnabled: boolean; // whether this run attempted vision classification at all (both GROQ_API_KEY and REBUILD_DOSSIER_ENABLE_VISION_CLASSIFICATION must be set)
   pageVisionFallbacks: SkippedPage[]; // captured pages that fell back to the regex classifier despite vision being enabled, with why — never silently indistinguishable from a page vision actually classified
   pageStylesheetAnimations: PageStylesheetAnimations[]; // routes whose authored CSS declares a real animation/transition — documentation only, see generateContracts.ts
+  pageCapturedText: PageCapturedText[]; // static DOM text per captured page — documentation only, see generateContracts.ts
   usedAuthStorageState: boolean; // whether a caller-supplied Playwright storageState was used for this run's captures — see capturePage
 }
 
@@ -218,6 +237,7 @@ const EMPTY_RESULT: GeneratePageTestsResult = {
   visionClassificationEnabled: false,
   pageVisionFallbacks: [],
   pageStylesheetAnimations: [],
+  pageCapturedText: [],
   usedAuthStorageState: false
 };
 
@@ -829,6 +849,7 @@ export async function generatePageTests(
   const visible: GeneratedTestFile[] = [];
   const heldOut: GeneratedTestFile[] = [];
   const pageStylesheetAnimations: PageStylesheetAnimations[] = [];
+  const pageCapturedText: PageCapturedText[] = [];
 
   // Deliberately opt-in via two env vars, not bare GROQ_API_KEY presence —
   // an ambient key set for an unrelated tool must never silently start
@@ -905,6 +926,11 @@ export async function generatePageTests(
 
     const finalCapture: PageCapture = { ...result.capture, domOutline, screenshotAssetId: assetId };
 
+    const staticText = finalCapture.domOutline.filter((node) => node.kind === 'static').map((node) => node.text);
+    if (staticText.length > 0) {
+      pageCapturedText.push({ routeFile: route.file, staticText });
+    }
+
     const testFile: GeneratedTestFile = {
       filename: `${base}.page.spec.ts`,
       content: buildPageTestContent(route, finalCapture, Boolean(authStorageStatePath)),
@@ -930,6 +956,7 @@ export async function generatePageTests(
     visionClassificationEnabled: visionEnabled,
     pageVisionFallbacks,
     pageStylesheetAnimations,
+    pageCapturedText,
     usedAuthStorageState: Boolean(authStorageStatePath)
   };
 }
