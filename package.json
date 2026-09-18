@@ -1,6 +1,6 @@
 {
   "name": "rebuild-dossier",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "mcpName": "com.parkerfawcett/rebuild-dossier",
   "description": "MCP server that reverse-engineers a trustworthy rebuild spec from an existing app.",
   "type": "module",
@@ -70,7 +70,6 @@
     "ignore": "^7.0.6",
     "playwright": "^1.61.1",
     "ts-morph": "^28.0.0",
-    "vitest": "^4.0.0",
     "zod": "^4.1.13"
   },
   "devDependencies": {
@@ -78,6 +77,7 @@
     "@types/express": "^4.17.21",
     "@types/node": "^24.0.0",
     "tsx": "^4.20.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.0"
   }
 }
