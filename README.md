@@ -1,6 +1,6 @@
 # rebuild-dossier
 
-[![DOI](https://zenodo.org/badge/1308271634.svg)](https://doi.org/10.5281/zenodo.22036801)
+[![DOI](https://zenodo.org/badge/1308271634.svg)](https://doi.org/10.5281/zenodo.22036800)
 [![arXiv:2608.23616](https://img.shields.io/badge/arXiv-2608.23616-b31b1b.svg)](https://arxiv.org/abs/2608.23616)
 [![smithery badge](https://smithery.ai/badge/parkerscottfawcett/rebuild-dossier)](https://smithery.ai/servers/parkerscottfawcett/rebuild-dossier)
 [![M8ven Score](https://m8ven.ai/badge/mcp/businessfawcett-cloud-rebuild-dossier-17tqsh)](https://m8ven.ai/mcp/businessfawcett-cloud-rebuild-dossier-17tqsh)
@@ -70,14 +70,8 @@ A `PostToolUse` hook runs the visible test suite after every edit.
 Available on npm:
 
 ```bash
-npx rebuild-dossier@latest --help    # pull the MCP server (stdio), or:
+npx rebuild-dossier@latest --help    # pulls and verifies the package, or:
 npm install -g rebuild-dossier        # install the CLI globally
-```
-
-Also available via Homebrew:
-
-```bash
-brew install rebuild-dossier
 ```
 
 Requires **Node 20.12+** (set in `package.json` `engines`). To run from source instead, clone the

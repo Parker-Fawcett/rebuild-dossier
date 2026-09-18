@@ -290,6 +290,12 @@ async function writeSpecTreeInto(
     )
   );
 
+  // npm's arborist crashes on plain `npm install` for this dependency shape
+  // ("Cannot read properties of null (reading 'edgesOut')") on current npm
+  // — hit live against a real app, not hypothetical. Shipping this avoids
+  // every rebuild session's first command being an unexplained crash.
+  writeFileSync(join(outputDir, '.npmrc'), 'legacy-peer-deps=true\n');
+
   if (usesDevServerBoilerplate) {
     // Each such test file spawns its own `next dev` against the SAME app
     // directory. Next.js only allows one dev server per project directory

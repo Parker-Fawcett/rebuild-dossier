@@ -111,6 +111,12 @@ describe('writeSpecTree', () => {
       // recurse into itself.
       expect(pkg.scripts.test).toBe('vitest run tests/visible --passWithNoTests');
 
+      // Plain `npm install` on this dependency shape crashes on current npm
+      // ("Cannot read properties of null (reading 'edgesOut')") — hit live
+      // against a real app, not hypothetical. Ship the workaround so a
+      // rebuild session's first command isn't an unexplained crash.
+      expect(readFileSync(join(outputDir, '.npmrc'), 'utf-8')).toBe('legacy-peer-deps=true\n');
+
       const visibleFiles = readdirSync(join(outputDir, 'tests', 'visible'));
       const heldOutFiles = readdirSync(join(outputDir, 'tests', 'held-out'));
       expect(visibleFiles.length + heldOutFiles.length).toBeGreaterThan(0);
