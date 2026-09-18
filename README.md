@@ -18,53 +18,6 @@ consumes to do that separately. This boundary is deliberate — see [Why](#why) 
 > model tiers, plus a mutation-tested test suite.
 > [docs/v0-findings.md](docs/v0-findings.md) covers what worked, what broke, and what's still open.
 
-## Why
-
-Prior research ([AgentModernize, arXiv:2605.17535](https://arxiv.org/abs/2605.17535)) found
-that a rebuild pipeline scores **0%** behavioral equivalence with no verified feedback loop,
-and only **9–19%** with a coarse one. The bet behind this tool: locking interface contracts
-*before* running tests, plus a strict one-test-at-a-time retry loop instead of batch
-regeneration, does meaningfully better.
-
-The riskiest part of any such pipeline is silently validating a bug as intentional — four
-sources of evidence can quietly agree on the same mistake with nobody ever having said why.
-So the single non-negotiable rule in this tool: **auto-resolving an ambiguity requires both
-signal agreement *and* an affirmative signal that someone actually decided** (a stated
-comment, a TODO admitting a bug, or a direct human answer). Silent agreement alone — code and
-observed behavior simply matching, with no one ever having said why — always becomes a
-question, never an auto-resolution, no matter how high the apparent confidence.
-
-## How it works
-
-Six MCP tools, run from inside a normal Claude Code (or any MCP-compatible) session:
-
-| Tool | What it does |
-|---|---|
-| `ingest_repo(path)` | Static analysis only, no LLM call: routes, `package.json`, build config (via AST, never executed), existing tests, and structural-smell detectors (e.g. a client-side-only credential check with no server-side verification) that surface real ambiguity even when nobody ever commented on it. |
-| `crawl_site(url)` | Headless Playwright crawl of reachable routes, with progress notifications so long crawls don't get killed as unresponsive. |
-| `flag_known_bug(description)` | Free text, stored verbatim. Always overrides auto-resolve for anything it matches — the cheapest, most authoritative signal in the system. |
-| `get_case_queue()` / `resolve_case(id, decision)` | The ambiguity queue. Surfaces open questions via MCP elicitation when the client supports it; `resolve_case` is always available as a scripted fallback. |
-| `generate_spec()` | Only callable once the case queue is empty. Writes `CLAUDE.md`, `.claude/rules/`, `.claude/settings.json` (hooks that *mechanically* enforce the discipline — see below), `spec/contracts/*.md`, `tests/visible/` + `tests/held-out/`, and `kickoff-prompt.txt` to a clean sibling `<repo>-rebuild/` directory — never into the original repo. Runs a real mutation check before finalizing tests: deliberately breaks the original code and confirms each generated test actually catches it, downgrading any that don't. |
-
-`crawl_site` needs Chromium (`npx playwright install chromium`, step 2 below) — it isn't bundled with the server, including when installed via Smithery, so run it once first or the tool will fail.
-
-### Rails that are mechanically enforced, not just written down
-
-A comparison run across two model tiers found that a weaker model will happily read
-`CLAUDE.md`, understand "only build what's currently failing, don't batch-regenerate," and
-then quietly violate it anyway — because nothing *checked* it. Two rules in this tool are now
-enforced by real hooks, not prose, for exactly that reason:
-
-- **`spec/` is locked.** A `PreToolUse` hook blocks any edit under `spec/`.
-- **Contracts without tests don't get built ahead of schedule.** `generate_spec` writes
-  `spec/untested-contracts.json` (every route/contract with no covering test), and a second
-  `PreToolUse` hook blocks writes to anything on that list — the same enforcement shape as the
-  `spec/`-edit block, closing a gap that used to be advisory only.
-
-A `PostToolUse` hook runs the visible test suite after every edit.
-
-![rebuild-dossier demo](demo.gif)
-
 ## Quick start
 
 Available on npm:
@@ -112,6 +65,53 @@ Claude Code session (nothing else should be in scope), and paste the contents of
 `kickoff-prompt.txt`.
 
 If this looks useful, a star helps other developers find it.
+
+## Why
+
+Prior research ([AgentModernize, arXiv:2605.17535](https://arxiv.org/abs/2605.17535)) found
+that a rebuild pipeline scores **0%** behavioral equivalence with no verified feedback loop,
+and only **9–19%** with a coarse one. The bet behind this tool: locking interface contracts
+*before* running tests, plus a strict one-test-at-a-time retry loop instead of batch
+regeneration, does meaningfully better.
+
+The riskiest part of any such pipeline is silently validating a bug as intentional — four
+sources of evidence can quietly agree on the same mistake with nobody ever having said why.
+So the single non-negotiable rule in this tool: **auto-resolving an ambiguity requires both
+signal agreement *and* an affirmative signal that someone actually decided** (a stated
+comment, a TODO admitting a bug, or a direct human answer). Silent agreement alone — code and
+observed behavior simply matching, with no one ever having said why — always becomes a
+question, never an auto-resolution, no matter how high the apparent confidence.
+
+## How it works
+
+Six MCP tools, run from inside a normal Claude Code (or any MCP-compatible) session:
+
+| Tool | What it does |
+|---|---|
+| `ingest_repo(path)` | Static analysis only, no LLM call: routes, `package.json`, build config (via AST, never executed), existing tests, and structural-smell detectors (e.g. a client-side-only credential check with no server-side verification) that surface real ambiguity even when nobody ever commented on it. |
+| `crawl_site(url)` | Headless Playwright crawl of reachable routes, with progress notifications so long crawls don't get killed as unresponsive. |
+| `flag_known_bug(description)` | Free text, stored verbatim. Always overrides auto-resolve for anything it matches — the cheapest, most authoritative signal in the system. |
+| `get_case_queue()` / `resolve_case(id, decision)` | The ambiguity queue. Surfaces open questions via MCP elicitation when the client supports it; `resolve_case` is always available as a scripted fallback. |
+| `generate_spec()` | Only callable once the case queue is empty. Writes `CLAUDE.md`, `.claude/rules/`, `.claude/settings.json` (hooks that *mechanically* enforce the discipline — see below), `spec/contracts/*.md`, `tests/visible/` + `tests/held-out/`, and `kickoff-prompt.txt` to a clean sibling `<repo>-rebuild/` directory — never into the original repo. Runs a real mutation check before finalizing tests: deliberately breaks the original code and confirms each generated test actually catches it, downgrading any that don't. |
+
+`crawl_site` needs Chromium (`npx playwright install chromium`, step 2 below) — it isn't bundled with the server, including when installed via Smithery, so run it once first or the tool will fail.
+
+### Rails that are mechanically enforced, not just written down
+
+A comparison run across two model tiers found that a weaker model will happily read
+`CLAUDE.md`, understand "only build what's currently failing, don't batch-regenerate," and
+then quietly violate it anyway — because nothing *checked* it. Two rules in this tool are now
+enforced by real hooks, not prose, for exactly that reason:
+
+- **`spec/` is locked.** A `PreToolUse` hook blocks any edit under `spec/`.
+- **Contracts without tests don't get built ahead of schedule.** `generate_spec` writes
+  `spec/untested-contracts.json` (every route/contract with no covering test), and a second
+  `PreToolUse` hook blocks writes to anything on that list — the same enforcement shape as the
+  `spec/`-edit block, closing a gap that used to be advisory only.
+
+A `PostToolUse` hook runs the visible test suite after every edit.
+
+![rebuild-dossier demo](demo.gif)
 
 ## Operating guide
 
