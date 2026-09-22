@@ -18,6 +18,15 @@ ln -s spec "$FX/spec-alias"
 ( cd "$REPO" && node --input-type=module -e "
   import { generateSettingsJson } from './dist/spec/generateSettingsJson.js';
   process.stdout.write(JSON.stringify(generateSettingsJson('true'), null, 2));" ) > "$FX/.claude/settings.json"
+# Post-hardening builds ship the guard as a file the settings point at; write
+# it exactly as writeSpecTree does. Older builds have no such module.
+if [ -f "$REPO/dist/spec/generateGuardHook.js" ]; then
+  ( cd "$REPO" && node --input-type=module -e "
+    import { mkdirSync, writeFileSync } from 'node:fs';
+    import { GUARD_HOOK_RELATIVE_PATH, GUARD_HOOK_SOURCE } from './dist/spec/generateGuardHook.js';
+    mkdirSync('$FX/.claude/hooks', { recursive: true });
+    writeFileSync('$FX/' + GUARD_HOOK_RELATIVE_PATH, GUARD_HOOK_SOURCE);" ) || { echo "failed to write guard" >&2; exit 1; }
+fi
 BEFORE="$(shasum -a 256 "$FX/spec/contracts/GET-api-x.md")"
 
 cd "$FX"

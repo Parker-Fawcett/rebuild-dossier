@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, '..', '..');
 const { generateSettingsJson } = await import(join(repoRoot, 'dist/spec/generateSettingsJson.js'));
+const guardMod = await import(join(repoRoot, 'dist/spec/generateGuardHook.js')).catch(() => null);
 
 const base = realpathSync(mkdtempSync(join(tmpdir(), 'guard-probe-')));
 const rep = join(base, 'probe-rep');
@@ -27,8 +28,11 @@ symlinkSync(join(rep, 'spec'), join(rep, 'spec-alias'));
 symlinkSync(join(rep, 'src/app/collection'), join(rep, 'coll-alias'));
 mkdirSync(join(base, '.claude-plugin-state', 'probe-rep'), { recursive: true });
 writeFileSync(join(base, '.claude-plugin-state', 'probe-rep', 'enforce'), '');
+// Post-hardening production guard (a file under .claude/hooks), when the built package has it.
+if (guardMod) { mkdirSync(join(rep, '.claude', 'hooks'), { recursive: true }); writeFileSync(join(rep, guardMod.GUARD_HOOK_RELATIVE_PATH), guardMod.GUARD_HOOK_SOURCE); }
 
 const prod = generateSettingsJson('npm test').hooks.PreToolUse.flatMap((h) => h.hooks.map((x) => x.command));
+const hardened = Boolean(guardMod);
 
 const payload = (tool, filePath, extra = {}) =>
   JSON.stringify({ cwd: rep, tool_name: tool, tool_input: { file_path: filePath, ...extra } });
@@ -53,8 +57,12 @@ const results = cases.map(([name, input, wantBlock]) => ({
   probe: name,
   expectedIfFullyGuarded: wantBlock,
   harnessHookExit: runHook([join(here, 'hooks/tool-log.mjs')], input),
-  productionSpecHookExit: spawnSync('sh', ['-c', prod[0]], { input, cwd: rep, encoding: 'utf-8' }).status,
-  productionUntestedHookExit: spawnSync('sh', ['-c', prod[1]], { input, cwd: rep, encoding: 'utf-8' }).status
+  ...(hardened
+    ? { productionGuardExit: spawnSync('sh', ['-c', prod[0]], { input, cwd: rep, encoding: 'utf-8' }).status }
+    : {
+        productionSpecHookExit: spawnSync('sh', ['-c', prod[0]], { input, cwd: rep, encoding: 'utf-8' }).status,
+        productionUntestedHookExit: spawnSync('sh', ['-c', prod[1]], { input, cwd: rep, encoding: 'utf-8' }).status
+      })
 }));
 
 // Fail-open on a malformed blocklist, checked separately so it doesn't
@@ -64,13 +72,16 @@ results.push({
   probe: 'Untested-contract write with a malformed blocklist',
   expectedIfFullyGuarded: 2,
   harnessHookExit: runHook([join(here, 'hooks/tool-log.mjs')], payload('Write', join(rep, untestedRel))),
-  productionSpecHookExit: null,
-  productionUntestedHookExit: spawnSync('sh', ['-c', prod[1]], { input: payload('Write', join(rep, untestedRel)), cwd: rep, encoding: 'utf-8' }).status
+  ...(hardened
+    ? { productionGuardExit: spawnSync('sh', ['-c', prod[0]], { input: payload('Write', join(rep, untestedRel)), cwd: rep, encoding: 'utf-8' }).status }
+    : { productionSpecHookExit: null,
+        productionUntestedHookExit: spawnSync('sh', ['-c', prod[1]], { input: payload('Write', join(rep, untestedRel)), cwd: rep, encoding: 'utf-8' }).status })
 });
 
 console.log(JSON.stringify({
   generatedAt: new Date().toISOString(),
   note: 'exit 2 = blocked, 0 = allowed. Configured matcher for both harness and production blocking hooks is "Edit|Write", so a real Bash tool call never reaches these scripts at all; the Bash-shaped probe only shows what the script would do if it did.',
   productionMatchers: generateSettingsJson('npm test').hooks.PreToolUse.map((h) => h.matcher),
+  productionHooks: hardened ? 'file-based guard (.claude/hooks/rebuild-guard.mjs)' : 'inline node -e commands',
   results
 }, null, 2));

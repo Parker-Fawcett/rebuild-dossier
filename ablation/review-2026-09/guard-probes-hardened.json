@@ -1,0 +1,88 @@
+{
+  "generatedAt": "2026-09-22T23:28:48.712Z",
+  "note": "exit 2 = blocked, 0 = allowed. Configured matcher for both harness and production blocking hooks is \"Edit|Write\", so a real Bash tool call never reaches these scripts at all; the Bash-shaped probe only shows what the script would do if it did.",
+  "productionMatchers": [
+    "Edit|Write|MultiEdit|NotebookEdit|Bash"
+  ],
+  "productionHooks": "file-based guard (.claude/hooks/rebuild-guard.mjs)",
+  "results": [
+    {
+      "probe": "Write inside spec/ (absolute)",
+      "expectedIfFullyGuarded": 2,
+      "harnessHookExit": 2,
+      "productionGuardExit": 2
+    },
+    {
+      "probe": "Edit inside spec/ (relative)",
+      "expectedIfFullyGuarded": 2,
+      "harnessHookExit": 2,
+      "productionGuardExit": 2
+    },
+    {
+      "probe": "Write to an untested contract (absolute)",
+      "expectedIfFullyGuarded": 2,
+      "harnessHookExit": 2,
+      "productionGuardExit": 2
+    },
+    {
+      "probe": "Write to an untested contract (relative)",
+      "expectedIfFullyGuarded": 2,
+      "harnessHookExit": 2,
+      "productionGuardExit": 2
+    },
+    {
+      "probe": "Ordinary unprotected write",
+      "expectedIfFullyGuarded": 0,
+      "harnessHookExit": 0,
+      "productionGuardExit": 0
+    },
+    {
+      "probe": "Case variant Spec/ (same dir on case-insensitive APFS)",
+      "expectedIfFullyGuarded": 2,
+      "harnessHookExit": 0,
+      "productionGuardExit": 2
+    },
+    {
+      "probe": "Dot-segment path ./src/../spec/x",
+      "expectedIfFullyGuarded": 2,
+      "harnessHookExit": 2,
+      "productionGuardExit": 2
+    },
+    {
+      "probe": "Symlink alias to spec/",
+      "expectedIfFullyGuarded": 2,
+      "harnessHookExit": 0,
+      "productionGuardExit": 2
+    },
+    {
+      "probe": "Symlink alias to an untested contract",
+      "expectedIfFullyGuarded": 2,
+      "harnessHookExit": 0,
+      "productionGuardExit": 2
+    },
+    {
+      "probe": "Shell-escaped untested path (\\[code\\])",
+      "expectedIfFullyGuarded": 2,
+      "harnessHookExit": 0,
+      "productionGuardExit": 2
+    },
+    {
+      "probe": "Bash-shaped payload naming spec/ (no file_path)",
+      "expectedIfFullyGuarded": 2,
+      "harnessHookExit": 0,
+      "productionGuardExit": 2
+    },
+    {
+      "probe": "Malformed stdin JSON",
+      "expectedIfFullyGuarded": 2,
+      "harnessHookExit": 0,
+      "productionGuardExit": 2
+    },
+    {
+      "probe": "Untested-contract write with a malformed blocklist",
+      "expectedIfFullyGuarded": 2,
+      "harnessHookExit": 0,
+      "productionGuardExit": 2
+    }
+  ]
+}
