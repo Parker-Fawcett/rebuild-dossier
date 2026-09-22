@@ -18,6 +18,16 @@ grep -v '^#' "$ROOT/run-order.txt" | while read -r rep; do
   [ "$AVAIL_GB" -ge 10 ] || { echo "only ${AVAIL_GB}GB free; stopping" >&2; exit 1; }
   echo "=== $rep ($model) $(date -u +%H:%M:%SZ)"
   CODEX_EFFORT=low "$HERE/run-codex-trial.sh" "$ROOT/$rep" "$model" || { echo "stopped at $rep" >&2; exit 1; }
+  # §3.1: a usage-limit hit is an infrastructure failure. Stop the whole batch
+  # (so later reps aren't burned) and park this attempt for its one re-run.
+  if grep -q "usage limit" "$state/transcript.log" 2>/dev/null; then
+    n=1; while [ -e "$state/failed-attempt-$n" ]; do n=$((n+1)); done
+    mkdir -p "$state/failed-attempt-$n"
+    find "$state" -maxdepth 1 -type f ! -name enforce -exec mv {} "$state/failed-attempt-$n/" \;
+    git -C "$ROOT/$rep" reset -q --hard && git -C "$ROOT/$rep" clean -qfd -- src tests
+    echo "usage limit hit during $rep; parked as failed-attempt-$n and stopped the batch" >&2
+    exit 3
+  fi
   # §E5.4 endpoints, from the filesystem (git baseline), not the self-report.
   routes=$(git -C "$ROOT/$rep" status --porcelain --untracked-files=all -- src | grep -cE 'src/app/.*/route\.(ts|js)$' || true)
   node -e "
