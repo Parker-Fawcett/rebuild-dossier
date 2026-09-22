@@ -146,3 +146,22 @@ cd "/Users/parkerfawcett/Rebuild Dossier/ablation/review-2026-09"
 
 `setup-review.sh` and `setup-astra.sh` have already been run. Their output is under `~/sealed-runs/`.
 - **2026-09-22 ~23:12Z, after 3 of 21 E5 reps.** `run-astra.sh`'s inline scorer set `visibleComplete` from `parse-log.mjs`'s collected-case count, which excludes test files that fail to import. A one-route stall therefore read "1/1" and was marked complete. This measured the pre-registered endpoint (§6, *visible complete* = 20/20) incorrectly; the endpoint itself did not change. `rescore-astra.mjs` recomputes visible obligations from the raw `Test Files` line against the fixed 20-file denominator and is the authoritative E5 scorer for every rep, including the three already run. `run-astra.sh` was left untouched while running, since bash reads scripts incrementally. The live guard challenge (E4c) and the smoke test (PASS) ran at ~23:09Z, while E5 was running; both are single short sessions in their own directories, not experiment reps.
+- **2026-09-22 ~23:21Z, E5 after 9 of 21 reps.** Codex returned `You've hit your usage limit … try again at 9:31 PM` (local, 03:31Z) partway through `rev-rep3` (3 routes built, then the error) and at the start of `rev-rep1`. Both are infrastructure failures under §3.1. The batch was stopped at once so the loop could not burn the remaining reps as instant failures. Both attempts' logs were moved to `<state>/failed-attempt-1/`, and both reps were reset to their git baseline (`reset --hard`, `clean -fd src tests`; node_modules kept). Each is re-run once, in place, when the batch resumes. The seven reps that finished cleanly before the limit (`ctrl-rep5`, `orig-rep2`, `ctrl-rep3`, `orig-rep5`, `orig-rep4`, `rev-rep5`, `ctrl-rep2`, and `rev-rep2`, eight in all) stand as run. E5 resumes after the Claude Code batches, never concurrently with them.
+
+## 10. Addition (registered 2026-09-22 ~23:30Z, before any strong-tier rep ran): sealed strong-tier re-measurement
+
+Motivation: the review notes that "three runs per condition… do not establish equivalence." The paper's "no difference at the strong tier" also rests on unsealed reps whose configuration changed between reps 1–3 and 4–5 (§7).
+
+- **Arms:** strong-A (blocking enabled, `enforce`) and strong-B (log-only), 5 reps each, under `~/sealed-runs/review-2026-09-strong/`. They are byte-identical inside the rep to the Haiku batch's A/B, verified at setup against `MANIFEST-setup.sha256`. The protocol in §1 is identical except for the model: `claude-sonnet-5`, confirmed accepted via the API's own `modelUsage` before registering.
+- **Runner:** `run-sealed-trial-model.sh`, which is `run-sealed-trial.sh` with `MODEL` taken from the environment. The only diff is line 17. The order is `run-order-strong.txt` (seed 202609224). It runs after the Haiku batch, never concurrently.
+- **Endpoints:** as in §4.
+- **Reading:**
+  - strong-A and strong-B each have 0 full completions and the same batch profile (every rep's `maxNewFilesInOneInterval` ≤ 2): "no observed difference under a sealed evaluator, now at 5 per condition."
+  - Any full completion in either arm, or any rep with an interval ≥ 3: report it as a departure from the unsealed strong-tier pattern, with the rep named.
+  - In no case is equivalence claimed.
+
+## 11. Conditional E5 follow-up (registered 2026-09-22 ~23:30Z, before the E5 `rev` arm was complete)
+
+If, and only if, §6's pre-declared reading at `low` effort yields "wording effect supported" (`orig` stalls ≥4/5 and `rev` stalls ≤1/5), run `rev` at `xhigh` and at `ultra` (2 reps each, `gpt-6-astra`, same preparation), plus `orig` at `ultra` (2 reps) as the matched check that the original still stalls at that level.
+- **Reading:** the fix generalizes across effort if `rev` stalls ≤1 of the 4 higher-effort reps and `orig`-`ultra` stalls 2/2.
+- If §6's condition is not met, none of these run, and that is reported.
