@@ -5465,3 +5465,27 @@ Items from the `gpt-6-astra` review that needed no new data, each checked agains
 Cut to stay within 10 pages: the Background paragraph contrasting AgentModernize's LLM validator with our hooks as "structurally immune" to regression. After the E4b/E4c probes (fail-open, shell writes unguarded), that framing overstated the hooks anyway.
 
 A read-only audit of the arXiv report against the same ground truth found errors 1, 2, 7, 10 and 11 plus most of the wording overclaims, about 45 passages in all. The checklist is at `~/Desktop/Cusf:Isef/seip-submission/ARXIV-SYNC-AUDIT.md`. The sync is deferred until the follow-up results land, so the report changes once.
+
+## The shipped write guard, hardened against every bypass the probes found, and re-measured live
+
+The E4b probes and the E4c live challenge (above) measured what the shipped hooks actually stop. Every Write/Edit to `spec/` and to an untested contract was blocked; a shell `echo`, a Python one-liner, `mv`, a `Spec/` case variant (same directory on case-insensitive APFS) and a symlink alias all went through. Those gaps are now closed in the product. The follow-up experiments are unaffected: they run the harness's own copied hooks, which were deliberately left as measured.
+
+**What changed** (`src/spec/generateGuardHook.ts`, commit `415f3fd`):
+- The two inline `node -e` rails are replaced by one generated script, `.claude/hooks/rebuild-guard.mjs`, written by `generate_spec`. Inline strings are how the untested-contracts hook shipped broken; a file is executed byte-for-byte.
+- **Paths are normalized before matching:** dot segments resolved, symlinked ancestors followed, case folded on macOS/Windows.
+- **The hook matcher is now `Edit|Write|MultiEdit|NotebookEdit|Bash`.** Bash commands are parsed for write-shaped constructs: redirects and heredocs, `tee`, `sed -i`, `rm`/`mv`/`cp`/`ln`/`touch` and friends, git write subcommands, and interpreter one-liners that write. `cd` is tracked across chained statements. Reads of `spec/` (`cat`, `rg`, `ls`, copying out, a Python read) stay allowed, since the kickoff prompt tells the agent to read it.
+- **The guard protects itself:** `.claude/settings.json` and `.claude/hooks/` are locked like `spec/`.
+- **Fails closed:**
+  - an unparseable payload or an unreadable `untested-contracts.json` blocks with an explanation;
+  - the settings command itself (`node … || { echo …; exit 2; }`) turns a missing or crashing guard script into a block rather than a silent exit 1.
+
+**Verified:**
+- A new spec runs the generated guard through `/bin/sh` against 26 bypass cases (all exit 2), 9 legitimate reads and writes (all exit 0), and 3 fail-closed cases. Suite: 605/605, 89 files; typecheck and build clean.
+- Re-running the E4b probe matrix against the built package: the production guard now matches the intended outcome on all 13 probes (`ablation/review-2026-09/guard-probes-hardened.json`). The harness column is unchanged by design.
+- Re-running E4c, the same eight live write attempts by a real `claude-haiku-4-5-20251001` session: **all eight blocked**, each with the guard's own `Blocked:` message in the transcript. The locked contract is byte-unchanged, and no probe file or untested page exists afterward (`ablation/review-2026-09/results/E4c-hardened-*`).
+
+**Known limit, stated in the code and the manuscript:** shell parsing is heuristic. A write routed through a script the agent wrote earlier, or through `eval` of a computed string, is not seen.
+
+**Also added, ready for use:**
+- `run-external-oracle.sh` is the E6 runner. It applies an independently written check suite, hashed at a freeze point and refused if changed afterward, once to every frozen sealed snapshot, with fixed-denominator scoring. It was tested on a synthetic snapshot: a built route passes, a never-built one counts as a failed obligation, and a tampered suite is refused.
+- `make-fourcell-table.mjs` generates the manuscript's four-cell table from primary data only. Its unsealed rows reproduce the manuscript's numbers: Haiku blocking 2 clean 12/12, log-only 1 leaked; all 10 Haiku reps batch-building (max 16 files); Sonnet 3+3 with max 2.
