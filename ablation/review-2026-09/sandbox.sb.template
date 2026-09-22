@@ -7,7 +7,13 @@
 ;; Placeholders are filled in by run-sealed-trial.sh.
 (allow default)
 (deny file-read* (subpath "@HOME@"))
+;; Claude Code's own per-project temp dirs: other projects' (including the
+;; session that built this harness) stay unreadable; the parent is
+;; stat-able so the CLI can create the rep's own dir, which is re-allowed.
 (deny file-read* (subpath "/private/tmp/claude-502"))
+(allow file-read-metadata (subpath "/private/tmp/claude-502"))
+(allow file-read* (literal "/private/tmp/claude-502"))
+(allow file-read* (subpath "/private/tmp/claude-502/@ENC@"))
 
 ;; the rep itself, and its own hook state dir (hooks run as children of the agent)
 (allow file-read* (subpath "@REP@"))

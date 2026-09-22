@@ -128,7 +128,9 @@ Fixed by removing every backslash from both inline commands. Two regression test
 
 ## 9. Deviations
 
-(none yet)
+- **2026-09-22 ~23:00Z, before any sealed Claude Code rep ran.** `smoke-test.sh` failed closed: no canary leak, but the agent could not start (`EEXIST: mkdir '/tmp/claude-502'`). The template denied all of `/private/tmp/claude-502`, which is Claude Code's own per-project temp root. Narrowed to: deny the tree, allow metadata only on it, and allow full reads of the parent dir and of the rep's own temp dir (`/private/tmp/claude-502/<encoded rep path>`). Every other project's temp dir stays unreadable, including the session that built this harness. No arm, endpoint, or decision rule changed. The smoke test must still PASS before any E2–E4a rep runs.
+- **2026-09-22 ~23:05Z.** After the fix, the smoke test failed on `OAuth session expired`. That failure reproduces outside the sandbox: the `claude` CLI's own login had lapsed, which is unrelated to this harness. E2–E4a wait for a re-login. E5 (Codex, separately authenticated) was started first, so the two batches run sequentially rather than concurrently, per §1.
+- **Noted, not a deviation:** this machine's global `~/.codex/config.toml` is `model_reasoning_effort = "ultra"`. E5 pins `low` explicitly (§6), confirmed in the first rep's banner (`reasoning effort: low`).
 
 ## Runbook
 
