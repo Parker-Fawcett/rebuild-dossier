@@ -6,6 +6,7 @@ import type { Case } from '../reconciliation/types.js';
 import { generateClaudeMd } from './generateClaudeMd.js';
 import { generateTestingRule } from './generateRules.js';
 import { generateSettingsJson } from './generateSettingsJson.js';
+import { GUARD_HOOK_RELATIVE_PATH, GUARD_HOOK_SOURCE } from './generateGuardHook.js';
 import { generateContracts } from './generateContracts.js';
 import { generateTests } from './generateTests.js';
 import { generateNextApiTests } from './generateNextApiTests.js';
@@ -195,6 +196,8 @@ async function writeSpecTreeInto(
   writeFileSync(join(outputDir, '.claude', 'rules', testingRule.filename), testingRule.content);
 
   writeFileSync(join(outputDir, '.claude', 'settings.json'), JSON.stringify(generateSettingsJson(RUN_TESTS_COMMAND), null, 2));
+  mkdirSync(join(outputDir, '.claude', 'hooks'), { recursive: true });
+  writeFileSync(join(outputDir, GUARD_HOOK_RELATIVE_PATH), GUARD_HOOK_SOURCE);
 
   const specAuditorFile = generateSpecAuditorAgent(evidence.routes);
   if (specAuditorFile) {

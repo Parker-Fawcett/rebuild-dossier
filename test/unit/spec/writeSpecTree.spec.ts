@@ -72,6 +72,8 @@ describe('writeSpecTree', () => {
 
       expect(existsSync(join(outputDir, '.claude', 'rules', 'testing.md'))).toBe(true);
       expect(existsSync(join(outputDir, '.claude', 'settings.json'))).toBe(true);
+      // The write guard the settings point at must actually ship with the package.
+      expect(readFileSync(join(outputDir, '.claude', 'hooks', 'rebuild-guard.mjs'), 'utf-8')).toContain('rebuild-dossier write guard');
 
       // spec-auditor and the skill only need routes/contracts to exist — both do here.
       expect(existsSync(join(outputDir, '.claude', 'agents', 'spec-auditor.md'))).toBe(true);
