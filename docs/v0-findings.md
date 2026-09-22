@@ -5438,3 +5438,14 @@ Bash writes never reach either hook, because both matchers are `Edit|Write`. Res
 - The sealed follow-up keeps the harness's behavior for comparability and discloses the mismatch.
 
 **Also measured while validating the new batch-build metric against known reps:** in the weak-tier four-cell pair, both `with-rep1` (enforced) and `without-rep1` (log-only) first-created 14 and 16 route files respectively between two consecutive visible-suite runs. Heavy batch-building was present in both conditions, which the manuscript's "leakage-free is not disciplined" sentence understates.
+
+## Batch-building in the four-cell design, measured mechanically for all 18 reps: every weak-tier rep batch-built in both conditions, no strong-tier rep did
+
+The manuscript's four-cell paragraph rested on one self-report ("six batch-build incidents" in the enforced `with-rep1`). `ablation/review-2026-09/analyze-rep.mjs` now measures it from each rep's `activity-log.jsonl`. A *batch interval* is ≥2 implementation files under `src/` first created between two consecutive visible-suite runs; shell-escaped duplicate paths are normalized. Results are in `ablation/review-2026-09/results/E1-fourcell-batch-metric.csv`.
+
+- **Weak tier, all 10 reps, both conditions:** the largest interval first-created 13–16 route files. Enforcement made no visible difference to this.
+- **Strong tier, all 8 reps:** the largest interval was 1–2 files, with 16 files built in total in every rep but one (15).
+- **What separates the three weak-tier 12/12 reps** (`with-rep1`, `with-rep3`, and the leakage-driven `without-rep5`) is that they built **21** files. Every other weak rep built **16**. The extra 5 are exactly the routes that only the held-out suite covers (`health`, `slabs`, `users`, `users/check-username`, `scan`). The difference is not batch vs. no batch; it is whether a batch happened to extend past visible demand.
+- **Configuration split** (see the E1 ledger entry above): reps 1–3 ran settings `2635eb…`, reps 4–5 ran `89f92c…`. Both leakage-free enforced 12/12s are from reps 1–3.
+
+Folded into the SEIP four-cell paragraph in place of the single self-report. To stay within 10 pages, the introduction's closing "Legacy-app rebuilding is both…" paragraph was cut; it restated the introduction's own framing.
