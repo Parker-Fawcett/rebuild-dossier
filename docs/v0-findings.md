@@ -5449,3 +5449,19 @@ The manuscript's four-cell paragraph rested on one self-report ("six batch-build
 - **Configuration split** (see the E1 ledger entry above): reps 1–3 ran settings `2635eb…`, reps 4–5 ran `89f92c…`. Both leakage-free enforced 12/12s are from reps 1–3.
 
 Folded into the SEIP four-cell paragraph in place of the single self-report. To stay within 10 pages, the introduction's closing "Legacy-app rebuilding is both…" paragraph was cut; it restated the introduction's own framing.
+
+## Second pass over the adversarial review while the follow-up batches run: seven more manuscript fixes, one of them a stale limitation
+
+Items from the `gpt-6-astra` review that needed no new data, each checked against this log or the code before the wording changed:
+
+- **Motion appendix was stale.** It still described the pre-`v0.2.8-paper` fixed settle-wait (the ~6,500ms window, the 10-second counter captured at 8,029 of 12,400) as the current JavaScript-driven limitation. `v0.2.8-paper` replaced it with DOM-text-stability polling (four identical reads, 8 s cap). That fix was verified on `driftlight`'s shape (captured `12,400+`) and on the independently built `glimmer` (captured the settled typewriter text, and the generated test passed against the real source); see the two `v0.2.8` sections above. The manuscript now separates the historical measurement from current behavior. Still open: motion that outlasts the cap, and reproducing motion dynamics rather than just the end state.
+- **`addEventListener` case:** "defeated the framework's event system" became "bypassed … not intrinsically wrong (real users can type before hydration too), but a response to test timing rather than to any stated requirement."
+- **Static-shell case:** the rail violation is now attributed to the unprompted CRUD over-building. The narrow static shell is described as conformity to a narrow signal, not a violation.
+- **Mutation-site scopes:** the 353 (API routes, generator-fix run) vs. Table III's 388 (all 83 routes, separate timed run) is now stated.
+- **Mutation terminology:** a retained test is described as mutation-*sensitive* (a bounded check), and a route with no applicable site as unassessed, not passed.
+- **The E4c live guard challenge result is folded into §III-C**, and the Astra appendix now quotes the revised sentence verbatim.
+- **Historical suite totals** (510, 512) are labeled "then-current".
+
+Cut to stay within 10 pages: the Background paragraph contrasting AgentModernize's LLM validator with our hooks as "structurally immune" to regression. After the E4b/E4c probes (fail-open, shell writes unguarded), that framing overstated the hooks anyway.
+
+A read-only audit of the arXiv report against the same ground truth found errors 1, 2, 7, 10 and 11 plus most of the wording overclaims, about 45 passages in all. The checklist is at `~/Desktop/Cusf:Isef/seip-submission/ARXIV-SYNC-AUDIT.md`. The sync is deferred until the follow-up results land, so the report changes once.
