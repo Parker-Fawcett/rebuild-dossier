@@ -1,5 +1,5 @@
-import { execSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { execSync, spawnSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -75,7 +75,7 @@ describe('generateSettingsJson', () => {
     const settings = generateSettingsJson('npm test');
     const preToolUse = settings.hooks.PreToolUse;
 
-    const specHook = preToolUse.find((entry) => entry.hooks[0]?.command.includes("spec[\\\\/]"));
+    const specHook = preToolUse.find((entry) => entry.hooks[0]?.command.includes('spec[/]'));
     expect(specHook).toBeDefined();
     expect(specHook?.matcher).toBe('Edit|Write');
     expect(specHook?.hooks[0]?.type).toBe('command');
@@ -90,5 +90,35 @@ describe('generateSettingsJson', () => {
     expect(untestedHook).toBeDefined();
     expect(untestedHook?.matcher).toBe('Edit|Write');
     expect(untestedHook?.hooks[0]?.command).toContain('process.exit(2)');
+  });
+
+  // The two tests above only inspect the command strings. These execute each
+  // blocking hook through a real shell, the way Claude Code runs it, and check
+  // the exit code — the check whose absence let the untested-contracts hook
+  // ship with a shell-mangled regex that exited 1 (a non-blocking error) on
+  // every single call.
+  const runPreToolUse = (index: number, cwd: string, filePath: string): number | null => {
+    const command = generateSettingsJson('npm test').hooks.PreToolUse[index]?.hooks[0]?.command ?? '';
+    return spawnSync('/bin/sh', ['-c', command], {
+      cwd,
+      input: JSON.stringify({ cwd, tool_name: 'Write', tool_input: { file_path: filePath } })
+    }).status;
+  };
+
+  it('the spec/ hook actually exits 2 for a spec/ write and 0 otherwise when run through a shell', () => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'dossier-prehook-'));
+    expect(runPreToolUse(0, tmpDir, join(tmpDir, 'spec/contracts/GET-api-x.md'))).toBe(2);
+    expect(runPreToolUse(0, tmpDir, 'spec\\contracts\\GET-api-x.md')).toBe(2);
+    expect(runPreToolUse(0, tmpDir, join(tmpDir, 'src/app/api/x/route.ts'))).toBe(0);
+    expect(runPreToolUse(0, tmpDir, join(tmpDir, 'src/inspector/route.ts'))).toBe(0);
+  });
+
+  it('the untested-contracts hook actually exits 2 for a listed file and 0 otherwise when run through a shell', () => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'dossier-prehook-'));
+    mkdirSync(join(tmpDir, 'spec'), { recursive: true });
+    writeFileSync(join(tmpDir, 'spec', 'untested-contracts.json'), JSON.stringify(['src/app/collection/[code]/page.tsx']));
+    expect(runPreToolUse(1, tmpDir, join(tmpDir, 'src/app/collection/[code]/page.tsx'))).toBe(2);
+    expect(runPreToolUse(1, tmpDir, 'src\\app\\collection\\[code]\\page.tsx')).toBe(2);
+    expect(runPreToolUse(1, tmpDir, join(tmpDir, 'src/app/api/x/route.ts'))).toBe(0);
   });
 });

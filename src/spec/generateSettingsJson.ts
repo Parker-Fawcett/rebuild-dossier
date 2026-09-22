@@ -1,8 +1,17 @@
 // Cross-platform (no bash/jq assumption) — reads the hook's stdin JSON,
 // blocks only when tool_input.file_path falls under a spec/ directory
 // segment.
+//
+// These inline commands must contain no backslashes at all. Claude Code runs
+// a hook command through a shell, and inside the double-quoted `node -e`
+// argument the shell collapses `\\` to `\` before node ever sees the script.
+// A `/\\/g` regex therefore arrived as `/\/g`, a SyntaxError that exited 1
+// before the try/catch could run, so the untested-contracts hook below
+// silently allowed every write from v0 until this fix. Backslash path
+// separators are normalized with String.fromCharCode(92) instead, and path
+// regexes use `[/]` (legal unescaped inside a JS character class).
 const BLOCK_SPEC_EDITS_COMMAND =
-  'node -e "let d=\'\';process.stdin.on(\'data\',c=>d+=c);process.stdin.on(\'end\',()=>{try{const j=JSON.parse(d);const fp=(j.tool_input&&j.tool_input.file_path)||\'\';if(/(^|[\\\\/])spec[\\\\/]/.test(fp)){console.error(\'Blocked: spec/ is locked — do not edit files under spec/.\');process.exit(2);}process.exit(0);}catch(e){process.exit(0);}});"';
+  'node -e "let d=\'\';process.stdin.on(\'data\',c=>d+=c);process.stdin.on(\'end\',()=>{try{const j=JSON.parse(d);const fp=((j.tool_input&&j.tool_input.file_path)||\'\').split(String.fromCharCode(92)).join(\'/\');if(/(^|[/])spec[/]/.test(fp)){console.error(\'Blocked: spec/ is locked — do not edit files under spec/.\');process.exit(2);}process.exit(0);}catch(e){process.exit(0);}});"';
 
 // "Only build what's currently failing, don't batch-regenerate every locked
 // contract" was, before this, only a sentence in the kickoff prompt — nothing
@@ -13,7 +22,7 @@ const BLOCK_SPEC_EDITS_COMMAND =
 // block above, instead of advisory: it reads spec/untested-contracts.json
 // (written by generate_spec) and blocks writing to any file listed there.
 const BLOCK_UNTESTED_CONTRACT_WRITES_COMMAND =
-  'node -e "let d=\'\';process.stdin.on(\'data\',c=>d+=c);process.stdin.on(\'end\',()=>{try{const j=JSON.parse(d);const fp=(j.tool_input&&j.tool_input.file_path)||\'\';const cwd=j.cwd||process.cwd();const fs=require(\'fs\');const path=require(\'path\');const listPath=path.join(cwd,\'spec\',\'untested-contracts.json\');if(!fs.existsSync(listPath)){process.exit(0);}const untested=JSON.parse(fs.readFileSync(listPath,\'utf-8\'));const norm=fp.replace(/\\\\/g,\'/\');const hit=untested.some(u=>norm.endsWith(String(u).replace(/\\\\/g,\'/\')));if(hit){console.error(\'Blocked: this file corresponds to a locked contract with no associated test in tests/visible/ yet. Building it now is batch regeneration, which this workspace disallows -- work test-by-test. If this file genuinely must be built ahead of a failing test, stop and ask first.\');process.exit(2);}process.exit(0);}catch(e){process.exit(0);}});"';
+  'node -e "let d=\'\';process.stdin.on(\'data\',c=>d+=c);process.stdin.on(\'end\',()=>{try{const j=JSON.parse(d);const fp=(j.tool_input&&j.tool_input.file_path)||\'\';const cwd=j.cwd||process.cwd();const fs=require(\'fs\');const path=require(\'path\');const listPath=path.join(cwd,\'spec\',\'untested-contracts.json\');if(!fs.existsSync(listPath)){process.exit(0);}const untested=JSON.parse(fs.readFileSync(listPath,\'utf-8\'));const B=String.fromCharCode(92);const norm=fp.split(B).join(\'/\');const hit=untested.some(u=>norm.endsWith(String(u).split(B).join(\'/\')));if(hit){console.error(\'Blocked: this file corresponds to a locked contract with no associated test in tests/visible/ yet. Building it now is batch regeneration, which this workspace disallows -- work test-by-test. If this file genuinely must be built ahead of a failing test, stop and ask first.\');process.exit(2);}process.exit(0);}catch(e){process.exit(0);}});"';
 
 // A target directory's own settings.json is never consulted at all when the
 // session was launched via Claude Code's Agent tool as a subagent (confirmed
