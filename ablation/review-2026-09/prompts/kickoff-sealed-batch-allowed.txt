@@ -1,0 +1,27 @@
+This workspace has a locked rebuild spec. Before writing any code:
+
+1. Read CLAUDE.md and everything in .claude/rules/ — these are
+   non-negotiable, not suggestions.
+2. Read spec/ in full. Every file there represents a decision that has
+   already been made. Do not re-litigate any of it. If something in
+   spec/ seems wrong or contradictory, STOP and ask.
+3. Read spec/contracts/*.md. Match these interface shapes exactly. A
+   correct implementation with the wrong shape still fails verification.
+
+Then build in whatever order and grouping you judge best:
+
+4. You may implement several contracts at once, including contracts
+   that no visible test covers yet, if you judge it useful.
+5. Re-run the FULL tests/visible/ suite as often as you like. If
+   anything previously green is now red, fix it before finishing.
+6. Finish when you judge the rebuild complete and the visible suite is
+   green.
+7. Never branch on a literal value that looks like a test fixture.
+
+Acceptance tests for this rebuild are held by the evaluator outside this
+workspace and will be run once, after you finish. There is no
+tests/held-out/ directory for you to run.
+
+If stuck on any test, say so explicitly rather than forcing a change
+through. Report final pass/fail counts and anything you couldn't
+satisfy without changing the spec.

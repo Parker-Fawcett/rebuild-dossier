@@ -1,0 +1,43 @@
+(version 1)
+;; Read-seal for one sealed rep (review-2026-09). Later rules override earlier
+;; ones (confirmed 2026-09-22 with plain `cat` against a canary file), so this
+;; denies all of $HOME and then re-allows only what the agent needs to run.
+;; Every copy of the original app, every other rep, every earlier session
+;; transcript, and the sealed held-out suite stay unreadable.
+;; Placeholders are filled in by run-sealed-trial.sh.
+(allow default)
+(deny file-read* (subpath "@HOME@"))
+(deny file-read* (subpath "/private/tmp/claude-502"))
+
+;; the rep itself, and its own hook state dir (hooks run as children of the agent)
+(allow file-read* (subpath "@REP@"))
+(allow file-read* (subpath "@STATE@"))
+
+;; path traversal to reach the rep (directory metadata only)
+(allow file-read-metadata (subpath "@HOME@"))
+
+;; agent runtime: CLI + node, npm cache, config, auth
+(allow file-read* (subpath "@HOME@/.local"))
+(allow file-read* (subpath "@HOME@/.npm"))
+(allow file-read* (subpath "@HOME@/.config"))
+(allow file-read* (subpath "@HOME@/Library/Keychains"))
+(allow file-read* (subpath "@HOME@/Library/Preferences"))
+(allow file-read* (subpath "@HOME@/.claude"))
+(allow file-read* (literal "@HOME@/.claude.json"))
+(allow file-read* (literal "@HOME@/.claude.json.backup"))
+
+;; ...but not earlier sessions' content, which includes other reps' code and
+;; held-out expected strings. The rep's own project dir is re-allowed.
+(deny file-read* (subpath "@HOME@/.claude/projects"))
+(deny file-read* (subpath "@HOME@/.claude/file-history"))
+(deny file-read* (subpath "@HOME@/.claude/sessions"))
+(deny file-read* (subpath "@HOME@/.claude/tasks"))
+(deny file-read* (subpath "@HOME@/.claude/plans"))
+(deny file-read* (subpath "@HOME@/.claude/shell-snapshots"))
+(deny file-read* (subpath "@HOME@/.claude/backups"))
+(deny file-read* (subpath "@HOME@/.claude/debug"))
+(deny file-read* (literal "@HOME@/.claude/history.jsonl"))
+(allow file-read* (subpath "@HOME@/.claude/projects/@ENC@"))
+
+;; the sealed suite, stated last so nothing above can re-open it
+(deny file-read* (subpath "@SEALED@"))

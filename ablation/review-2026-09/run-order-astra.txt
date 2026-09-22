@@ -1,0 +1,25 @@
+# Pre-committed run order for E5, generated 2026-09-22 before any rep existed:
+#   gpt-6-astra: python3 -c "import random; b=[f'{x}-rep{i}' for x in ['orig','rev','ctrl'] for i in range(1,6)]; r=random.Random(202609222); r.shuffle(b); print(b)"
+#   gpt-5.5:     python3 -c "import random; c=[f'{x}-rep{i}' for x in ['g55orig','g55rev'] for i in range(1,4)]; r=random.Random(202609223); r.shuffle(c); print(c)"
+# Astra block first, then gpt-5.5. One at a time. Model is chosen by prefix.
+ctrl-rep5
+orig-rep2
+ctrl-rep3
+orig-rep5
+orig-rep4
+rev-rep5
+ctrl-rep2
+rev-rep2
+rev-rep3
+rev-rep1
+orig-rep3
+rev-rep4
+ctrl-rep4
+orig-rep1
+ctrl-rep1
+g55orig-rep1
+g55orig-rep3
+g55rev-rep3
+g55rev-rep2
+g55rev-rep1
+g55orig-rep2

@@ -1,0 +1,25 @@
+# Pre-committed run order for the 20 sealed Claude Code reps.
+# Generated 2026-09-22, before any rep existed, with
+#   python3 -c "import random; r=random.Random(20260922); a=[f'{x}-rep{i}' for x in 'ABCD' for i in range(1,6)]; r.shuffle(a); print(a)"
+# Run strictly in this order, one at a time. A rep that fails to launch is
+# re-run in place only under the exclusion rules in PREREGISTRATION.md.
+D-rep4
+D-rep1
+A-rep5
+B-rep5
+C-rep4
+B-rep1
+C-rep3
+B-rep2
+B-rep3
+A-rep2
+D-rep3
+C-rep5
+D-rep5
+C-rep1
+B-rep4
+A-rep3
+A-rep1
+D-rep2
+A-rep4
+C-rep2

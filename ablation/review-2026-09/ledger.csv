@@ -1,0 +1,53 @@
+family,rep,harness,markers,hasSummary,exitCode,toolCalls,visible,heldOut,heldOutTouchCount,railViolationAttempts,heartbeatFired,settingsSha,hooksNamedInSettings,hooksNamedButMissing
+ablation-cc-web-rebuild,with-rep-strong1,claude-code,enforce,true,0,95,20/20,0/7,0,0,true,2635eb251b6d,hooks/tool-log.mjs hooks/tool-log-readonly.mjs hooks/tool-heartbeat.mjs,
+ablation-cc-web-rebuild,with-rep-strong2,claude-code,enforce,true,0,71,20/20,0/7,0,0,true,2635eb251b6d,hooks/tool-log.mjs hooks/tool-log-readonly.mjs hooks/tool-heartbeat.mjs,
+ablation-cc-web-rebuild,with-rep-strong3,claude-code,enforce,true,0,76,20/20,0/7,0,0,true,2635eb251b6d,hooks/tool-log.mjs hooks/tool-log-readonly.mjs hooks/tool-heartbeat.mjs,
+ablation-cc-web-rebuild,with-rep-strong4,claude-code,enforce,true,0,96,20/20,0/7,3,0,true,89f92c2faf5c,hooks/tool-log.mjs hooks/tool-log-readonly.mjs hooks/tool-heartbeat.mjs hooks/tool-log-bash-output.mjs hooks/subagent-stop-verify.mjs,hooks/subagent-stop-verify.mjs
+ablation-cc-web-rebuild,with-rep-strong5,claude-code,enforce,true,0,104,20/20,0/7,3,0,true,89f92c2faf5c,hooks/tool-log.mjs hooks/tool-log-readonly.mjs hooks/tool-heartbeat.mjs hooks/tool-log-bash-output.mjs hooks/subagent-stop-verify.mjs,hooks/subagent-stop-verify.mjs
+ablation-cc-web-rebuild,with-rep1,claude-code,enforce,true,0,111,20/20,12/12,0,0,true,2635eb251b6d,hooks/tool-log.mjs hooks/tool-log-readonly.mjs hooks/tool-heartbeat.mjs,
+ablation-cc-web-rebuild,with-rep2,claude-code,enforce,true,0,30,20/20,0/7,0,0,true,2635eb251b6d,hooks/tool-log.mjs hooks/tool-log-readonly.mjs hooks/tool-heartbeat.mjs,
+ablation-cc-web-rebuild,with-rep3,claude-code,enforce,true,0,51,20/20,12/12,0,0,true,2635eb251b6d,hooks/tool-log.mjs hooks/tool-log-readonly.mjs hooks/tool-heartbeat.mjs,
+ablation-cc-web-rebuild,with-rep4,claude-code,enforce,true,0,46,20/20,0/7,0,0,true,89f92c2faf5c,hooks/tool-log.mjs hooks/tool-log-readonly.mjs hooks/tool-heartbeat.mjs hooks/tool-log-bash-output.mjs hooks/subagent-stop-verify.mjs,hooks/subagent-stop-verify.mjs
+ablation-cc-web-rebuild,with-rep5,claude-code,enforce,true,0,67,20/20,0/7,0,0,true,89f92c2faf5c,hooks/tool-log.mjs hooks/tool-log-readonly.mjs hooks/tool-heartbeat.mjs hooks/tool-log-bash-output.mjs hooks/subagent-stop-verify.mjs,hooks/subagent-stop-verify.mjs
+ablation-cc-web-rebuild,without-rep-strong1,claude-code,none,true,0,76,20/20,0/7,0,0,true,2635eb251b6d,hooks/tool-log.mjs hooks/tool-log-readonly.mjs hooks/tool-heartbeat.mjs,
+ablation-cc-web-rebuild,without-rep-strong2,claude-code,none,true,0,52,20/20,0/7,0,0,true,2635eb251b6d,hooks/tool-log.mjs hooks/tool-log-readonly.mjs hooks/tool-heartbeat.mjs,
+ablation-cc-web-rebuild,without-rep-strong3,claude-code,none,true,0,69,20/20,0/7,0,0,true,2635eb251b6d,hooks/tool-log.mjs hooks/tool-log-readonly.mjs hooks/tool-heartbeat.mjs,
+ablation-cc-web-rebuild,without-rep1,claude-code,none,true,0,59,20/20,0/7,0,0,true,2635eb251b6d,hooks/tool-log.mjs hooks/tool-log-readonly.mjs hooks/tool-heartbeat.mjs,
+ablation-cc-web-rebuild,without-rep2,claude-code,none,true,0,41,20/20,1/7,0,0,true,2635eb251b6d,hooks/tool-log.mjs hooks/tool-log-readonly.mjs hooks/tool-heartbeat.mjs,
+ablation-cc-web-rebuild,without-rep3,claude-code,none,true,0,51,20/20,0/7,0,0,true,2635eb251b6d,hooks/tool-log.mjs hooks/tool-log-readonly.mjs hooks/tool-heartbeat.mjs,
+ablation-cc-web-rebuild,without-rep4,claude-code,none,true,0,39,20/20,0/7,1,0,true,89f92c2faf5c,hooks/tool-log.mjs hooks/tool-log-readonly.mjs hooks/tool-heartbeat.mjs hooks/tool-log-bash-output.mjs hooks/subagent-stop-verify.mjs,hooks/subagent-stop-verify.mjs
+ablation-cc-web-rebuild,without-rep5,claude-code,none,true,0,52,20/20,12/12,7,0,true,89f92c2faf5c,hooks/tool-log.mjs hooks/tool-log-readonly.mjs hooks/tool-heartbeat.mjs hooks/tool-log-bash-output.mjs hooks/subagent-stop-verify.mjs,hooks/subagent-stop-verify.mjs
+ablation-codex-astra-clarified-prompt,with-rep1,codex,enforce,false,,,,,,,,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-astra-clarified-prompt,with-rep2,codex,enforce,false,,,,,,,,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-astra-reasoning-control,with-rep1,codex,enforce,false,,,,,,,,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-astra-reasoning-control,with-rep1-max,codex,enforce,false,,,,,,,,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-astra-reasoning-control,with-rep1-ultra,codex,enforce,false,,,,,,,,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-astra-reasoning-control,with-rep1-xhigh,codex,enforce,false,,,,,,,,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-astra-reasoning-control,without-rep1,codex,none,false,,,,,,,,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-astra-reasoning-control,without-rep1-max,codex,none,false,,,,,,,,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-astra-reasoning-control,without-rep1-ultra,codex,none,false,,,,,,,,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-astra-reasoning-control,without-rep1-xhigh,codex,none,false,,,,,,,,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-gpt55-reasoning-control,with-rep1-high,codex,enforce,false,,,,,,,,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-madeline-astra,with-rep1,codex,enforce,false,,,,,,,,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-sol-reasoning-control,with-rep1-high,codex,enforce,false,,,,,,,,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-terra-reasoning-control,with-rep1-high,codex,enforce,false,,,,,,,,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-web-rebuild-astra-with-20260909,with-rep1,codex,enforce,true,0,7,1/1,0/12,0,0,true,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-web-rebuild-astra-with-20260909,without-rep1,codex,none,false,,,,,,,,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-web-rebuild-astra-without-20260909,with-rep1,codex,enforce,true,0,7,1/1,0/12,0,0,true,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-web-rebuild-astra-without-20260909,without-rep1,codex,none,true,0,3,0/20,0/12,0,0,true,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-web-rebuild-gpt55-20260909,with-rep1,codex,enforce,true,0,73,20/20,0/7,1,0,true,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-web-rebuild-gpt55-20260909,without-rep1,codex,none,true,0,53,20/20,0/7,1,0,true,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-web-rebuild-sol-with-20260909,with-rep1,codex,enforce,true,0,68,20/20,0/7,1,0,true,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-web-rebuild-sol-with-20260909,without-rep1,codex,none,false,,,,,,,,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-web-rebuild-sol-without-20260909,with-rep1,codex,enforce,true,0,68,20/20,0/7,1,0,true,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-web-rebuild-sol-without-20260909,without-rep1,codex,none,true,0,67,20/20,0/7,1,0,true,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-web-rebuild-terra-without-20260909,with-rep1,codex,enforce,false,,,,,,,,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-web-rebuild-terra-without-20260909,without-rep1,codex,none,true,0,67,20/20,0/7,1,0,true,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-web-rebuild,with-rep1,codex,enforce,true,0,68,20/20,0/7,1,0,true,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+ablation-codex-web-rebuild,without-rep1,codex,none,true,0,67,20/20,0/7,1,0,true,6ee6afbff1fd,hooks/tool-log.mjs hooks/tool-heartbeat.mjs,
+madeline-strong-reps,rep1,claude-code,enforce,true,0,49,7/7,0/1,2,0,true,89f92c2faf5c,hooks/tool-log.mjs hooks/tool-log-readonly.mjs hooks/tool-heartbeat.mjs hooks/tool-log-bash-output.mjs hooks/subagent-stop-verify.mjs,hooks/subagent-stop-verify.mjs
+madeline-strong-reps,rep2,claude-code,enforce,true,0,51,7/7,0/1,2,0,true,89f92c2faf5c,hooks/tool-log.mjs hooks/tool-log-readonly.mjs hooks/tool-heartbeat.mjs hooks/tool-log-bash-output.mjs hooks/subagent-stop-verify.mjs,hooks/subagent-stop-verify.mjs
+madeline-strong-reps,rep3,claude-code,enforce,true,0,46,7/7,1/1,1,0,true,89f92c2faf5c,hooks/tool-log.mjs hooks/tool-log-readonly.mjs hooks/tool-heartbeat.mjs hooks/tool-log-bash-output.mjs hooks/subagent-stop-verify.mjs,hooks/subagent-stop-verify.mjs
+madeline-strong-reps,rep4,claude-code,enforce,true,0,58,7/7,0/1,2,0,true,89f92c2faf5c,hooks/tool-log.mjs hooks/tool-log-readonly.mjs hooks/tool-heartbeat.mjs hooks/tool-log-bash-output.mjs hooks/subagent-stop-verify.mjs,hooks/subagent-stop-verify.mjs
+madeline-strong-reps,rep5,claude-code,enforce,true,0,50,7/7,0/1,2,0,true,89f92c2faf5c,hooks/tool-log.mjs hooks/tool-log-readonly.mjs hooks/tool-heartbeat.mjs hooks/tool-log-bash-output.mjs hooks/subagent-stop-verify.mjs,hooks/subagent-stop-verify.mjs
+subagent-verify-web-rebuild,rep1,claude-code,enforce,true,0,85,20/20,0/7,4,0,true,89f92c2faf5c,hooks/tool-log.mjs hooks/tool-log-readonly.mjs hooks/tool-heartbeat.mjs hooks/tool-log-bash-output.mjs hooks/subagent-stop-verify.mjs,
