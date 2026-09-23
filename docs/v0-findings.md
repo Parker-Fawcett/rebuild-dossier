@@ -5579,3 +5579,24 @@ Every stalled rep built exactly one route and quoted step 6 back as the reason i
 The batch now stands at 9/20: A 1, B 4, C 2, D 2. Across the 7 discipline-prompt reps, 4 built exactly the 20 required handlers and scored 0/12, and 3 added 15–20 unrequested handlers and scored 7–8/12. Both batch-allowed reps scored 12/12. The direction is unchanged from the 7-rep entry above, now with three independent over-builders instead of one. It is still descriptive: no pre-registered rule applies below 5 per arm. The manuscript sentence was updated to these 9-rep numbers.
 
 **E5 addendum, 2026-09-23 ~13:20Z: the `gpt-5.5` arm is complete (3 + 3 reps, low effort, same fixture and preparation). The stall is Astra-specific.** Under the *original* step 6, which stalled `gpt-6-astra` 5/5, `gpt-5.5` stalled **0/3**. It built all 16 routes and reached 20/20 visible each time, with 0 rail attempts. Under the revision it was likewise 0/3 stalled and 3/3 at 20/20. Every one of the six transcripts is free of usage-limit errors; `g55orig-rep3` was the one re-run after its earlier limit hit, per §3.1. By §6's pre-declared reading, the failure is not general to the sentence: one model reads it as a deadlock, another proceeds, and on this fixture the revision is neutral for the model that never needed it. The §11 effort follow-up (`rev` at `xhigh`/`ultra`, `orig` at `ultra`) was not run: all batches were stopped at the user's request after their in-flight reps. Its six reps remain prepared.
+
+**Sealed Haiku batch, final state after the user's stop (2026-09-23 13:18Z): 15 of 20 reps.** A 2, B 5, C 4, D 4. Six reps ran in the parallel round (`A-rep2`, `D-rep3`, `C-rep5`, `D-rep5`, `C-rep1`, `B-rep4`). A status message during the run said three; that was wrong, and the count here is from the state directories. The seal held for all 15: 0 out-of-tree attempts, 0 `spec/` changes, 0 degenerate reps.
+
+Sorted by what each rep built (frozen-snapshot counts):
+
+| Exported handlers | Reps (arm) | Held-out |
+|---|---|---|
+| 20, exactly the visible demand | D-rep1, A-rep5, B-rep5, B-rep1, C-rep5, D-rep5, C-rep1 | 0/12, all seven |
+| 23 | B-rep4 (B) | 3/12 |
+| 28 | A-rep2 (A) | 5/12 |
+| 34 | D-rep3 (D) | 7/12 |
+| 35 | B-rep2 (B) | 7/12 |
+| 37 | D-rep4 (D) | 7/12 |
+| 40, plus 2 extra routes | B-rep3 (B) | 8/12 |
+| 64 / 68, all 36 routes and 19 pages | C-rep4, C-rep3 (C) | 12/12 |
+
+- **Held-out completion is a non-decreasing function of how much a rep built past visible demand, across all 15 reps and all four arms.**
+- **The batch-allowed prompt did not by itself produce over-building.** Two of its four reps (`C-rep5`, `C-rep1`) built exactly the 20 required handlers and scored 0/12.
+- **Six of the eleven discipline-prompt reps over-built anyway,** despite "smallest possible change".
+- This supersedes the 7- and 9-rep summaries above for the question "what drives held-out completion under a sealed evaluator": it is what got built, not which prompt or hook was active.
+- The §5 arm comparisons still cannot be applied: only B has its 5 reps. This is reported descriptively.
