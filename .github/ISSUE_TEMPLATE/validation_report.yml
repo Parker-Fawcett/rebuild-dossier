@@ -1,0 +1,73 @@
+name: Validation report
+description: You ran rebuild-dossier on your own app (see docs/validators.md). Report what happened, good or bad.
+title: "[Validation]: "
+labels: ["validation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. Failures are as useful as successes, so please report what actually happened.
+        Protocol: https://github.com/Parker-Fawcett/rebuild-dossier/blob/main/docs/validators.md
+  - type: input
+    id: version
+    attributes:
+      label: rebuild-dossier version
+      placeholder: "0.2.10"
+    validations:
+      required: true
+  - type: textarea
+    id: app
+    attributes:
+      label: Your app
+      description: Framework, rough size (routes/pages), anything unusual (auth, databases, external APIs). No code needed.
+    validations:
+      required: true
+  - type: textarea
+    id: breakage
+    attributes:
+      label: Where anything broke or confused you
+      description: Install, the tools, the case queue, generation. Paste errors verbatim.
+  - type: textarea
+    id: numbers
+    attributes:
+      label: Numbers
+      description: generate_spec time, visible pass/total, held-out pass/total (run by you, after sealing), heartbeat count.
+      placeholder: "generate_spec 14 min; visible 18/20; held-out 3/9; heartbeat count 41"
+    validations:
+      required: true
+  - type: dropdown
+    id: sealed
+    attributes:
+      label: Did you seal tests/held-out before the rebuild (step 3) and run the rebuild as a fresh top-level session (step 4)?
+      options:
+        - "Yes, both"
+        - "Sealed, but not a top-level session"
+        - "Top-level session, but not sealed"
+        - "Neither"
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Behavioral differences vs. your real app
+      description: What you found comparing the rebuild to the original side by side. Especially anything the tests passed but the rebuild got wrong.
+    validations:
+      required: true
+  - type: textarea
+    id: agent
+    attributes:
+      label: What the rebuilding agent did that surprised you
+      description: Built things nobody asked for, stopped when it shouldn't have, edited tests, claimed success that wasn't real, tried to read the sealed tests.
+  - type: dropdown
+    id: credit
+    attributes:
+      label: How should you be credited?
+      options:
+        - "By name (put it below)"
+        - "Anonymously"
+    validations:
+      required: true
+  - type: input
+    id: name
+    attributes:
+      label: Name for credit (optional)

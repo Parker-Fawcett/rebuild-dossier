@@ -103,13 +103,23 @@ A comparison run across two model tiers found that a weaker model will happily r
 then quietly violate it anyway — because nothing *checked* it. Two rules in this tool are now
 enforced by real hooks, not prose, for exactly that reason:
 
-- **`spec/` is locked.** A `PreToolUse` hook blocks any edit under `spec/`.
+- **`spec/` is locked.** Writes under `spec/` are blocked.
 - **Contracts without tests don't get built ahead of schedule.** `generate_spec` writes
-  `spec/untested-contracts.json` (every route/contract with no covering test), and a second
-  `PreToolUse` hook blocks writes to anything on that list — the same enforcement shape as the
-  `spec/`-edit block, closing a gap that used to be advisory only.
+  `spec/untested-contracts.json` (every route/contract with no covering test), and writes to
+  anything on that list are blocked.
 
-A `PostToolUse` hook runs the visible test suite after every edit.
+Both rules live in one generated guard script, `.claude/hooks/rebuild-guard.mjs`, run as a
+`PreToolUse` hook on `Edit`, `Write`, `MultiEdit`, `NotebookEdit`, **and `Bash`**. It resolves
+symlinks, `..` segments and (on macOS/Windows) letter case before matching, parses write-shaped
+shell commands (redirects, heredocs, `tee`, `sed -i`, `rm`/`mv`/`cp`, git write subcommands,
+interpreter one-liners that write), locks its own script and `settings.json`, and **fails
+closed** if its input, the blocklist, or the script itself is missing or unreadable. Known limit:
+shell parsing is heuristic, so a write routed through a script the agent wrote earlier is not
+seen. (Releases before 0.2.10 shipped an untested-contracts hook that crashed under the shell and
+never blocked anything; upgrade.)
+
+A `PostToolUse` hook runs the visible test suite after every edit and records a heartbeat in
+`.claude/.hook-heartbeat.json`, so you can check afterward that the hooks were actually live.
 
 ![rebuild-dossier demo](demo.gif)
 
@@ -293,8 +303,22 @@ required, at [console.groq.com](https://console.groq.com)) is enough to try this
 
 ```bash
 cd /absolute/path/to/some-app-rebuild
-claude   # or oh-my-pi, opencode — any coding agent, a genuinely fresh session
+mv tests/held-out ../held-out-sealed   # keep the acceptance suite out of the agent's reach
+claude                                 # a genuinely fresh, top-level session
 ```
+
+Three things decide whether the result means anything:
+
+1. **Run it as a top-level Claude Code session opened in the package directory.** The rails are
+   Claude Code hooks in `.claude/settings.json`. A session started through another session's
+   Agent tool (a subagent) never loads them, and nothing tells you. Other agents (opencode,
+   oh-my-pi, Codex) can use the package, but without these hooks the rails are prose only.
+2. **Keep `tests/held-out/` out of the agent's reach until it's done**, then run it yourself,
+   once: `mv ../held-out-sealed tests/held-out && npx vitest run tests/held-out`. An agent that
+   can read or re-run a failing held-out test can copy the expected answers out of its error
+   output. That has happened in this project's own evaluation.
+3. **Check the hooks were live afterward:** `cat .claude/.hook-heartbeat.json` should exist with
+   a `count` above zero. No file means no hook ever fired.
 
 Paste the contents of `kickoff-prompt.txt` verbatim. Nothing else should be in that session's
 context — the directory is fully self-contained on purpose (see [How it works](#how-it-works)),

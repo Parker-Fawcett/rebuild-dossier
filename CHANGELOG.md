@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.10] - 2026-09-23
+
+Upgrade strongly recommended: earlier releases did not enforce the untested-contracts rail at all.
+
+### Fixed
+
+- **The untested-contracts write block never worked in any earlier release.** Its inline
+  `node -e` hook command contained a regex the shell collapsed into a syntax error, so it exited
+  with a non-blocking error on every call and allowed every write. The spec/ lock survived only
+  partially (it missed Windows-style paths).
+- **The mutation check's per-run timeout is now actually enforced.** It relied on
+  `execFileSync`'s timeout, which was observed not to fire (one run went ~97 minutes) and never
+  killed grandchildren. Each run is now supervised in its own process group and SIGKILLed at the
+  cap (120 s; `REBUILD_DOSSIER_MUTATION_TIMEOUT_MS` overrides), and stragglers are reaped.
+- Version metadata is back in sync (`server.json` had drifted to 0.2.7, the lockfile to 0.2.8).
+
+### Changed
+
+- Both write rails now live in one generated guard script, `.claude/hooks/rebuild-guard.mjs`,
+  hooked on `Edit|Write|MultiEdit|NotebookEdit|Bash`. It resolves symlinks, `..` and (macOS/Windows)
+  case before matching, parses write-shaped shell commands, protects itself and `settings.json`,
+  and fails closed on unreadable input, blocklist, or a missing guard. Shell parsing is heuristic:
+  a write routed through a script the agent wrote earlier is not seen.
+- README handoff: run the rebuild as a fresh top-level Claude Code session (subagents never load
+  the hooks), seal `tests/held-out/` until the agent is done, and check the heartbeat afterward.
+
+### Added
+
+- `docs/validators.md`, a step-by-step protocol for external validators, and a *Validation
+  report* issue template.
+
 ### Added
 
 - GitHub Packages publish workflow (`publish-github-packages.yml`) — publishes `@parker-fawcett/rebuild-dossier` on tag push and `workflow_dispatch`.
