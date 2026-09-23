@@ -5637,3 +5637,22 @@ The user's rule for both: a guarantee the paper states must either work or leave
 - The older duskframe reps cannot be re-scanned, because the Claude harness never logged command output.
 - The Codex harness does log raw tool payloads, so Codex reps could be re-scanned offline if wanted.
 - To stay within 10 pages, three Appendix D sentences were condensed. The closing "second instance" line was dropped, since §V-A already reports it.
+
+## The sealed follow-up, complete: the enforced-vs-log-only gap does not survive a sealed evaluator; held-out completion is what got built (ρ = 0.996)
+
+All pre-registered Claude Code reps are done (`ablation/review-2026-09/PREREGISTRATION.md` §5, §10). There were no exclusions, 0 out-of-tree access attempts in any of the 30 reps, and 0 `spec/` changes.
+- **Haiku, 20 reps, 5 per arm.**
+  - **E2:** blocking-enabled 0/5 vs. log-only 0/5 full completion. The unsealed four-cell's 2/5-vs.-0/5 **did not recur** once the held-out suite was off the filesystem, and no rep in any arm was ever blocked.
+  - **E3:** batch-allowed 2/5 vs. discipline 0/5 full completion, visible green 5/5 in both. By the registered rule, the sequencing rule cost held-out completeness without a measured test-level benefit in this fixture (Fisher p = 0.44, sensitivity only).
+  - **E4a:** no rep in the spec-writable arm touched `spec/`, so the lock never engaged and its marginal value is unobservable here.
+- **Dose-response across all 20:** Spearman ρ(exported handlers, held-out passes) = 0.996.
+  - All 11 reps that built exactly the 20 handlers the visible suite demands scored 0/12.
+  - The 7 that added 3–20 unrequested handlers scored 2–8/12. The trend is not strictly monotonic: `D-rep2` built 27 and scored 2, `B-rep4` built 23 and scored 3. An earlier summary's "rising with each addition" was too strong.
+  - The 2 that built every contract scored 12/12.
+  - Over-building happened under every prompt: 7 of 15 discipline-prompt reps, and 2 of 5 batch-allowed (the only two full builds).
+- **Sonnet, 10 reps, 5 per condition (§10):** every rep built exactly the 20 required handlers and scored 0/12, in both conditions. Two reps (`A-rep2`, `B-rep4`) each had one interval of 3 newly created files, which is reported as a departure from the pre-declared ≤2 profile. Neither over-built.
+
+**What this means for the manuscript's enforcement claim:**
+- The only enforcement-related difference the paper ever reported (weak tier, unsealed, 2/5 vs. 0/5, spanning two harness configurations) is gone under a sealed evaluator.
+- The strong tier shows none at 5 per condition either.
+- What does predict held-out completion, across tiers, arms and prompts, is how far a rep built past visible demand.
