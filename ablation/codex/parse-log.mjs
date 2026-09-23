@@ -105,6 +105,9 @@ const visibleSummary = existsSync(visibleRerunPath) ? parseTestsSummary(readFile
 const heldOutSummary = existsSync(heldOutRerunPath) ? parseTestsSummary(readFileSync(heldOutRerunPath, 'utf-8')) : null;
 
 const heldOutTouches = [...beforeEntries, ...heartbeatEntries].filter((l) => l.touchesHeldOut);
+// Content-aware signals from tool-heartbeat.mjs (2026-09-23); older logs count 0.
+const heldOutRuns = heartbeatEntries.filter((l) => l.heldOutRun);
+const heldOutExposures = heartbeatEntries.filter((l) => (l.heldOutContentExposed || []).length > 0);
 
 const livenessPollPath = join(stateDir, 'liveness-poll.jsonl');
 let totalPolls = 0;
@@ -141,6 +144,10 @@ const result = {
   railViolationDetail: railViolationAttempts.map((l) => ({ ts: l.ts, filePath: l.filePath, command: l.command, underSpec: l.underSpec, untestedContract: l.untestedContract })),
   heldOutTouchCount: heldOutTouches.length,
   heldOutTouchDetail: heldOutTouches.map((l) => ({ ts: l.ts, filePath: l.filePath, command: l.command })),
+  heldOutRunCount: heldOutRuns.length,
+  heldOutContentExposureCount: heldOutExposures.length,
+  heldOutContentExposureDetail: heldOutExposures.map((l) => ({ ts: l.ts, exposed: l.heldOutContentExposed })),
+  heldOutLeakageSuspected: heldOutExposures.length > 0 || heldOutRuns.length > 1,
   visiblePass: visibleSummary?.passed ?? null,
   visibleTotal: visibleSummary?.total ?? null,
   visibleFullyGreen: visibleSummary?.fullyGreen ?? null,

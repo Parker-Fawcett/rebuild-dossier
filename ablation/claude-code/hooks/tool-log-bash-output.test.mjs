@@ -14,15 +14,19 @@
 // with no surrounding tests[\/]...[\/] path shape, must NOT trigger.
 
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, rmSync, readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HOOK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'tool-log-bash-output.mjs');
 
-function runHook(payload) {
+function runHook(payload, files = {}) {
   const cwd = mkdtempSync(join(tmpdir(), 'tool-log-bash-output-test-'));
+  for (const [rel, content] of Object.entries(files)) {
+    mkdirSync(dirname(join(cwd, rel)), { recursive: true });
+    writeFileSync(join(cwd, rel), content);
+  }
   const fullPayload = { cwd, ...payload };
   const result = spawnSync('node', [HOOK_PATH], { input: JSON.stringify(fullPayload), encoding: 'utf-8' });
   const stateDir = join(dirname(cwd), '.claude-plugin-state', basename(cwd));
@@ -35,6 +39,8 @@ function runHook(payload) {
   rmSync(stateDir, { recursive: true, force: true });
   return { exitCode: result.status, entry };
 }
+
+const DUSK_FILES = { 'tests/held-out/PAGE-root.page.spec.ts': "import { expect, it } from 'vitest';\nit('root', async () => { expect(body).toContain('This is the internal dashboard for the Duskframe warehouse team'); });\n" };
 
 const cases = [
   {
@@ -96,15 +102,64 @@ const cases = [
       tool_response: { stdout: "import { describe, it } from 'vitest';\n// tests/held-out/GET-api-health.spec.ts", stderr: '' }
     },
     expectTouchesHeldOut: true
+  },
+  // --- Content-aware cases (2026-09-23). Each seeds a real held-out spec. ---
+  {
+    name: 'blind spot, now caught: name-filtered held-out run whose failure diff prints the expected string and no path (the duskframe leak)',
+    files: DUSK_FILES,
+    payload: {
+      tool_name: 'Bash',
+      tool_input: { command: 'npx vitest run PAGE-root' },
+      tool_response: { stdout: " FAIL  PAGE-root\nAssertionError: expected 'Welcome' to contain 'This is the internal dashboard for the Duskframe warehouse team'", stderr: '' }
+    },
+    expectTouchesHeldOut: true,
+    expectExposed: 1,
+    expectRun: true
+  },
+  {
+    name: 'blind spot, now caught: bare `vitest run` collects held-out too, even when its summary prints no path',
+    files: DUSK_FILES,
+    payload: {
+      tool_name: 'Bash',
+      tool_input: { command: 'npx vitest run 2>&1 | tail -5' },
+      tool_response: { stdout: 'Test Files  1 failed | 20 passed (21)', stderr: '' }
+    },
+    expectTouchesHeldOut: true,
+    expectExposed: 0,
+    expectRun: true
+  },
+  {
+    name: 'false-positive guard: reading a contract that legitimately documents the same text is not exposure',
+    files: DUSK_FILES,
+    payload: {
+      tool_name: 'Bash',
+      tool_input: { command: 'cat spec/contracts/PAGE-root.md' },
+      tool_response: { stdout: '## Captured page text\n- This is the internal dashboard for the Duskframe warehouse team', stderr: '' }
+    },
+    expectTouchesHeldOut: false,
+    expectExposed: 0
+  },
+  {
+    name: 'false-positive guard: npm test (scoped to tests/visible) with held-out present is not a held-out run',
+    files: DUSK_FILES,
+    payload: {
+      tool_name: 'Bash',
+      tool_input: { command: 'npm test 2>&1 | tail -3' },
+      tool_response: { stdout: 'Tests 20 passed (20)', stderr: '' }
+    },
+    expectTouchesHeldOut: false,
+    expectExposed: 0
   }
 ];
 
 let failures = 0;
 for (const c of cases) {
-  const { entry } = runHook(c.payload);
+  const { entry } = runHook(c.payload, c.files);
   const actual = entry?.touchesHeldOut;
-  const pass = actual === c.expectTouchesHeldOut;
-  console.log(`${pass ? 'PASS' : 'FAIL'} — ${c.name} (expected ${c.expectTouchesHeldOut}, got ${actual})`);
+  const exposed = entry?.heldOutContentExposed?.length ?? 0;
+  const pass = actual === c.expectTouchesHeldOut && (c.expectExposed === undefined || exposed === c.expectExposed)
+    && (c.expectRun === undefined || entry?.heldOutRun === c.expectRun);
+  console.log(`${pass ? 'PASS' : 'FAIL'} — ${c.name} (expected ${c.expectTouchesHeldOut}${c.expectExposed === undefined ? '' : `/${c.expectExposed} exposed`}, got ${actual}/${exposed} exposed)`);
   if (!pass) failures++;
 }
 
