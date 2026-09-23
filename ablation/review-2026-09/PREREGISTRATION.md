@@ -177,3 +177,4 @@ If, and only if, §6's pre-declared reading at `low` effort yields "wording effe
   - Invariants: same-arm reps identical; `rev` and `orig` differ only in `kickoff-prompt.txt`; hashes match `MANIFEST-setup.sha256`.
   - Order: `run-order-effort.txt` (seed 202609225). Runner: `run-effort.sh`, with effort from the rep name.
   - Queue: after the Codex usage reset (4:22 AM MDT, 10:22Z), the 5 remaining `gpt-5.5` reps run first (`run-astra.sh`, which resumes its own order), then this follow-up. Everything runs sequentially.
+- **2026-09-23 05:58Z.** The user reported that Codex usage had run out. The queued post-reset chain was cancelled before firing: no rep started, and no re-run was consumed. The 5 remaining `gpt-5.5` reps and the six §11 effort reps stay prepared and untouched. They run via `codex-chain.sh`, or `run-astra.sh` followed by `run-effort.sh`, once Codex is available again.
