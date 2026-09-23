@@ -1,10 +1,10 @@
 import { cpSync, existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tsMorphEngine } from './tsMorphEngine.js';
+import { runWithWatchdog } from './runWithWatchdog.js';
 import type { MutationSite } from './engine.js';
 
 // .next is build output, not source the scratch copy needs to mutate — same
@@ -241,67 +241,54 @@ export interface MutationCheckReport {
 
 // Generous enough for a Next.js dev-server boot (generateGateTests' own
 // beforeAll budgets 90s for that), not just an in-process Express server.
-const VITEST_RUN_TIMEOUT_MS = 120_000;
+// Overridable for tests; read per call, not at import.
+const DEFAULT_VITEST_RUN_TIMEOUT_MS = 120_000;
+function vitestRunTimeoutMs(): number {
+  const fromEnv = Number(process.env.REBUILD_DOSSIER_MUTATION_TIMEOUT_MS);
+  return Number.isFinite(fromEnv) && fromEnv > 0 ? fromEnv : DEFAULT_VITEST_RUN_TIMEOUT_MS;
+}
 
 function runVitestOnce(scratchDir: string, testFilePath: string): boolean {
-  try {
-    // A real regression, confirmed live: vitest 4.1.11 (still satisfying this
-    // project's own "^4.0.0" range, so any fresh install can silently pick it
-    // up) fails to match an ABSOLUTE test-file filter against --root on
-    // macOS, where /tmp is itself a symlink to /private/tmp — vitest 4.1.10
-    // canonicalizes consistently and matches fine; 4.1.11 apparently doesn't,
-    // so the filter and the collected file path disagree by that one symlink
-    // hop and the run reports "No test files found" for every target,
-    // regardless of the test's own content. A path relative to `cwd` (already
-    // set to scratchDir below) sidesteps the mismatch entirely rather than
-    // depending on this tool staying pinned behind whatever vitest version
-    // happens to fix it.
-    const relativeTestFilePath = relative(scratchDir, testFilePath);
-    const output = execFileSync('node', [VITEST_ENTRY, 'run', relativeTestFilePath, '--root', scratchDir, '--reporter=json', '--no-color'], {
-      encoding: 'utf-8',
-      // `--root` only tells vitest where to resolve test files/config from —
-      // it does NOT change the child process's own process.cwd(). Without
-      // this, any target-app module that does something relative to
-      // process.cwd() at import time (e.g. opening a database file by a
-      // bare relative path) writes into wherever this server process
-      // itself happens to be running, not the isolated scratch copy —
-      // confirmed for real via a stray fieldnotes.db file left behind in
-      // rebuild-dossier's own directory before this was added.
-      cwd: scratchDir,
-      timeout: VITEST_RUN_TIMEOUT_MS,
-      // execFileSync's `timeout` option defaults to SIGTERM, which vitest
-      // (or whatever it's awaiting inside a hung `beforeAll`) can simply not
-      // honor — SIGKILL can't be ignored, so this is a real, defensible
-      // hardening against that general Node.js gotcha.
-      // NOT a confirmed fix for a specific, still-unexplained hang found
-      // this same session: one reproduction — with this exact killSignal
-      // already set — ran for ~97 minutes and exited on its own
-      // (`signal: null`, never killed), meaning VITEST_RUN_TIMEOUT_MS
-      // wasn't enforced at all, by any signal, in that run. Root cause not
-      // found; see docs/v0-findings.md's "execFileSync's mutation-check
-      // timeout doesn't reliably fire" entry — every timing number this
-      // function has ever contributed to (including the ~9.15-minute
-      // catchandtrade page-test-generation figure) is what happened to
-      // occur, not a value this timeout guaranteed as an upper bound.
-      killSignal: 'SIGKILL',
-      stdio: ['ignore', 'pipe', process.env.REBUILD_DOSSIER_MUTATION_DEBUG ? 'pipe' : 'ignore']
+  // A real regression, confirmed live: vitest 4.1.11 (still satisfying this
+  // project's own "^4.0.0" range, so any fresh install can silently pick it
+  // up) fails to match an ABSOLUTE test-file filter against --root on
+  // macOS, where /tmp is itself a symlink to /private/tmp — vitest 4.1.10
+  // canonicalizes consistently and matches fine; 4.1.11 apparently doesn't,
+  // so the filter and the collected file path disagree by that one symlink
+  // hop and the run reports "No test files found" for every target,
+  // regardless of the test's own content. A path relative to `cwd` (already
+  // set to scratchDir below) sidesteps the mismatch entirely rather than
+  // depending on this tool staying pinned behind whatever vitest version
+  // happens to fix it.
+  const relativeTestFilePath = relative(scratchDir, testFilePath);
+  // `cwd: scratchDir` matters beyond --root: any target-app module that
+  // resolves a path relative to process.cwd() at import time (e.g. a bare
+  // relative database filename) must write into the isolated scratch copy,
+  // not wherever this server runs — confirmed via a stray fieldnotes.db left
+  // in rebuild-dossier's own directory before cwd was set.
+  //
+  // The per-run cap is enforced by runWithWatchdog (a supervisor process that
+  // SIGKILLs the run's whole process group on its own timer), not by
+  // execFileSync's `timeout`, which was observed not to fire at all (a ~97-min
+  // run that exited on its own, signal: null) and which never killed
+  // grandchildren. A timed-out run counts as not succeeding.
+  const run = runWithWatchdog('node', [VITEST_ENTRY, 'run', relativeTestFilePath, '--root', scratchDir, '--reporter=json', '--no-color'], {
+    cwd: scratchDir,
+    timeoutMs: vitestRunTimeoutMs()
+  });
+  if (process.env.REBUILD_DOSSIER_MUTATION_DEBUG && (run.exitCode !== 0 || run.timedOut)) {
+    console.error('MUTATION_DEBUG runVitestOnce failed for', testFilePath, {
+      exitCode: run.exitCode,
+      timedOut: run.timedOut,
+      elapsedMs: run.elapsedMs,
+      stderr: run.stderr.slice(-4000)
     });
-    const jsonStart = output.indexOf('{');
-    const parsed = JSON.parse(output.slice(jsonStart));
-    return parsed.success === true;
-  } catch (err) {
-    // A thrown execFileSync (non-zero exit, timeout, or crash) means the run
-    // did not succeed — treat identically to a parsed failure.
-    if (process.env.REBUILD_DOSSIER_MUTATION_DEBUG) {
-      const e = err as { message?: string; status?: number; signal?: string; stderr?: string; stdout?: string };
-      console.error('MUTATION_DEBUG runVitestOnce failed for', testFilePath, {
-        message: e?.message,
-        status: e?.status,
-        signal: e?.signal,
-        stderr: e?.stderr,
-        stdout: e?.stdout
-      });
-    }
+  }
+  if (run.timedOut || run.exitCode !== 0) return false;
+  try {
+    const jsonStart = run.stdout.indexOf('{');
+    return JSON.parse(run.stdout.slice(jsonStart)).success === true;
+  } catch {
     return false;
   }
 }
