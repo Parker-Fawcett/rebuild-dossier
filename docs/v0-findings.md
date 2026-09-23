@@ -5544,3 +5544,27 @@ To stay within 10 pages, three passages were cut or condensed. All three are red
 - the Sustainability note;
 - the "Resolved spec ≠ complete rebuild" subsection, which §V-D's completeness caveat already makes;
 - Appendix D's closing paragraphs, condensed to two sentences.
+
+## E5 verdict: the Astra stall is a semantic wording failure, confirmed by a pre-registered randomized test (5 reps per arm)
+
+Pre-registered in `ablation/review-2026-09/PREREGISTRATION.md` §6 before any rep ran. The protocol:
+- `gpt-6-astra`, reasoning effort pinned `low`, blocking enabled, catchandtrade;
+- three arms, each differing from the others only in `kickoff-prompt.txt`, byte-verified at setup;
+- 15 reps in a seeded random order, interleaved across arms;
+- scored mechanically from git status and a fixed 20-file visible denominator (`rescore-astra.mjs`).
+
+Two reps (`rev-rep1`, `rev-rep3`) were cut off by a Codex usage limit, parked as `failed-attempt-1`, reset, and re-run once, per §3.1. No rep was dropped or added.
+
+| Arm | Prompt | Stalled (≤1 route) | 20/20 visible | Rail-violation attempts |
+|---|---|---|---|---|
+| `orig` | original step 6: "Only once the full visible suite is green, move to the next test." | **5/5** | 0/5 | 0 |
+| `ctrl` | original + a meaning-neutral 3-line parenthetical after step 3 | **5/5** | 0/5 | 0 |
+| `rev` | step 6 revised to gate on the current fix plus no regressions | **0/5** | **5/5** | 0 |
+
+Every stalled rep built exactly one route and quoted step 6 back as the reason it could not continue. Every `rev` rep built 16 routes, reached 20/20 visible, and kept to one-test-at-a-time discipline (held-out 0/12).
+
+**Reading, per the pre-declared rule in §6:** `orig` stalls ≥4/5 and `rev` stalls ≤1/5, so the wording effect is supported. `ctrl` also stalls ≥4/5, so it is **semantic repair, not generic prompt perturbation**. This is the strongest outcome the rule allows, and it answers the review's objection that the two earlier revised reps could not distinguish a real repair from any perturbation. It also improves on those two reps, one of which stopped on the `itemId` mismatch: here 5 of 5 finished.
+
+**Second model, incomplete:** `gpt-5.5` under the *original* wording did not stall in its one completed rep (16 routes, 20/20). Codex then hit its usage limit on `g55orig-rep3`, which is parked for its one re-run, and the batch stopped itself before burning further reps, as the guard added after the first limit intended. The 5 remaining `gpt-5.5` reps are pending. At n=1, "the failure is Astra-specific" is a hint, not a result.
+
+**Triggered but not yet run:** §11's conditional follow-up (`rev` at `xhigh` and `ultra`, and `orig` at `ultra`, 2 reps each). It was pre-declared to run only if this verdict came out as it did, and it waits on the next Codex usage reset.
