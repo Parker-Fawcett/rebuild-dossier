@@ -5600,3 +5600,40 @@ Sorted by what each rep built (frozen-snapshot counts):
 - **Six of the eleven discipline-prompt reps over-built anyway,** despite "smallest possible change".
 - This supersedes the 7- and 9-rep summaries above for the question "what drives held-out completion under a sealed evaluator": it is what got built, not which prompt or hook was active.
 - The §5 arm comparisons still cannot be applied: only B has its 5 reps. This is reported descriptively.
+
+## Two claimed-but-broken guarantees patched: the mutation check's per-run timeout, and the leakage detector's expected-value blind spot
+
+The user's rule for both: a guarantee the paper states must either work or leave the claims.
+
+**Mutation-check per-run timeout** (`src/mutation/runWithWatchdog.ts`, commit `28e35e6`).
+- The cap (120 s) was execFileSync's own `timeout`. It was observed not to fire at all: a ~97-minute run exited on its own with `signal: null`, `killSignal: 'SIGKILL'` already set (entry above). It also never killed grandchildren.
+- First, I tested the natural hypothesis that a grandchild holding the stdout pipe open blocks execFileSync's return. It is **false**: in a direct reproduction the call returned at 1003 ms. So the 97-minute non-firing is still unexplained. The same reproduction did confirm the orphan problem: the grandchild outlived the kill.
+- The fix therefore does not depend on execFileSync's timer. Every vitest run goes through a `node -e` supervisor (passed as argv, never through a shell). The supervisor starts the run in its own process group, with output to files, SIGKILLs the whole group on its own timer, and reaps the group on normal exit too. The outer execFileSync keeps a looser backstop.
+- Evidence (new specs):
+  - a never-exiting command is stopped at the cap;
+  - a grandchild holding stdout is killed;
+  - stragglers left by a normal exit are reaped;
+  - end to end, a mutation check whose target test hangs forever in `beforeAll` finishes in ~4 s with the target scored unrunnable.
+- That end-to-end test fails on the old code (120 s against a 45 s bound). To be precise about what that shows: in this environment the old timeout did fire, at 120 s. The red run demonstrates the old cap was fixed and could not reach grandchildren; it does not reproduce the 97-minute hang.
+- Suite: 611/611 across 90 files.
+- Manuscript changes:
+  - Table III's caption now says its timings predate the enforced cap ("observed, not capped").
+  - Threats says the cap is enforced and verified, and that the original non-firing was never explained.
+
+**Leakage detector** (`ablation/claude-code/hooks/tool-log-bash-output.mjs` and the Codex harness's `tool-heartbeat.mjs`, commit `6e6c090`).
+- The detector flagged held-out access only when output printed the literal `tests/held-out/`. That is how it missed duskframe's leak in eight of nine reps: a failing held-out assertion prints the expected string verbatim, and under a name filter or a bare `vitest run` it may print no path at all.
+- Both hooks now read the held-out specs' own assertion literals at hook time and record two things:
+  - `heldOutRun`: a command that executes held-out tests however invoked. That covers the held-out path, a filter matching a held-out filename (vitest's filters are substrings of the file path), or an unfiltered vitest/jest run. `npm test` stays false, since it is scoped to `tests/visible`.
+  - `heldOutContentExposed`: expected literals revealed in output from a held-out or test-failure context. A contract read that documents the same text is not flagged.
+- Both `parse-log.mjs` files surface `heldOutRunCount`, `heldOutContentExposureCount`, and `heldOutLeakageSuspected`.
+- Evidence: new cases reproduce the duskframe miss and the bare-run miss. Both fail on the old hook and pass now, alongside all existing true-positive and false-positive guards (10/10). The Codex port was checked on the same four scenarios.
+- Two bugs were found and fixed while building it:
+  - a pipe inside a statement was read as a vitest filter;
+  - filter matching was inverted relative to how vitest matches.
+- Manuscript: §VI-B and Appendix D no longer describe the gap as live. Appendix D states what the detector now catches.
+
+**Scope, stated plainly:**
+- Neither patch touches reps already run or running. Every rep copied its hooks at setup, and the sealed reps have no held-out suite to leak.
+- The older duskframe reps cannot be re-scanned, because the Claude harness never logged command output.
+- The Codex harness does log raw tool payloads, so Codex reps could be re-scanned offline if wanted.
+- To stay within 10 pages, three Appendix D sentences were condensed. The closing "second instance" line was dropped, since §V-A already reports it.
