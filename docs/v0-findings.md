@@ -5535,3 +5535,12 @@ A second caveat on the pre-registered batch metric: it also fires when an agent 
 - Both `rev` reps reached 20/20 visible with 0 rail attempts, disciplined like the sealed Haiku reps: 16 routes, held-out 0/12.
 - That is the pattern §6 would read as semantic repair, but the rule needs 5 per arm. The remaining 7 Astra and 6 `gpt-5.5` reps are scheduled.
 - Two reps (`rev-rep1`, `rev-rep3`) were cut off by the Codex usage limit and are parked as `failed-attempt-1` for their one re-run.
+
+**Folded into the SEIP manuscript (2026-09-23, pre-round3 copy kept as `rebuild-dossier-seip.pre-round3.tex`):**
+- One §V-A sentence reporting the sealed follow-up descriptively ("stopped early for cost, 7 of 20 reps, so no comparison is claimed"). It covers the 4-of-5 disciplined reps at exactly 20 handlers and 0/12, `D-rep4` at 7/12 after adding 17 unrequested handlers, and both batch-allowed reps at 12/12. A companion sentence explains why over-building suffices on catchandtrade but leakage was needed on duskframe.
+- One §III-C sentence on `C-rep4`'s unprompted use of the Bash write channel.
+
+To stay within 10 pages, three passages were cut or condensed. All three are redundant with text that remains:
+- the Sustainability note;
+- the "Resolved spec ≠ complete rebuild" subsection, which §V-D's completeness caveat already makes;
+- Appendix D's closing paragraphs, condensed to two sentences.
