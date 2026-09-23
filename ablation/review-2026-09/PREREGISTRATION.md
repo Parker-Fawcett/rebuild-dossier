@@ -188,3 +188,4 @@ If, and only if, §6's pre-declared reading at `low` effort yields "wording effe
   - The two chains run in parallel, each one rep at a time, under the same concurrency deviation already disclosed.
   - Both logins were confirmed first with one-line probes.
   - To keep above the runner's 10 GB floor, `node_modules` was deleted from four finished reps (`ablation-cc-web-rebuild/{without-rep4,without-rep5,with-rep-strong4,with-rep-strong5}`). Those dependencies are regenerable, and no log, state, or source was touched.
+- **2026-09-23 16:56Z.** Codex hit its usage limit on the first §11 rep (`rev-xhigh-rep2`), which was parked as `failed-attempt-1` and reset; the batch stopped itself. The reset is at 17:57Z. `codex-effort-resume.sh` waits until 18:00Z, confirms quota with a one-line probe, then resumes the §11 follow-up in its pre-committed order (`rev-xhigh-rep2` gets its one re-run first). This runs in parallel with the Claude chain, as before.
