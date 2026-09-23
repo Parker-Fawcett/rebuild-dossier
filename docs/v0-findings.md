@@ -5656,3 +5656,19 @@ All pre-registered Claude Code reps are done (`ablation/review-2026-09/PREREGIST
 - The only enforcement-related difference the paper ever reported (weak tier, unsealed, 2/5 vs. 0/5, spanning two harness configurations) is gone under a sealed evaluator.
 - The strong tier shows none at 5 per condition either.
 - What does predict held-out completion, across tiers, arms and prompts, is how far a rep built past visible demand.
+
+## Manuscript consistency pass (2026-09-23): nine internal contradictions fixed
+
+A front-to-back read of the SEIP draft, looking for places where two passages disagreed, or where a passage no longer matched the data (pre-pass copy: `rebuild-dossier-seip.pre-round8.tex`):
+
+1. The abstract said the hooks enforce "one-test-at-a-time build discipline". §V-A says, correctly, that batch order is a rule no hook checks. The abstract now says the hooks block spec edits and ahead-of-schedule contract builds.
+2. Intro bullet 1, §V-C and the lessons box said the Madeline weak model complied with hook-enforced rules. That run's hook liveness was never confirmable, and the second hook did not yet exist. The wording is now "satisfied everything its tests checked" and "test-checked behavior holds".
+3. §V-A presented the central pair as if it had come from the later three-page fixture (mossgate). It came from the two redesigned-fixture reps (5/6), which the text now says.
+4. Figure 1's "source relocated before handoff" contradicted Table I (catchandtrade was package-only). It now reads "kept out of the rebuild session".
+5. "A four-cell design isolates when enforcement matters" became "tests whether". The design found no effect to isolate.
+6. "A second leakage instance (Appendix D)" pointed at an appendix that no longer describes that instance. It now states the fact inline: the path-based detector did catch it.
+7. §V-B and Appendix C said higher effort levels were untested or not run. Four §11 reps have run: original `ultra` 2/2 stalled, revision `xhigh` 2/2 complete. Both places now report that; the two `rev-ultra` reps are still pending.
+8. §VI-B called the metric-level reversal "N=1". The sealed follow-up adds every over-building rep.
+9. The conclusion's "enforces rebuild discipline… holds its rails… Lock the contract" contradicted the introduction ("extract the contract; the lock's value is untested") and the shipped-hook bug. It now says the tool blocks two build rules through hooks, and the closing line is "Extract the contract, keep the acceptance suite out of the agent's reach, verify against the filesystem, staff for diagnosis".
+
+Known and deliberately left for the paper-tag step: the artifact block (tag, commit, DOI, "566 tests / 88 files") still names `v0.2.12-paper`. It will be corrected together when the final paper tag is cut.
