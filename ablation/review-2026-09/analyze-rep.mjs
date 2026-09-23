@@ -5,7 +5,9 @@
 // self-report except to copy it verbatim for the cross-check.
 //
 // Usage: node analyze-rep.mjs <root> <rep-name> [pristine-source-dir]
-import { readFileSync, existsSync, readdirSync, statSync, realpathSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, statSync, realpathSync, mkdtempSync, rmSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import { createHash } from 'node:crypto';
 import { homedir } from 'node:os';
@@ -92,6 +94,25 @@ if (existsSync(join(state, 'visible.json'))) {
   visiblePassedFiles = j.testResults.filter((t) => t.status === 'passed').map((t) => t.name.split('/').pop());
 }
 
+// Supplementary (review deviation, 2026-09-23): counts from the frozen
+// snapshot itself. The activity log only sees Edit/Write, so a rep that
+// writes files through Bash (C-rep4 generated all 55 with python heredocs)
+// reads as zero files above. The snapshot sees every file however written.
+const snapshotCounts = (() => {
+  const tarPath = join(state, 'snapshot.tar');
+  if (!existsSync(tarPath)) return null;
+  const tmp = mkdtempSync(join(tmpdir(), 'snap-'));
+  try {
+    execFileSync('tar', ['-C', tmp, '-xf', tarPath]);
+    const files = [];
+    const walk = (d) => { if (!existsSync(d)) return; for (const n of readdirSync(d)) { const p = join(d, n); statSync(p).isDirectory() ? walk(p) : files.push(p); } };
+    walk(join(tmp, 'src'));
+    const routes = files.filter((f) => /[/\\]route\.(ts|js)$/.test(f));
+    const handlers = routes.reduce((n, f) => n + (readFileSync(f, 'utf-8').match(/export\s+(async\s+)?function\s+(GET|POST|PUT|PATCH|DELETE)\b|export\s+const\s+(GET|POST|PUT|PATCH|DELETE)\b/g) || []).length, 0);
+    return { srcFiles: files.length, routeFiles: routes.length, pageFiles: files.filter((f) => /[/\\]page\.(tsx|jsx|ts|js)$/.test(f)).length, exportedHandlers: handlers };
+  } finally { rmSync(tmp, { recursive: true, force: true }); }
+})();
+
 const transcript = existsSync(join(state, 'transcript.log')) ? readFileSync(join(state, 'transcript.log'), 'utf-8') : '';
 const summary = existsSync(join(state, 'summary.json')) ? JSON.parse(readFileSync(join(state, 'summary.json'), 'utf-8')) : {};
 
@@ -119,6 +140,7 @@ console.log(JSON.stringify({
   outOfTreeAccessAttempts: outOfTree.length,
   outOfTreeDetail: outOfTree.slice(0, 20),
   sandboxDenialsInTranscript: (transcript.match(/Operation not permitted/g) || []).length,
+  snapshotCounts,
   heartbeatFired: summary.hookHeartbeatEverFired ?? null,
   selfReportTail: transcript.slice(-2500)
 }, null, 2));

@@ -1,0 +1,72 @@
+[
+  {
+    "rep": "D-rep4",
+    "parsedBy": "heading",
+    "selfRail": 0,
+    "mechRail": 0,
+    "selfBatch": 1,
+    "mechBatchIntervals": 1,
+    "railAgrees": true,
+    "batchAgrees": true
+  },
+  {
+    "rep": "D-rep1",
+    "parsedBy": "heading",
+    "selfRail": 0,
+    "mechRail": 0,
+    "selfBatch": 1,
+    "mechBatchIntervals": 1,
+    "railAgrees": true,
+    "batchAgrees": true
+  },
+  {
+    "rep": "A-rep5",
+    "parsedBy": "heading",
+    "selfRail": 0,
+    "mechRail": 0,
+    "selfBatch": 1,
+    "mechBatchIntervals": 1,
+    "railAgrees": true,
+    "batchAgrees": true
+  },
+  {
+    "rep": "B-rep5",
+    "parsedBy": "order",
+    "selfRail": 0,
+    "mechRail": 0,
+    "selfBatch": 1,
+    "mechBatchIntervals": 1,
+    "railAgrees": true,
+    "batchAgrees": true
+  },
+  {
+    "rep": "C-rep4",
+    "parsedBy": "heading",
+    "selfRail": 19,
+    "mechRail": 19,
+    "selfBatch": 1,
+    "mechBatchIntervals": 0,
+    "railAgrees": true,
+    "batchAgrees": true
+  },
+  {
+    "rep": "B-rep1",
+    "parsedBy": "heading",
+    "selfRail": 0,
+    "mechRail": 0,
+    "selfBatch": 1,
+    "mechBatchIntervals": 1,
+    "railAgrees": true,
+    "batchAgrees": true
+  },
+  {
+    "rep": "C-rep3",
+    "parsedBy": "heading",
+    "selfRail": 0,
+    "mechRail": 19,
+    "selfBatch": 2,
+    "mechBatchIntervals": 2,
+    "railAgrees": false,
+    "batchAgrees": true
+  }
+]
