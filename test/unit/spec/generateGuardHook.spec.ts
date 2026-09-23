@@ -68,15 +68,18 @@ describe('generated write guard (.claude/hooks/rebuild-guard.mjs)', () => {
     ['Bash cp into spec/', 'Bash', () => ({ command: 'cp /tmp/x.md spec/contracts/x.md' })],
     ['Bash mkdir + write to untested contract', 'Bash', () => ({ command: 'mkdir -p src/app/collection/[code] && echo x > src/app/collection/[code]/page.tsx' })],
     ['Bash cd then relative write', 'Bash', () => ({ command: 'cd spec && echo x > contracts/c.md' })],
-    ['Bash case variant', 'Bash', () => ({ command: 'echo x > Spec/contracts/case.md' })],
     ['Bash git checkout over spec/', 'Bash', () => ({ command: 'git checkout -- spec/contracts/GET-api-x.md' })]
   ])('blocks: %s', (_name, tool, input) => {
     expect(run(tool, input())).toBe(2);
   });
 
-  it('blocks a case variant of spec/ on case-insensitive filesystems', () => {
-    const status = run('Write', { file_path: 'Spec/contracts/case.md' });
-    expect(status).toBe(process.platform === 'darwin' || process.platform === 'win32' ? 2 : 0);
+  // On a case-sensitive filesystem (Linux) Spec/ is a genuinely different
+  // directory, so allowing it there is correct, not a bypass.
+  it.each([
+    ['Write', { file_path: 'Spec/contracts/case.md' }],
+    ['Bash', { command: 'echo x > Spec/contracts/case.md' }]
+  ])('blocks a case variant of spec/ on case-insensitive filesystems (%s)', (tool, input) => {
+    expect(run(tool, input)).toBe(process.platform === 'darwin' || process.platform === 'win32' ? 2 : 0);
   });
 
   it.each([
