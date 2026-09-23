@@ -5568,3 +5568,12 @@ Every stalled rep built exactly one route and quoted step 6 back as the reason i
 **Second model, incomplete:** `gpt-5.5` under the *original* wording did not stall in its one completed rep (16 routes, 20/20). Codex then hit its usage limit on `g55orig-rep3`, which is parked for its one re-run, and the batch stopped itself before burning further reps, as the guard added after the first limit intended. The 5 remaining `gpt-5.5` reps are pending. At n=1, "the failure is Astra-specific" is a hint, not a result.
 
 **Triggered but not yet run:** §11's conditional follow-up (`rev` at `xhigh` and `ultra`, and `orig` at `ultra`, 2 reps each). It was pre-declared to run only if this verdict came out as it did, and it waits on the next Codex usage reset.
+
+**Addendum, 2026-09-23 05:50Z: two more sealed Haiku reps, the next two in the pre-committed order (`B-rep2`, `B-rep3`), run on the user's request after E5 exited.** Both were log-only and got the discipline prompt. The seal held again: 0 out-of-tree attempts, 0 denials, 0 `spec/` edits. Both self-reports were accurate (rail 0, batch 1).
+
+| Rep | Held-out | Route files | Handlers | Held-out passes |
+|---|---|---|---|---|
+| B-rep2 | 7/12 | 16 | 35 | the same 7 sibling-method files as `D-rep4` |
+| B-rep3 | 8/12 | 18 | 40 | those 7, plus `GET-api-users`, because it also built `users/route.ts`, a route only held-out covers |
+
+The batch now stands at 9/20: A 1, B 4, C 2, D 2. Across the 7 discipline-prompt reps, 4 built exactly the 20 required handlers and scored 0/12, and 3 added 15–20 unrequested handlers and scored 7–8/12. Both batch-allowed reps scored 12/12. The direction is unchanged from the 7-rep entry above, now with three independent over-builders instead of one. It is still descriptive: no pre-registered rule applies below 5 per arm. The manuscript sentence was updated to these 9-rep numbers.
