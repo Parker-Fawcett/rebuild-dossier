@@ -5691,3 +5691,10 @@ Known and deliberately left for the paper-tag step: the artifact block (tag, com
   - its rail-2 sentence (Table II carries it);
   - the §V-B harness-bugs aside;
   - two short clauses.
+
+**Pre-freeze wording pass from outside feedback (2026-09-23; pre-edit copy `rebuild-dossier-seip.pre-round11.tex`):**
+- **ρ = 0.996 is now presented as partly structural by design, not as a behavioral discovery.** The held-out suite tests contract behavior the visible-demand rule tells the agent not to build yet, so more such building must pass more of it. What the correlation measures is how cleanly the acceptance metric and the prescribed process encode conflicting objectives, which is why test completion cannot double as a neutral measure of workflow success. It still does not show which objective is right. The abstract states it the same way: "the evaluator rewards exactly the scope the workflow defers."
+- **"The hooks themselves showed no effect" became "we observed no hook effect".** At 5 per arm a null is not established.
+- **"Locks an application's real interface contracts" became "mechanically checkable interface contracts"** (abstract and conclusion). §V-H and §V-I document what extraction misses: 201 vs. 200, required-field validation, value types, error-handling structure.
+- **Space for the above** came from condensing two passages the sealed study supersedes: the four-cell batch detail and the muse-spark trace-order parenthetical.
+- **The artifact block (`v0.2.12-paper`, 566/88) remains the one known blocker.** It is corrected when the final paper tag is cut, after the last two §11 reps.
