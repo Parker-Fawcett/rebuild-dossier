@@ -5672,3 +5672,10 @@ A front-to-back read of the SEIP draft, looking for places where two passages di
 9. The conclusion's "enforces rebuild discipline… holds its rails… Lock the contract" contradicted the introduction ("extract the contract; the lock's value is untested") and the shipped-hook bug. It now says the tool blocks two build rules through hooks, and the closing line is "Extract the contract, keep the acceptance suite out of the agent's reach, verify against the filesystem, staff for diagnosis".
 
 Known and deliberately left for the paper-tag step: the artifact block (tag, commit, DOI, "566 tests / 88 files") still names `v0.2.12-paper`. It will be corrected together when the final paper tag is cut.
+
+**Abstract and introduction re-led by the sealed study (2026-09-23; pre-edit copy `rebuild-dossier-seip.pre-round9.tex`), after outside feedback that the abstract undersold its strongest result.**
+- The abstract now opens its findings with the pre-registered sealed study: 20 weak-tier reps, ρ = 0.996; 11 exact-scope reps at 0/12, 7 partial over-builders at 2–8/12, 2 full builds at 12/12. The ten sealed Sonnet reps are the boundary condition.
+- The old paired trial moves to the introduction as the observation that first surfaced the pattern.
+- A second fix removes an ambiguity a fast reader could misread. "The gap vanished" now says explicitly that what vanished was the *hooks'* apparent blocking-vs.-log-only effect (2/5 vs. 0/5 unsealed, 0/5 vs. 0/5 sealed), not the oracle/workflow reversal, which the sealed study strengthened.
+- Every number in the new abstract was cross-checked against the body.
+- Wording note kept deliberately: ρ = 0.996 is a rank correlation, and the trend is not strictly monotonic (`D-rep2`: 27 handlers, 2/12; `B-rep4`: 23 handlers, 3/12). The text says "tracked", not "perfectly monotonic".
