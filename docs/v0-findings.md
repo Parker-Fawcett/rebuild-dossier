@@ -5679,3 +5679,15 @@ Known and deliberately left for the paper-tag step: the artifact block (tag, com
 - A second fix removes an ambiguity a fast reader could misread. "The gap vanished" now says explicitly that what vanished was the *hooks'* apparent blocking-vs.-log-only effect (2/5 vs. 0/5 unsealed, 0/5 vs. 0/5 sealed), not the oracle/workflow reversal, which the sealed study strengthened.
 - Every number in the new abstract was cross-checked against the body.
 - Wording note kept deliberately: ρ = 0.996 is a rank correlation, and the trend is not strictly monotonic (`D-rep2`: 27 handlers, 2/12; `B-rep4`: 23 handlers, 3/12). The text says "tracked", not "perfectly monotonic".
+
+**Second consistency pass + re-read of the `gpt-6-astra` review (2026-09-23; pre-edit copy `rebuild-dossier-seip.pre-round10.tex`):**
+- **§V-A now opens with the sealed study.** Its central result had been sitting mid-section after the historical pair. The old hook-isolation attempt follows as "the pattern first surfaced…".
+- **The review's P/D/C point, sharpened by the new headline, is now stated next to the result.** The sealed study shows the oracle and the workflow *disagree*, not which is right. The over-built rebuilds are the more complete ones, and the pre-registered E3 verdict is that the discipline cost completeness without a measured test-level benefit. Whether it buys behavioral fidelity needs an independent oracle. The abstract carries a one-clause version.
+- **The review's granularity point is tied to the data.** Most sealed over-building was sibling HTTP methods added to route files the visible suite already required, which no file blocklist can guard.
+- **"Rails compensate for / substitute for build judgment" is removed** from §V-E, the lessons box and the conclusion. The sealed study found no blocking effect, and the over-building went into files the page-only blocklist doesn't cover. The text now says rails bound what gets built where they apply, and do not supply diagnosis.
+- **§V-I** "the paper's first live weak-tier rail violation" became "an early".
+- **Cut to stay within 10 pages,** all redundant with retained text:
+  - Appendix D's reps-5/6 paragraph (§V-A carries it);
+  - its rail-2 sentence (Table II carries it);
+  - the §V-B harness-bugs aside;
+  - two short clauses.
