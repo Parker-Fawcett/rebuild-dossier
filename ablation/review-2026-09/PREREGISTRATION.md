@@ -189,3 +189,10 @@ If, and only if, §6's pre-declared reading at `low` effort yields "wording effe
   - Both logins were confirmed first with one-line probes.
   - To keep above the runner's 10 GB floor, `node_modules` was deleted from four finished reps (`ablation-cc-web-rebuild/{without-rep4,without-rep5,with-rep-strong4,with-rep-strong5}`). Those dependencies are regenerable, and no log, state, or source was touched.
 - **2026-09-23 16:56Z.** Codex hit its usage limit on the first §11 rep (`rev-xhigh-rep2`), which was parked as `failed-attempt-1` and reset; the batch stopped itself. The reset is at 17:57Z. `codex-effort-resume.sh` waits until 18:00Z, confirms quota with a one-line probe, then resumes the §11 follow-up in its pre-committed order (`rev-xhigh-rep2` gets its one re-run first). This runs in parallel with the Claude chain, as before.
+- **2026-09-23 ~18:20Z. The Claude batches are complete: Haiku 20/20 (5 per arm) and Sonnet 10/10. No exclusions and no exposure attempts.** §5 verdicts as registered:
+  - E2 (A vs B): 0/5 vs 0/5, so "it did not recur." No A rep was blocked.
+  - E3 (C vs B): 2/5 vs 0/5 full completion, with visible green 5/5 vs 5/5, so "the sequencing rule cost held-out completeness without a measured test-level benefit in this fixture" (Fisher p = 0.44).
+  - E4a (A vs D): no spec edits in either arm, so "the lock never engaged."
+  - §10 (Sonnet): 0 full completions in both arms. `A-rep2` and `B-rep4` each had one interval of 3 new files, so both are reported as a departure from the ≤2 profile, as pre-declared. Both built exactly the 20 required handlers and scored 0/12.
+  - The Codex §11 follow-up is still running.
+- **2026-09-23 18:24Z. §11 follow-up at 4/6.** `rev-xhigh` 0/2 stalled (both 20/20); `orig-ultra` 2/2 stalled (the matched check holds at the highest effort); all at confirmed effort levels. `rev-ultra-rep1` hit the Codex usage limit, was parked as `failed-attempt-1` and reset, and the batch stopped. `rev-ultra-rep1` (re-run) and `rev-ultra-rep2` are queued for 23:05Z via `codex-effort-resume.sh`, after the 23:00Z reset and a probe. §11's verdict waits on those two reps.
