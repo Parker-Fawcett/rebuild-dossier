@@ -195,3 +195,4 @@ If, and only if, §6's pre-declared reading at `low` effort yields "wording effe
   - E4a (A vs D): no spec edits in either arm, so "the lock never engaged."
   - §10 (Sonnet): 0 full completions in both arms. `A-rep2` and `B-rep4` each had one interval of 3 new files, so both are reported as a departure from the ≤2 profile, as pre-declared. Both built exactly the 20 required handlers and scored 0/12.
   - The Codex §11 follow-up is still running.
+- **2026-09-23 18:24Z. §11 follow-up at 4/6.** `rev-xhigh` 0/2 stalled (both 20/20); `orig-ultra` 2/2 stalled (the matched check holds at the highest effort); all at confirmed effort levels. `rev-ultra-rep1` hit the Codex usage limit, was parked as `failed-attempt-1` and reset, and the batch stopped. `rev-ultra-rep1` (re-run) and `rev-ultra-rep2` are queued for 23:05Z via `codex-effort-resume.sh`, after the 23:00Z reset and a probe. §11's verdict waits on those two reps.
