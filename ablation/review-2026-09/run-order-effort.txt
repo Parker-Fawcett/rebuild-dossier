@@ -1,0 +1,8 @@
+# Pre-committed order for the §11 conditional effort follow-up, generated 2026-09-23 before any of these reps existed:
+#   python3 -c "import random; a=['rev-xhigh-rep1','rev-xhigh-rep2','rev-ultra-rep1','rev-ultra-rep2','orig-ultra-rep1','orig-ultra-rep2']; r=random.Random(202609225); r.shuffle(a); print(a)"
+rev-xhigh-rep2
+orig-ultra-rep2
+rev-xhigh-rep1
+orig-ultra-rep1
+rev-ultra-rep1
+rev-ultra-rep2
