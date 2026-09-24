@@ -45,7 +45,9 @@ export const generateSpecOutputSchema = z.object({
   // Present only when one or more captured pages fell back to the regex
   // classifier despite vision being enabled.
   pageVisionFallbacks: z.array(skippedPageOutputSchema).optional(),
-  pageVisionFallbackNote: z.string().optional()
+  pageVisionFallbackNote: z.string().optional(),
+  // Present only when Express API routes exist but none got a generated test.
+  apiTestNote: z.string().optional()
 });
 
 export const generateSpecConfig = {
@@ -168,7 +170,7 @@ export async function generateSpecHandler(args: z.infer<typeof generateSpecInput
 
   const outputDir = siblingRebuildDir(args.repoPath);
   const cases = loadCases(args.repoPath);
-  const { mutationReport, capturedPages, skippedPages, visionClassificationEnabled, pageVisionFallbacks } = await writeSpecTree({
+  const { mutationReport, capturedPages, skippedPages, visionClassificationEnabled, pageVisionFallbacks, apiTestNote } = await writeSpecTree({
     repoPath: args.repoPath,
     outputDir,
     evidence,
@@ -218,7 +220,8 @@ export async function generateSpecHandler(args: z.infer<typeof generateSpecInput
           pageVisionFallbackNote:
             'One or more pages could not be vision-classified and fell back to regex-based classification for that page (see pageVisionFallbacks) — those pages\' dynamic-vs-static assertions may be less accurate.'
         }
-      : {})
+      : {}),
+    ...(apiTestNote ? { apiTestNote } : {})
   };
 
   return {

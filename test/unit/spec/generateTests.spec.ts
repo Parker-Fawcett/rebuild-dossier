@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { generateTests } from '../../../src/spec/generateTests.js';
@@ -22,6 +23,40 @@ function minimalEvidence(overrides: Partial<EvidenceBundle> = {}): EvidenceBundl
 }
 
 describe('generateTests', () => {
+  // Cold-run regression: `const app = express(); ... app.listen(5500)` with no
+  // export (the usual small-app shape) produced zero tests and said nothing.
+  it('explains, instead of silently generating nothing, when the Express app is never exported', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-gentests-'));
+    try {
+      writeFileSync(join(dir, 'index.js'), "const express = require('express');\nconst app = express();\napp.get('/users', (req, res) => res.send([]));\napp.listen(5500);\n");
+      const evidence = minimalEvidence({
+        routes: [{ path: '/users', method: 'GET', file: 'index.js', kind: 'api', startLine: 3 }]
+      });
+
+      const { visible, heldOut, note } = generateTests(dir, evidence, []);
+
+      expect([...visible, ...heldOut]).toHaveLength(0);
+      expect(note).toContain('Found 1 Express API route(s) but no exported Express app instance');
+      expect(note).toContain('module.exports = app;');
+      expect(note).toContain('require.main === module');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('has no note when the app is exported', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-gentests-'));
+    try {
+      writeFileSync(join(dir, 'index.js'), "const express = require('express');\nconst app = express();\nmodule.exports = app;\n");
+      const evidence = minimalEvidence({
+        routes: [{ path: '/users', method: 'GET', file: 'index.js', kind: 'api', startLine: 3 }]
+      });
+      expect(generateTests(dir, evidence, []).note).toBeUndefined();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('generates an existence contract test for every API route, from-repo tagged', () => {
     const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-gentests-'));
     try {
@@ -373,7 +408,28 @@ describe('generateTests', () => {
 
       const all = [...visible, ...heldOut];
       expect(all).toHaveLength(1);
-      expect(all[0]?.content).toContain("import { app } from '../../server.js'");
+      expect(all[0]?.content).toContain("import app from '../../server.js'");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  // Executes the generated import line instead of string-matching it: the
+  // string-only version above once asserted `import { app }`, which binds
+  // undefined for `module.exports = app` and hung every generated test.
+  it('emits an import that actually binds the app for `module.exports = app`', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-gentests-'));
+    try {
+      writeFileSync(join(dir, 'server.js'), "const app = function handler(req, res) { res.end('ok'); };\nmodule.exports = app;\n");
+      const evidence = minimalEvidence({
+        routes: [{ path: '/api/users', method: 'GET', file: 'server.js', kind: 'api', startLine: 1 }]
+      });
+      const { visible, heldOut } = generateTests(dir, evidence, []);
+      const importLine = [...visible, ...heldOut][0]!.content.split('\n').find((l) => l.includes("from '../../server.js'"))!;
+      mkdirSync(join(dir, 'tests', 'visible'), { recursive: true });
+      writeFileSync(join(dir, 'tests', 'visible', 'probe.mjs'), `${importLine}\nprocess.stdout.write(typeof app);\n`);
+      const bound = execFileSync(process.execPath, [join(dir, 'tests', 'visible', 'probe.mjs')], { encoding: 'utf-8' });
+      expect(bound).toBe('function');
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

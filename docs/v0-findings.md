@@ -5855,3 +5855,67 @@ allow, and `--strict-mcp-config` with no servers, to match a clean machine.
   (supersedes `v0.2.14-paper` / 10.5281/zenodo.22928034, which stays as a historical version).
   Manuscript artifact block, reference and test counts (619/91) updated; main text still ends
   on p.10. The frozen PDF is `rebuild-dossier-seip-v0.2.15-paper.pdf`.
+
+## Second cold run, on an Express app: four more shipped bugs, and a rebuild that passes every test while breaking every caller (2026-09-24)
+
+Same protocol as the first cold run, on the **published** `rebuild-dossier@0.2.11` (npm registry,
+local-scope `claude mcp add`, runner cache cleared to force the first-run download), on
+`shivam6497/express-todo-api` at `2135ccdb`: Express 5, 10 routes in one `index.js`, users and
+todos persisted to `userData.json`, `const app = express(); … app.listen(5500)` with nothing
+exported. Picked by the same pre-stated criteria; no license, so run locally only.
+- **Bug 1, found at ingest: section comments read as TODOs.** The detector's case-insensitive
+  `\btodo\b` matched the ordinary word in `// Add todo for user by index` (confidence 0.8), so the
+  operator faced 4 open cases, none admitting anything.
+- **Bug 2: each comment filed under the wrong route.** Association took "the nearest route at or
+  before the comment", so every header comment went to the route above it (the line-76 comment
+  over `app.post('/users/:index/todos')` became a case on `DELETE /users/:index`). The ingesting
+  session noticed the mismatch unprompted. The operator resolved all 4 as "not a signal".
+  - Note: the paper's "reconciliation on conflicting evidence is mechanism-verified, not
+    field-tested" held because no earlier app had comment signals. The first app that did found
+    two bugs in that path.
+- **Bug 3: an unexported Express app gets zero tests, silently.** `generate_spec` returned
+  `mutationsChecked: 0` and empty `weakTests`/`unrunnableTests`, with no `tests/` at all and
+  `index.js` fully blocklisted. `findAppExport` deliberately refuses to guess a binding, but said
+  nothing.
+- **Bug 4: `module.exports = app` got tests that could never pass.** After the operator exported the
+  app, all 10 tests came back unrunnable. The generated `import { app }` binds `undefined` for a
+  CommonJS module whose export is the app itself, so the test server had no handler and every
+  request hung to the 5 s timeout. The unit test for this case only string-matched `import { app }`
+  and never ran it: the same failure mode as the shell-crashing hook (playbook gotcha 6).
+- **Also:** re-running `generate_spec` after changing the copy fails with "Refusing to overwrite
+  existing directory", and nothing said so.
+- **0.2.12 fixes:** marker-only TODO/FIXME detection; header comments bind to the route below them;
+  an `apiTestNote` explaining the missing export, the two-line fix, and that the old `-rebuild/`
+  must be deleted first; default import for `module.exports = app`, with a new test that executes
+  the generated import against a real CommonJS module (fails on the old code, passes on the new).
+  Suite 626/626 across 91 files.
+- **End to end with the packed 0.2.12, `npx`, empty npm cache:** ingest 0 cases (was 4); unexported
+  app → the note; after exporting in the copy and deleting the old package → **130 mutation
+  sites**, 4 visible, 1 held-out, 5 weak, 0 unrunnable. `userData.json` untouched.
+- **Guide gap found while setting up:** the guide didn't say *where* to make the copy. A copy next to
+  the validator's real checkout puts the real source beside the package, where moving the copy
+  away doesn't hide it. On this run the original clone and an earlier copy were still siblings of
+  the package and had to be moved as well. The guide now says to use a new, empty folder, and adds
+  the Express export note.
+- **Rebuild** (`claude-sonnet-5`, headless, source and siblings hidden, held-out sealed): ~4 min. It
+  wrote only `index.js` (confirmed by mtimes: `spec/` and `tests/` predate the session), all 10
+  routes in one pass, as the empty blocklist permitted. Heartbeat count 3. Visible **4/4**;
+  held-out, run once by the operator, **1/1**.
+- **Step 6, the same request sequence against both:** the rebuild differs on nearly every one.
+  - `GET /` is plain text `Todo App` in the original, JSON in the rebuild.
+  - `GET /users` is `{"userData":[…]}` preloaded from the file in the original, a bare `[]` in
+    the rebuild.
+  - `POST /users?name=ann&age=30`: the original reads the **query string**, the rebuild demands a
+    JSON body and returns `{"error":"name is required"}`. Every existing caller breaks.
+  - `GET /users/0` and the todo routes work in the original and are `user not found` in the
+    rebuild.
+  - The rebuild keeps data in memory, never persists, and never calls `listen`, so
+    `node index.js` does not serve at all.
+  - Every one of these passed every generated test. The locked contract for `POST /users` is only
+    the signature line, `app.post('/users', (req, res) => {`, and its only test is a weak
+    "status < 500" check that posts `{}`. Request-parameter location (query vs body), response
+    shape and persistence are all outside what extraction captures today.
+  - This is the paper's thesis at its starkest: an all-green suite (visible and held-out) on a
+    rebuild no existing client could use. It is the third-party version of the notarybox and
+    NextTS gaps (status codes, required fields, value types), extended to parameter location and
+    response shape.

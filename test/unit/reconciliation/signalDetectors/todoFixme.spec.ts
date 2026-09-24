@@ -28,4 +28,27 @@ describe('detectTodoFixme', () => {
   it('does not match TODO/FIXME appearing mid-word', () => {
     expect(detectTodoFixme('// see the methodology doc', locator)).toBeNull();
   });
+
+  // Cold-run regression: a todo-list app's section headers were read as
+  // bug-admitting TODOs, one open case each.
+  it('does not treat the ordinary word "todo" in a comment as a TODO marker', () => {
+    for (const c of [
+      '// Add todo for user by index',
+      '// Delete todo for user by index',
+      '// See all todos for user by index',
+      '// Update todo by id for user by index',
+      '/* renders the todo list */'
+    ]) {
+      expect(detectTodoFixme(c, locator), c).toBeNull();
+    }
+  });
+
+  it('still detects TODO/FIXME markers in their usual forms', () => {
+    expect(detectTodoFixme('// TODO handle null', locator)?.kind).toBe('todo');
+    expect(detectTodoFixme('// validate first. TODO: reject empty names', locator)?.kind).toBe('todo');
+    expect(detectTodoFixme('// @todo: paginate', locator)?.kind).toBe('todo');
+    expect(detectTodoFixme('/**\n * todo: cache this\n */', locator)?.kind).toBe('todo');
+    expect(detectTodoFixme('// FIXME: race on save', locator)?.kind).toBe('fixme');
+  });
 });
+

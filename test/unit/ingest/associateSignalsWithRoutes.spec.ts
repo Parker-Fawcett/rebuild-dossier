@@ -38,6 +38,18 @@ describe('associateSignalsWithRoutes', () => {
     expect(result?.topicKey).toBe('route:GET:/api/users/:id');
   });
 
+  // Cold-run regression: in an Express app, each "// Add todo ..." header on
+  // the line above app.post(...) was filed under the previous route.
+  it('assigns a header comment on the line directly above a route to that route', () => {
+    const [result] = associateSignalsWithRoutes(routes, [commentSignal('src/server.ts', 15)]);
+    expect(result?.topicKey).toBe('route:POST:/api/users');
+  });
+
+  it('still assigns a comment two lines above a route to the preceding route', () => {
+    const [result] = associateSignalsWithRoutes(routes, [commentSignal('src/server.ts', 14)]);
+    expect(result?.topicKey).toBe('route:GET:/api/users/:id');
+  });
+
   it('leaves the topicKey untouched when the file has no detected routes', () => {
     const [result] = associateSignalsWithRoutes(routes, [commentSignal('src/util.ts', 3)]);
     expect(result?.topicKey).toBe('component:src/util.ts');

@@ -33,9 +33,20 @@ tell you the truth about whether it did?**
   runs on your machine. Two exceptions, both off
   unless you choose them: the optional `crawl_site` tool visits a URL you give it, and an opt-in
   vision classifier needs two environment variables you'd set yourself. Skip both.
-- Work on a **copy** of your app, not your working checkout, and run `npm install` in the copy
-  first. The tool never modifies the original, and the mutation check needs the app's own
-  dependencies installed to give reliable results.
+- Work on a **copy** of your app, in a **new, empty folder** of its own, not next to your working
+  checkout. The package gets written beside the copy, and the rebuilding agent can see whatever
+  else sits in that folder. Then run `npm install` in the copy. The mutation check needs the app's
+  own dependencies installed to give reliable results.
+
+  ```bash
+  mkdir ~/rd-validation && cp -R /path/to/your-app ~/rd-validation/your-app
+  cd ~/rd-validation/your-app && npm install
+  ```
+- **Express apps:** the tool can only test your routes if the app object is exported. If
+  `generate_spec` reports an `apiTestNote` saying no exported app was found, do what it says
+  (usually add `module.exports = app;` and wrap `app.listen(...)` in
+  `if (require.main === module) { ... }`) *in the copy*. Then delete the `your-app-rebuild/`
+  folder it wrote and run `generate_spec` again. Mention it in your report.
 
 ## Steps
 
@@ -46,17 +57,17 @@ rebuilding session in step 4 (a different directory) can't call it. (If you've e
 `rebuild-dossier` with `--scope user`, remove that first: `claude mcp remove rebuild-dossier -s user`.)
 
 ```bash
-cd /abs/path/to/your-app
-npx rebuild-dossier@0.2.11 --help
-claude mcp add rebuild-dossier -- npx -y rebuild-dossier@0.2.11
+cd ~/rd-validation/your-app
+npx rebuild-dossier@0.2.12 --help
+claude mcp add rebuild-dossier -- npx -y rebuild-dossier@0.2.12
 ```
 
 **2. Generate the package.** In a Claude Code session opened *in your app's copy*, ask it to call
 the tools in this order, with the absolute path to your app:
 
 ```
-ingest_repo({ path: "/abs/path/to/your-app" })
-get_case_queue({ repoPath: "/abs/path/to/your-app", interactive: true })
+ingest_repo({ path: "/Users/you/rd-validation/your-app" })
+get_case_queue({ repoPath: "/Users/you/rd-validation/your-app", interactive: true })
 ```
 
 Answer every case the queue raises using your own knowledge of the app. This is the human
@@ -64,7 +75,7 @@ checkpoint, and your answers matter. If you know of real bugs, flag them first w
 `flag_known_bug`. Then:
 
 ```
-generate_spec({ repoPath: "/abs/path/to/your-app" })
+generate_spec({ repoPath: "/Users/you/rd-validation/your-app" })
 ```
 
 It writes the package to a sibling directory, `your-app-rebuild/`. Note how long it took and
@@ -74,7 +85,7 @@ anything it reports as weak or unrunnable.
 package so the rebuilding agent can't read or re-run them:
 
 ```bash
-cd /abs/path/to/your-app-rebuild
+cd ~/rd-validation/your-app-rebuild
 mv tests/held-out ~/held-out-sealed-$(date +%s)
 ```
 
@@ -82,7 +93,7 @@ Then move your app's copy away too. The package sits right next to it, so an age
 `..` would find the original source one directory up:
 
 ```bash
-mv /abs/path/to/your-app ~/source-hidden-$(date +%s)
+mv ~/rd-validation/your-app ~/source-hidden-$(date +%s)
 ```
 
 (This keeps casual access out. An agent with shell access could still go looking, so note in
@@ -94,7 +105,7 @@ package directory** itself. Don't start it from another session's Agent tool or 
 because the hooks won't load, and nothing will tell you so.
 
 ```bash
-cd /abs/path/to/your-app-rebuild
+cd ~/rd-validation/your-app-rebuild
 claude
 ```
 
