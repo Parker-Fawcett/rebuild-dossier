@@ -4,8 +4,10 @@ Thank you for doing this. You're the first people other than the author to run t
 codebase it has never seen, so what you find, including anything that goes wrong, is exactly
 what's needed. Please report failures as fully as successes. A run that breaks is a useful result.
 
-Budget: about 1–3 hours of your time, plus waiting while `generate_spec` runs (anywhere from a
-couple of minutes to over half an hour on a large app).
+Budget: on a small app (around 10 routes), about **30–45 minutes end to end, roughly 20 of them
+hands-on**: setup, answering the case queue, running the checks, and comparing the two apps. In
+the two trial runs, `generate_spec` took under 2 minutes and the unattended rebuild 4–16 minutes.
+A large app mostly adds waiting: `generate_spec` took about 36 minutes on an 83-route app.
 
 ## What the tool does, in one paragraph
 
