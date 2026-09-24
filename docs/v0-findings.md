@@ -5995,3 +5995,19 @@ Codex was rate-limited, so the same sealed package was rebuilt with Claude Code 
     - the rebuild starts with no recipes (the original has 12 seeded);
     - it never calls `listen`, so `node src/index.js` doesn't serve.
 - Compared with the same app before handler resolution (a contract of one line per route, and a Codex agent that refused to build), the contracts now carry enough behavior for a faithful rebuild of every route handler. What's missing is app-level: error middleware, auth strategy, startup, seed data.
+
+## Build-from-contracts rebuild on Codex, Hyrum's setup (2026-09-24 ~21:21Z)
+
+The same flow on the OpenAI Codex CLI (0.153.4, `gpt-6-astra`, medium). The package was freshly generated from the committed 0.2.13 build, with the three bugs flagged: 3 decision files, a handler section in all 8 contracts, 0 visible tests. Sealed, with source and siblings hidden and the hooks trusted.
+- **First pass:** stopped on the empty `tests/visible/`, as predicted. Given the guide's answer ("build from the contracts one route at a time, treating `tests/weak/` as hints"), it built all 8 routes in 5.3 minutes.
+- **Checked against the filesystem:**
+  - heartbeat count 16; `spec/` mtimes predate the session;
+  - `tests/visible/` still empty (it put its own checks in `scripts/check-contracts.js`, outside the suites);
+  - `src/` mirrors the original's structure;
+  - it added a guarded `app.listen`, so unlike both earlier Express rebuilds, `node src/index.js` serves.
+- **Side by side (the same 14-request sequence as the Claude run):**
+  - every correctly-working behavior matched: the redirect, `{data}` shapes, 401 without a token, `{token}` from signup and login, 201/200;
+  - the three flagged bugs were fixed (wrong password 401, `PUT` 200, `DELETE` 204), and a missing id is a 404 rather than a server crash;
+  - error bodies are JSON `{message}` against the original's `{status,statusCode,message}` (Claude's were Express's HTML);
+  - the rebuild starts with no recipes (the original has 12 seeded).
+- **Remaining app-level gaps, shared across both CLIs:** the error-middleware response shape and seed data. Neither is in any route contract.
