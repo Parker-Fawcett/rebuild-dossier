@@ -1,5 +1,5 @@
 import * as z from 'zod/v4';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, basename, join } from 'node:path';
 import { loadCases } from '../state/caseStore.js';
 import { loadEvidenceBundle } from '../state/evidenceStore.js';
@@ -50,7 +50,9 @@ export const generateSpecOutputSchema = z.object({
   apiTestNote: z.string().optional(),
   // Present only when unrunnableTests is non-empty: the first error line per file.
   unrunnableReasons: z.record(z.string(), z.string()).optional(),
-  unrunnableNote: z.string().optional()
+  unrunnableNote: z.string().optional(),
+  // Present only when no generated test survived as visible.
+  noVisibleTestsNote: z.string().optional()
 });
 
 export const generateSpecConfig = {
@@ -188,6 +190,11 @@ export async function generateSpecHandler(args: z.infer<typeof generateSpecInput
   // initially misdiagnosed as a database/infrastructure problem; the actual
   // cause (missing `npm install`) is much simpler and worth stating plainly.
   const missingNodeModules = !existsSync(join(args.repoPath, 'node_modules'));
+  // Found live: an auth-protected Express API ended with every test weak or
+  // unrunnable, and the rebuild agent, told to start from a failing visible
+  // test, had none and could only stop and ask.
+  const visibleDir = join(outputDir, 'tests', 'visible');
+  const visibleCount = existsSync(visibleDir) ? readdirSync(visibleDir).filter((f) => f.endsWith('.ts') || f.endsWith('.js')).length : 0;
 
   const result = {
     outputDir,
@@ -225,6 +232,12 @@ export async function generateSpecHandler(args: z.infer<typeof generateSpecInput
         }
       : {}),
     ...(apiTestNote ? { apiTestNote } : {}),
+    ...(visibleCount === 0
+      ? {
+          noVisibleTestsNote:
+            'No generated test survived as a visible test (see weakTests and unrunnableTests), so the rebuilding agent has no failing test to start from and will likely stop and ask. The contracts in spec/contracts/ still carry each handler\'s code. When it asks, telling it to build from the contracts one route at a time, treating tests/weak/ as hints, is a fair answer; note that you gave it.'
+        }
+      : {}),
     ...(Object.keys(mutationReport.unrunnableReasons).length > 0
       ? {
           unrunnableReasons: mutationReport.unrunnableReasons,

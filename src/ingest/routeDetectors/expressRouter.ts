@@ -182,7 +182,8 @@ export const expressRouterDetector: RouteDetector = {
             method: route.method,
             file: relPath,
             kind: 'api',
-            startLine: route.startLine
+            startLine: route.startLine,
+            ...(prefix ? { sourcePath: route.path } : {})
           });
         }
       }

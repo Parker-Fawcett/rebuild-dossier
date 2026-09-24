@@ -136,6 +136,14 @@ permission prompts isn't steering; approve anything that stays inside the packag
 (`claude --permission-mode acceptEdits` cuts Claude Code's prompts down.) If it stops to ask you
 something, answer briefly and honestly, and write down what it asked.
 
+Two questions it may ask, with fair answers:
+- **"The spec contains what look like bugs; preserve or fix?"** Answer as the owner would. If
+  you flagged them with `flag_known_bug` in step 2, the package already says.
+- **"`tests/visible/` is empty; what should I do?"** This happens when every generated test came
+  back weak or unrunnable (`generate_spec` says so in `noVisibleTestsNote`). Answer: "Build from
+  the contracts one route at a time, treating `tests/weak/` as hints." Note in your report that
+  you did.
+
 **5. Check what actually happened**, not what the agent says happened:
 
 ```bash

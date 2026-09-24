@@ -4,6 +4,7 @@ import type { EvidenceBundle, RouteEntry } from '../ingest/evidenceSchema.js';
 import type { Case } from '../reconciliation/types.js';
 import type { GeneratedFile } from './generateContracts.js';
 import { inferRequestBodyFields } from './inferRequestBodyFields.js';
+import { resolveExpressHandler, routeSourceForAnalysis } from './resolveExpressHandler.js';
 import { inferSuccessStatusCode } from './inferSuccessStatusCode.js';
 import { inferZodRequiredFields } from './parseZodObjectSchema.js';
 import {
@@ -111,7 +112,7 @@ function requestInitFor(method: string, fields: string[]): string {
 // string-with-min-length case, no worse than `{}` anywhere else.
 function inferFieldsSafely(repoPath: string, route: RouteEntry): string[] {
   try {
-    const text = readFileSync(join(repoPath, route.file), 'utf-8');
+    const text = routeSourceForAnalysis(repoPath, route);
     const fromSource = inferRequestBodyFields(text, route);
     if (fromSource.length > 0) return fromSource;
     return inferZodRequiredFields(text, route);
@@ -124,8 +125,14 @@ function inferFieldsSafely(repoPath: string, route: RouteEntry): string[] {
 // identical helper — see its comment for the real, live-triggered failure
 // (a GET /:id route whose placeholder path segment doesn't match a real
 // record) that motivated it.
+// Also a plain GET with no dynamic segment (a list or index route): it needs
+// no placeholder record, and a wrong guess can't ship as trusted anyway,
+// since runMutationCheck's baseline run sets aside any test that fails
+// against the unmodified app. Found live: an Express app's every GET test was
+// a weak "status < 500" check, leaving tests/visible empty.
 function canTrustSuccessStatusForTest(route: RouteEntry): boolean {
-  return METHODS_WITH_BODY.has(route.method ?? '') && !/:[^/]+/.test(route.path);
+  if (/:[^/]+/.test(route.path)) return false;
+  return METHODS_WITH_BODY.has(route.method ?? '') || route.method === 'GET';
 }
 
 // Same safe-read convention as inferFieldsSafely above, and same
@@ -135,7 +142,7 @@ function canTrustSuccessStatusForTest(route: RouteEntry): boolean {
 function inferSuccessStatusSafely(repoPath: string, route: RouteEntry) {
   if (!canTrustSuccessStatusForTest(route)) return null;
   try {
-    const text = readFileSync(join(repoPath, route.file), 'utf-8');
+    const text = routeSourceForAnalysis(repoPath, route);
     return inferSuccessStatusCode(text, route);
   } catch {
     return null;
@@ -305,7 +312,10 @@ export function generateTests(
     const file: GeneratedTestFile = {
       filename: `${sanitizeFilenameBase(route.method, route.path)}.spec.ts`,
       content: testFileFor(repoPath, route, importPath, appExport.isDefault, cases, fields),
-      sourceFile: route.file
+      // Mutate where the handler actually lives (a controllers/ file, when the
+      // route registers it by name); coverage still belongs to the route file.
+      sourceFile: resolveExpressHandler(repoPath, route)?.file ?? route.file,
+      coveredRouteFiles: [route.file]
     };
     if (index % HELD_OUT_EVERY === HELD_OUT_EVERY - 1) {
       heldOut.push(file);

@@ -5956,3 +5956,21 @@ One of the two validators uses the OpenAI Codex CLI, so a stand-in run was done 
   The same signature-only gap made the todo-app rebuild break every caller while passing every test. Here a stricter agent refused rather than guess. Closing it means resolving identifier handlers to their definitions (through the router's imports) and including their source in the contract, and mutating that file.
 
 Not published. The validator guide on `main` still pins 0.2.12 until 0.2.13 is released.
+
+## Closing the signature-only contract gap for Express (2026-09-24, same branch)
+
+The Codex rebuild above refused to build because contracts held only registration lines. Closed as follows, still in 0.2.13:
+- **`resolveExpressHandler`** follows a route's handler to its code:
+  - inline, a local definition, or by name through destructured `require`, a module member, or ESM named/default/star imports, into controller files;
+  - plus one level of the local functions it calls (services, persistence helpers).
+  - On the recipes app all 8 handlers resolved, e.g. `handleLogin` → `usersService#find` and `#authenticate`.
+- **Contracts gain a "Handler (verbatim from source)" section** with that code and its callees. The single-file todo app's contracts now show that `POST /users` reads `req.query.name`: the query-vs-body detail its earlier all-green rebuild got wrong.
+- **The extractors (request fields, success status, response fields, validation) now analyze the resolved handler**, via a synthesized registration. On the recipes app they went from nothing to real field names, statuses and response fields.
+- **The mutation check now mutates the handler's file, not the router.** Routes are recorded with `sourcePath`, the path as written, so mount prefixes don't break source matching. Handler isolation accepts any receiver and chained `.route()`, and returns nothing for handlers passed by name instead of isolating an unrelated function.
+- **Tests on this app are now honestly weak or unrunnable.** Before, they were trusted only because the router file had nothing to mutate. Real fields and statuses made them fail for real reasons: 401 without a JWT, 500 on placeholder values, the app's own hang on an unknown ID. A plain `GET` with no dynamic segment now also asserts its inferred status, since the baseline run sets aside a wrong guess. `getAllRecipes` still kills no mutant: 5 applicable sites in the whole run.
+- **`noVisibleTestsNote`:** `generate_spec` now says when no test survived as visible. The guide says a fair answer, if the agent asks, is "build from the contracts one route at a time".
+- **Live effect, Codex `gpt-6-astra`:**
+  - With handler code in the contracts, the rebuild agent read the behavior and reported three real bugs in the original before writing anything: `PUT` reads instead of writing, `DELETE` calls `res.statusCode(204)` as a function, login ignores the password check. These are the same three the stand-in operator flagged from the source.
+  - Told to fix them, it then stopped on the empty `tests/visible/`.
+  - The final run, with the bugs flagged and the guide's answer ready, hit the Codex usage limit before its first edit. **The full build-from-contracts rebuild has not yet been observed.**
+- Regression: the todo app regenerates identically (130 sites, 4 visible, 1 held-out, 5 weak). Suite 653/653 across 92 files.

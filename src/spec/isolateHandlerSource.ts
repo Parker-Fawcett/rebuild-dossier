@@ -28,8 +28,34 @@ function nextConstArrowHandlerPattern(method: string): RegExp {
   return new RegExp(`export\\s+const\\s+${method}\\s*=\\s*(?:async\\s+)?\\(`);
 }
 
+// Any receiver, not just app/router (usersRouter.get(...) is as common), and
+// the path as written (sourcePath), since a mount prefix never appears in the
+// router file itself.
 function expressHandlerPattern(method: string, path: string): RegExp {
-  return new RegExp(`\\b(?:app|router)\\.${method.toLowerCase()}\\s*\\(\\s*(['"\`])${escapeRegExpLiteral(path)}\\1`);
+  return new RegExp(`\\b[A-Za-z_$][\\w$]*\\s*\\.\\s*${method.toLowerCase()}\\s*\\(\\s*(['"\`])${escapeRegExpLiteral(path)}\\1`);
+}
+
+// router.route('/x').get(handler): the method call follows the route() call.
+function expressChainedPattern(method: string, path: string): RegExp {
+  return new RegExp(`\\.\\s*route\\s*\\(\\s*(['"\`])${escapeRegExpLiteral(path)}\\1\\s*\\)(?:(?!\\.\\s*route\\s*\\()[\\s\\S])*?\\.\\s*${method.toLowerCase()}\\s*\\(`);
+}
+
+// A handler passed by name (`router.put('/x', auth, updateRecipe)`) has no
+// body here; searching on for the next `{` would isolate some unrelated
+// function. resolveExpressHandler.ts follows the name instead.
+function lastArgumentIsInlineFunction(source: string, openParen: number): boolean {
+  const close = isolateBalanced(source, openParen, '(', ')');
+  if (close === -1) return true;
+  let depth = 0;
+  let start = openParen + 1;
+  for (let i = openParen + 1; i < close; i++) {
+    const c = source[i];
+    if (c === '(' || c === '[' || c === '{') depth++;
+    else if (c === ')' || c === ']' || c === '}') depth--;
+    else if (c === ',' && depth === 0) start = i + 1;
+  }
+  const last = source.slice(start, close).trim();
+  return /^(?:async\b|function\b|\(|[A-Za-z_$][\w$]*\s*=>)/.test(last);
 }
 
 function isolateBalanced(source: string, openIndex: number, openChar: string, closeChar: string): number {
@@ -91,9 +117,19 @@ export function isolateHandlerBody(sourceCode: string, route: RouteEntry): strin
     if (body) return body;
   }
 
-  const expressMatch = sourceCode.match(expressHandlerPattern(method, route.path));
+  const literalPath = route.sourcePath ?? route.path;
+  const expressMatch = sourceCode.match(expressHandlerPattern(method, literalPath));
   if (expressMatch?.index !== undefined) {
+    const open = sourceCode.lastIndexOf('(', expressMatch.index + expressMatch[0].length);
+    if (!lastArgumentIsInlineFunction(sourceCode, open)) return null;
     return isolateFunctionBody(sourceCode, expressMatch.index + expressMatch[0].length);
+  }
+
+  const chainedMatch = sourceCode.match(expressChainedPattern(method, literalPath));
+  if (chainedMatch?.index !== undefined) {
+    const open = chainedMatch.index + chainedMatch[0].length - 1;
+    if (!lastArgumentIsInlineFunction(sourceCode, open)) return null;
+    return isolateFunctionBody(sourceCode, open);
   }
 
   return null;
