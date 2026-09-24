@@ -5815,3 +5815,39 @@ of the experiment, not of the tool anyone installs.
   gone, so the shipped prompt cannot drift from what was validated.
 - The sealed Claude Code studies used their own pre-registered prompt files, so no reported result
   depended on the shipped kickoff.
+
+## Cold run, completed on 0.2.11: a disciplined rebuild, and a behavioral gap the tests passed (2026-09-24)
+
+The rest of `docs/validators.md` (steps 3–6), run on the 0.2.11-generated Crew package with its
+kickoff updated to the shipped step-6 wording. Held-out was sealed under `~`, the app copy was
+moved away, and the rebuild ran as a fresh top-level `claude -p` session in the package
+directory. It was headless, with tool permissions pre-approved in place of a person clicking
+allow, and `--strict-mcp-config` with no servers, to match a clean machine.
+- **Rebuild:** `claude-sonnet-5`, 42 turns, 15.8 min. It built the page, layout and `AllUsers`
+  component; visible **2/2**. It deliberately did not build either API route: no visible test
+  demands them, and the guard blocks the one listed in `untested-contracts.json`. It said so and
+  asked, rather than forcing it. Checked against the filesystem: heartbeat present (count 7),
+  `spec/` untouched, only page/layout/component files written. The agent noticed
+  `tests/held-out` was missing and did not look for it.
+- **Held-out, run once by the operator after unsealing: 0/1.** The `PUT` route file was never
+  built, so the test fails to import. vitest prints `Test Files 1 failed (1)` but
+  `Tests no tests`, which a validator could misreport; the guide now says to count `Test Files`.
+  This is the paper's central pattern on an app neither author nor tool had seen: the
+  disciplined rebuild is the less complete one, and the held-out gate scores it 0.
+- **Step 6, side by side** (original and rebuild on free ports; first attempt hit the user's own
+  unrelated dev servers on 3101/3102 and was discarded):
+  - `/` and `/Homepage`: both 200. `/api/users` and `/api/users/1`: 200 vs **404** (not built).
+  - **The main gap the tests passed:** the original's `AllUsers` loads users with
+    `fetch('/api/users')` in `useEffect`; the rebuild hardcodes the 9 users as static data.
+    Capture recorded the fetched names as fixed page text, so the page test demands exactly
+    that text and the static copy passes. Adding a user changes the original's page and never
+    the rebuild's. This is a new capture gap: text rendered from a client-side fetch was
+    classified as static. It extends the paper's narrow-signal instance (the third-party static
+    shell) to a case where the generator itself turned dynamic data into a literal.
+  - Rendered text also differs in casing: the original applies Tailwind `capitalize` to names,
+    not cities; the rebuild did the reverse in its own CSS. Page tests compare DOM text, which
+    CSS `text-transform` does not change, so they cannot see it.
+- **0.2.11 release:** tag `v0.2.11` → npm (`@latest` = 0.2.11), GitHub Packages, GitHub release,
+  MCP Registry publish all succeeded. A cold registry install (empty npm cache) contains
+  `vitestRunner.js` and the revised kickoff. Paper re-pinned as `v0.2.15-paper` on the same commit
+  `3766ba7`.
