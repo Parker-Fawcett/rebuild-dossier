@@ -113,6 +113,10 @@ mv ~/held-out-sealed-* tests/held-out
 npx vitest run tests/held-out           # run once, yourself: the tests it never saw
 ```
 
+Report counts from the **`Test Files`** line, not `Tests`: a test file whose route was never built
+fails to import, and vitest then leaves it out of `Tests` entirely (it can even print
+`Tests  no tests`). So "1 failed (1)" under `Test Files` is a held-out result of 0/1.
+
 **6. Compare against your real app.** This part only you can do. Run the rebuild and the original
 side by side and exercise what matters to you: a few real requests, a few pages, an error case,
 a missing or invalid input. Where do they behave differently? The tests only check some things,
