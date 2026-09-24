@@ -5656,3 +5656,85 @@ All pre-registered Claude Code reps are done (`ablation/review-2026-09/PREREGIST
 - The only enforcement-related difference the paper ever reported (weak tier, unsealed, 2/5 vs. 0/5, spanning two harness configurations) is gone under a sealed evaluator.
 - The strong tier shows none at 5 per condition either.
 - What does predict held-out completion, across tiers, arms and prompts, is how far a rep built past visible demand.
+
+## Manuscript consistency pass (2026-09-23): nine internal contradictions fixed
+
+A front-to-back read of the SEIP draft, looking for places where two passages disagreed, or where a passage no longer matched the data (pre-pass copy: `rebuild-dossier-seip.pre-round8.tex`):
+
+1. The abstract said the hooks enforce "one-test-at-a-time build discipline". §V-A says, correctly, that batch order is a rule no hook checks. The abstract now says the hooks block spec edits and ahead-of-schedule contract builds.
+2. Intro bullet 1, §V-C and the lessons box said the Madeline weak model complied with hook-enforced rules. That run's hook liveness was never confirmable, and the second hook did not yet exist. The wording is now "satisfied everything its tests checked" and "test-checked behavior holds".
+3. §V-A presented the central pair as if it had come from the later three-page fixture (mossgate). It came from the two redesigned-fixture reps (5/6), which the text now says.
+4. Figure 1's "source relocated before handoff" contradicted Table I (catchandtrade was package-only). It now reads "kept out of the rebuild session".
+5. "A four-cell design isolates when enforcement matters" became "tests whether". The design found no effect to isolate.
+6. "A second leakage instance (Appendix D)" pointed at an appendix that no longer describes that instance. It now states the fact inline: the path-based detector did catch it.
+7. §V-B and Appendix C said higher effort levels were untested or not run. Four §11 reps have run: original `ultra` 2/2 stalled, revision `xhigh` 2/2 complete. Both places now report that; the two `rev-ultra` reps are still pending.
+8. §VI-B called the metric-level reversal "N=1". The sealed follow-up adds every over-building rep.
+9. The conclusion's "enforces rebuild discipline… holds its rails… Lock the contract" contradicted the introduction ("extract the contract; the lock's value is untested") and the shipped-hook bug. It now says the tool blocks two build rules through hooks, and the closing line is "Extract the contract, keep the acceptance suite out of the agent's reach, verify against the filesystem, staff for diagnosis".
+
+Known and deliberately left for the paper-tag step: the artifact block (tag, commit, DOI, "566 tests / 88 files") still names `v0.2.12-paper`. It will be corrected together when the final paper tag is cut.
+
+**Abstract and introduction re-led by the sealed study (2026-09-23; pre-edit copy `rebuild-dossier-seip.pre-round9.tex`), after outside feedback that the abstract undersold its strongest result.**
+- The abstract now opens its findings with the pre-registered sealed study: 20 weak-tier reps, ρ = 0.996; 11 exact-scope reps at 0/12, 7 partial over-builders at 2–8/12, 2 full builds at 12/12. The ten sealed Sonnet reps are the boundary condition.
+- The old paired trial moves to the introduction as the observation that first surfaced the pattern.
+- A second fix removes an ambiguity a fast reader could misread. "The gap vanished" now says explicitly that what vanished was the *hooks'* apparent blocking-vs.-log-only effect (2/5 vs. 0/5 unsealed, 0/5 vs. 0/5 sealed), not the oracle/workflow reversal, which the sealed study strengthened.
+- Every number in the new abstract was cross-checked against the body.
+- Wording note kept deliberately: ρ = 0.996 is a rank correlation, and the trend is not strictly monotonic (`D-rep2`: 27 handlers, 2/12; `B-rep4`: 23 handlers, 3/12). The text says "tracked", not "perfectly monotonic".
+
+**Second consistency pass + re-read of the `gpt-6-astra` review (2026-09-23; pre-edit copy `rebuild-dossier-seip.pre-round10.tex`):**
+- **§V-A now opens with the sealed study.** Its central result had been sitting mid-section after the historical pair. The old hook-isolation attempt follows as "the pattern first surfaced…".
+- **The review's P/D/C point, sharpened by the new headline, is now stated next to the result.** The sealed study shows the oracle and the workflow *disagree*, not which is right. The over-built rebuilds are the more complete ones, and the pre-registered E3 verdict is that the discipline cost completeness without a measured test-level benefit. Whether it buys behavioral fidelity needs an independent oracle. The abstract carries a one-clause version.
+- **The review's granularity point is tied to the data.** Most sealed over-building was sibling HTTP methods added to route files the visible suite already required, which no file blocklist can guard.
+- **"Rails compensate for / substitute for build judgment" is removed** from §V-E, the lessons box and the conclusion. The sealed study found no blocking effect, and the over-building went into files the page-only blocklist doesn't cover. The text now says rails bound what gets built where they apply, and do not supply diagnosis.
+- **§V-I** "the paper's first live weak-tier rail violation" became "an early".
+- **Cut to stay within 10 pages,** all redundant with retained text:
+  - Appendix D's reps-5/6 paragraph (§V-A carries it);
+  - its rail-2 sentence (Table II carries it);
+  - the §V-B harness-bugs aside;
+  - two short clauses.
+
+**Pre-freeze wording pass from outside feedback (2026-09-23; pre-edit copy `rebuild-dossier-seip.pre-round11.tex`):**
+- **ρ = 0.996 is now presented as partly structural by design, not as a behavioral discovery.** The held-out suite tests contract behavior the visible-demand rule tells the agent not to build yet, so more such building must pass more of it. What the correlation measures is how cleanly the acceptance metric and the prescribed process encode conflicting objectives, which is why test completion cannot double as a neutral measure of workflow success. It still does not show which objective is right. The abstract states it the same way: "the evaluator rewards exactly the scope the workflow defers."
+- **"The hooks themselves showed no effect" became "we observed no hook effect".** At 5 per arm a null is not established.
+- **"Locks an application's real interface contracts" became "mechanically checkable interface contracts"** (abstract and conclusion). §V-H and §V-I document what extraction misses: 201 vs. 200, required-field validation, value types, error-handling structure.
+- **Space for the above** came from condensing two passages the sealed study supersedes: the four-cell batch detail and the muse-spark trace-order parenthetical.
+- **The artifact block (`v0.2.12-paper`, 566/88) remains the one known blocker.** It is corrected when the final paper tag is cut, after the last two §11 reps.
+
+## Back-to-front re-read against the handoff and the Astra review (2026-09-23, 22:40Z)
+
+Another full read of the SEIP tex, the handoff playbook and the Astra review turned up six small
+inconsistencies, all fixed in the tex (backup `rebuild-dossier-seip.pre-round12.tex`):
+- **Abstract, "no hook ever blocked an action":** false as a global claim; Table II's
+  leakage-fixed row records one block. Now scoped: "no sealed rep was ever blocked."
+- **§V-A, "Permitting batch-building made full builds likelier":** a causal verb on Fisher
+  p = 0.44. Now descriptive: both full builds came from the batch-permitted arm (not significant),
+  whose other three reps built exactly to demand (checked against `review-results.json` and the
+  sealed-verdict entry: 7 of 15 discipline-prompt reps over-built; batch-allowed 2 of 5).
+- **Table II reps 1–4, "OpenCode, strong tier":** those reps ran `opencode/deepseek-v4-flash-free`
+  (the DeepSeek 4-rep entry above), not `claude-sonnet-5`, which §IV defines as the strong tier.
+  Relabeled "DeepSeek V4 Flash"; §V-B's "OpenCode's own default models" now says DeepSeek's.
+- **"Controlled prose-vs-hook comparison" (intro, §II):** the Madeline comparison varied the model
+  tier with the same hooks, not the hook. Now "two-tier comparison" / "a prose rule silently
+  violated while test-checked behavior holds."
+- **§V-H heading, "a direct test of the contract-locking claim":** the body says there is no
+  unlocked comparator. Heading now "contract preservation in a blind rebuild."
+- **Threats, "Three independent errors … each wrong once":** understated, since the paper itself
+  reports a shipped hook that never ran and an unlogged harness change. Rewritten to list them.
+- Also: "instruction-ambiguity" → "instruction-inconsistency" (matching Appendix C), the practitioner
+  box's hook lesson now notes a file-level hook cannot see method-level over-building (the sealed
+  finding), and Fig. 1's "PreToolUse hooks" → "guard".
+- Main text still ends on p.10, 0 errors. Still stale, by plan: the artifact block (v0.2.12-paper,
+  566/88) until the final paper tag; Appendix C until the 2 `rev-ultra` reps finish.
+
+## §11 effort follow-up complete: the Astra wording fix holds at `xhigh` and `ultra` (2026-09-24 00:23Z)
+
+The last two pre-registered reps (`rev-ultra-rep1` re-run, `rev-ultra-rep2`) finished at confirmed
+`ultra` effort, both with no stall, all 16 routes built, and 20/20 visible.
+- **§11 totals:** revision 0/4 stalled at higher effort (`xhigh` 2/2 and `ultra` 2/2 complete);
+  original `ultra` 2/2 stalled. The registered reading ("generalizes if `rev` stalls ≤1 of 4 and
+  `orig`-`ultra` stalls 2/2") is met: **the fix generalizes across effort.**
+- With this, every rep registered in `ablation/review-2026-09/PREREGISTRATION.md` has run
+  (Haiku 20, Sonnet 10, E5 15 + 6 `gpt-5.5`, §11 6). Aggregates are committed under
+  `ablation/review-2026-09/results/`.
+- **Manuscript:** §V-B and Appendix C now report the revision completing at `xhigh` and `ultra`
+  (4/4), meeting the pre-registered rule, and the abstract calls the fix "robust to effort." To
+  stay at 10 pages, Appendix A's trial-2 re-run sentence was cut; Table IV and §V-E already state it.
