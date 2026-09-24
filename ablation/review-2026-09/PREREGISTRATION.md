@@ -211,3 +211,9 @@ Two non-author operators each run `docs/validators.md` (tool pinned at `rebuild-
   - An unexported Express app got zero tests, silently.
 
   A validator with an Express app would have measured those bugs. The guide also now tells validators to work in a new, empty folder, so the rebuilding agent can't find their real checkout next to the package. Endpoints and the reporting rule are unchanged.
+- **2026-09-24 ~15:10Z, third deviation before any validator started: the E7 pin moves from 0.2.12 to 0.2.13, and the guide adds a Codex path.** One of the two validators uses the OpenAI Codex CLI, not Claude Code. A stand-in run through Codex on an unfamiliar Express app found:
+  - chained and mounted Express routes were missed (3 of 8 routes found);
+  - unrunnable tests came with no reason;
+  - the package had no Codex instructions or hooks, so a Codex rebuild ran with no guard.
+
+  Endpoints and the reporting rule are unchanged. A validator's CLI (Claude Code or Codex) is recorded per report, and the two are not pooled as one condition.

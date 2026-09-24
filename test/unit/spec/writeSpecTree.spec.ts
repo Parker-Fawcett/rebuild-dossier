@@ -74,6 +74,11 @@ describe('writeSpecTree', () => {
       expect(existsSync(join(outputDir, '.claude', 'settings.json'))).toBe(true);
       // The write guard the settings point at must actually ship with the package.
       expect(readFileSync(join(outputDir, '.claude', 'hooks', 'rebuild-guard.mjs'), 'utf-8')).toContain('rebuild-dossier write guard');
+      // Codex support: AGENTS.md mirrors CLAUDE.md, and .codex/hooks.json runs the same guard.
+      expect(readFileSync(join(outputDir, 'AGENTS.md'), 'utf-8')).toBe(readFileSync(join(outputDir, 'CLAUDE.md'), 'utf-8'));
+      const codexHooks = JSON.parse(readFileSync(join(outputDir, '.codex', 'hooks.json'), 'utf-8'));
+      expect(codexHooks.hooks.PreToolUse[0].hooks[0].command).toContain('node .claude/hooks/rebuild-guard.mjs');
+      expect(codexHooks.hooks.PreToolUse[0].matcher).toContain('apply_patch');
 
       // spec-auditor and the skill only need routes/contracts to exist — both do here.
       expect(existsSync(join(outputDir, '.claude', 'agents', 'spec-auditor.md'))).toBe(true);

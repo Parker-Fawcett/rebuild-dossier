@@ -5919,3 +5919,40 @@ exported. Picked by the same pre-stated criteria; no license, so run locally onl
     rebuild no existing client could use. It is the third-party version of the notarybox and
     NextTS gaps (status codes, required fields, value types), extended to parameter location and
     response shape.
+
+## Stand-in validator run through Codex: Codex support added, three extractor bugs fixed, one gap left open (2026-09-24)
+
+One of the two validators uses the OpenAI Codex CLI, so a stand-in run was done with Codex as the operator. `gpt-6-astra` at medium effort played "Hyrum", knowing only the author's two messages and the public guide. The app was `abdoulayebinta/mini-express-recipes-api` @ `857d02fb`: Express 4, routers mounted under `/api/v1`, passport JWT, bcrypt, JSON files, no license (run locally only). The operator's report (`~/rd-validation/VALIDATION-REPORT.md`) was checked claim by claim against the files before anything was acted on.
+
+**What the run found (on 0.2.12):**
+- **Ingest found 3 of 8 routes.** `router.route('/:id').get(…).put(…).delete(…)` chains were never matched, and `app.use('/api/v1/users', usersRouter)` prefixes were ignored (`/signup`, not `/api/v1/users/signup`). A 404 on the wrong path still passes the generated "status < 500" check.
+- **All 3 generated tests came back unrunnable, with no reason given.** Reproduced: the app throws `JwtStrategy requires a secret or key` on import without its `.env`.
+- **The package had nothing for Codex.** Codex reads `AGENTS.md`, not `CLAUDE.md`, and `.codex/hooks.json`, not `.claude/settings.json`, so there was no guard and no heartbeat. Codex also refused the `rm -rf` the "delete the rebuild folder" note asks for.
+- Smaller: `lang: TypeScript` for a JavaScript app; `CLAUDE.md` pointing at `rules/` instead of `.claude/rules/`.
+
+**0.2.13 (unreleased) changes, each with tests (suite 649/649 across 91 files):**
+- **Express detector:**
+  - chained `.route()` registrations;
+  - mount prefixes through `require`/`import` bindings, inline requires, middleware arguments and nested routers;
+  - any router variable declared from `express()`/`Router()`, while lookalikes (`axios.get('/x')`) stay out.
+  - On the app: 8 of 8 routes, with their full paths. The earlier cold-run apps are unchanged (10 and 8 routes).
+- **`unrunnableReasons`:** the first error line per unrunnable test (import error, a throw at import, a timeout), plus a note on the usual causes.
+- **Codex support:**
+  - the package ships `AGENTS.md` and `.codex/hooks.json`, running the same guard and heartbeat;
+  - the guard reads `apply_patch` targets from its patch headers, unwraps argv-array shell commands, and locks `.codex/`.
+- **Guard message:** the block message no longer adds "did not run cleanly" to every deliberate block.
+- **Blocklist deadlock:** files in the exported app's static import closure are never blocklisted (below).
+- **Guide:** a Codex path, "check the copy starts" and route-count checks, "delete or move aside", and the empty-suite wording. The report form records the CLI.
+
+**Live checks on real Codex (0.153.4, `gpt-6-astra`, medium):**
+- **Guard challenge, hooks trusted:** 4 of 4 protected writes blocked (`apply_patch` into `spec/`, an untested contract, a shell append to `spec/`, an edit to `.codex/hooks.json`). The ordinary write was allowed, protected files were byte-identical afterward, and the heartbeat fired from `PostToolUse`.
+- **Hooks not trusted:** the same `apply_patch` into `spec/` **succeeded silently**. Codex runs a project's hooks only after the user trusts them at the startup review prompt (or `--dangerously-bypass-hook-trust` in automation). The guide now makes this step explicit, and the heartbeat check catches a skipped trust.
+- **Rebuild 1 hit a real deadlock.** `src/index.js` (the app export, whose `GET /` had only a weak test) and `usersRouter.js` (loaded at startup) were both blocklisted. Every visible test imports the app, so no test could ever load. The agent stopped and asked, correctly. Fixed: import-closure files stay off the blocklist, at the cost of guarding the untested routes inside them.
+- **Rebuild 2 stopped for a real reason, and this is left open.** The agent refused to build: "the contracts specify route declarations but no handler behavior, and both visible tests accept any status below 500—including a missing route's 404." That is accurate:
+  - the locked contract for `PUT /api/v1/recipes/:id` is the single line `.put(auth.authenticate(), updateRecipe)`;
+  - the handlers live in controller files the router only imports, so the contract carries no behavior;
+  - the mutation check mutates the router file, which has 1 applicable site, so its tests count as unassessed rather than weak.
+
+  The same signature-only gap made the todo-app rebuild break every caller while passing every test. Here a stricter agent refused rather than guess. Closing it means resolving identifier handlers to their definitions (through the router's imports) and including their source in the contract, and mutating that file.
+
+Not published. The validator guide on `main` still pins 0.2.12 until 0.2.13 is released.

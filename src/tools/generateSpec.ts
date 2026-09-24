@@ -47,7 +47,10 @@ export const generateSpecOutputSchema = z.object({
   pageVisionFallbacks: z.array(skippedPageOutputSchema).optional(),
   pageVisionFallbackNote: z.string().optional(),
   // Present only when Express API routes exist but none got a generated test.
-  apiTestNote: z.string().optional()
+  apiTestNote: z.string().optional(),
+  // Present only when unrunnableTests is non-empty: the first error line per file.
+  unrunnableReasons: z.record(z.string(), z.string()).optional(),
+  unrunnableNote: z.string().optional()
 });
 
 export const generateSpecConfig = {
@@ -221,7 +224,14 @@ export async function generateSpecHandler(args: z.infer<typeof generateSpecInput
             'One or more pages could not be vision-classified and fell back to regex-based classification for that page (see pageVisionFallbacks) — those pages\' dynamic-vs-static assertions may be less accurate.'
         }
       : {}),
-    ...(apiTestNote ? { apiTestNote } : {})
+    ...(apiTestNote ? { apiTestNote } : {}),
+    ...(Object.keys(mutationReport.unrunnableReasons).length > 0
+      ? {
+          unrunnableReasons: mutationReport.unrunnableReasons,
+          unrunnableNote:
+            'Each unrunnable test failed against your unmodified app, so it was set aside, not trusted (see unrunnableReasons for the first error from each). When most or all fail with the same error, the app usually cannot even be imported in a scratch copy: a missing environment variable its .env normally supplies, a service it connects to at startup, or a Node version its dependencies do not support. Fix that in your copy, delete or move aside the <repo>-rebuild/ directory this run wrote, and re-run generate_spec.'
+        }
+      : {})
   };
 
   return {

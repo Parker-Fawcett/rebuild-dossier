@@ -13,7 +13,12 @@ const GUARD_MATCHER = 'Edit|Write|MultiEdit|NotebookEdit|Bash';
 // unreadable, or crashes (node exits 1, which Claude Code treats as a
 // non-blocking error), the write is blocked instead of silently allowed —
 // the exact failure mode the old inline hook had.
-const GUARD_COMMAND = `node ${GUARD_HOOK_RELATIVE_PATH} || { echo "Blocked: the workspace write guard (${GUARD_HOOK_RELATIVE_PATH}) did not run cleanly; restore it before writing." >&2; exit 2; }`;
+// Exit 0 (allow) and 2 (a deliberate block) pass straight through; anything
+// else means the guard itself failed (missing script, no node, a crash) and
+// fails closed. The old `node guard || { ... }` also printed "did not run
+// cleanly" after every deliberate block, so a live Codex run told the agent
+// the guard was broken each time it worked.
+const GUARD_COMMAND = `node ${GUARD_HOOK_RELATIVE_PATH}; s=$?; if [ "$s" -eq 0 ] || [ "$s" -eq 2 ]; then exit "$s"; fi; echo "Blocked: the workspace write guard (${GUARD_HOOK_RELATIVE_PATH}) did not run cleanly; restore it before writing." >&2; exit 2`;
 
 // A target directory's own settings.json is never consulted at all when the
 // session was launched via Claude Code's Agent tool as a subagent (confirmed
@@ -56,6 +61,35 @@ export function generateSettingsJson(testCommand: string): DossierSettingsJson {
       PreToolUse: [
         {
           matcher: GUARD_MATCHER,
+          hooks: [{ type: 'command', command: GUARD_COMMAND }]
+        }
+      ]
+    }
+  };
+}
+
+// The same two hooks for the OpenAI Codex CLI, which reads <repo>/.codex/hooks.json
+// in the same nested matcher shape (confirmed live by the ablation's Codex
+// harness, ablation/codex/README.md). Codex's file-edit tool is apply_patch
+// (its Edit|Write matcher category also covers it) and its shell tool may
+// surface under other names, so the matchers list those too. Without this
+// file a Codex rebuild ran with no guard and no heartbeat at all (found in a
+// cold run by a Codex-using operator). Codex asks the user to trust a
+// project's hooks before running them.
+const CODEX_GUARD_MATCHER = `${GUARD_MATCHER}|apply_patch|shell|exec_command|local_shell`;
+
+export function generateCodexHooksJson(testCommand: string): DossierSettingsJson {
+  return {
+    hooks: {
+      PostToolUse: [
+        {
+          matcher: 'Edit|Write|apply_patch',
+          hooks: [{ type: 'command', command: `${WRITE_HOOK_HEARTBEAT_COMMAND} && ${testCommand}` }]
+        }
+      ],
+      PreToolUse: [
+        {
+          matcher: CODEX_GUARD_MATCHER,
           hooks: [{ type: 'command', command: GUARD_COMMAND }]
         }
       ]

@@ -241,6 +241,7 @@ export interface MutationCheckReport {
   results: MutationResult[];
   weakTestFiles: string[]; // had at least one applicable mutant, but killed none of them
   unrunnableTestFiles: string[]; // never passed even against the original, unmutated code
+  unrunnableReasons: Record<string, string>; // first error line per unrunnable file
 }
 
 // Generous enough for a Next.js dev-server boot (generateGateTests' own
@@ -252,7 +253,43 @@ function vitestRunTimeoutMs(): number {
   return Number.isFinite(fromEnv) && fromEnv > 0 ? fromEnv : DEFAULT_VITEST_RUN_TIMEOUT_MS;
 }
 
+interface VitestRun {
+  ok: boolean;
+  reason?: string; // first line of why it failed; set only when ok is false
+}
+
+// Found live in a cold run: a whole package's tests came back `unrunnable`
+// with no hint why (the app threw on import without a JWT_SECRET its own
+// .env would have supplied). The first meaningful error line is almost always
+// enough for an operator to fix their copy and re-run.
+function failureReason(run: ReturnType<typeof runWithWatchdog>, timeoutMs: number): string {
+  const clean = (t: string) => t.replace(/\u001b\[[0-9;]*m/g, '').split('\n').map((l) => l.trim()).find((l) => l.length > 0) ?? '';
+  const clip = (t: string) => (t.length > 300 ? `${t.slice(0, 297)}...` : t);
+  if (run.timedOut) return `timed out after ${Math.round(timeoutMs / 1000)}s (the test, or the app it starts, never finished)`;
+  try {
+    const report = JSON.parse(run.stdout.slice(run.stdout.indexOf('{'))) as {
+      testResults?: Array<{ message?: string; assertionResults?: Array<{ failureMessages?: string[] }> }>;
+    };
+    for (const file of report.testResults ?? []) {
+      if (file.message && clean(file.message)) return clip(clean(file.message));
+      for (const a of file.assertionResults ?? []) {
+        const first = a.failureMessages?.[0];
+        if (first && clean(first)) return clip(clean(first));
+      }
+    }
+  } catch {
+    // no JSON report; fall through to stderr
+  }
+  const lastErr = run.stderr.replace(/\u001b\[[0-9;]*m/g, '').split('\n').map((l) => l.trim()).filter(Boolean);
+  const errLine = lastErr.find((l) => /error/i.test(l)) ?? lastErr[lastErr.length - 1];
+  return clip(errLine ?? `vitest exited with code ${run.exitCode}`);
+}
+
 function runVitestOnce(scratchDir: string, testFilePath: string): boolean {
+  return runVitestDetailed(scratchDir, testFilePath).ok;
+}
+
+function runVitestDetailed(scratchDir: string, testFilePath: string): VitestRun {
   // A real regression, confirmed live: vitest 4.1.11 (still satisfying this
   // project's own "^4.0.0" range, so any fresh install can silently pick it
   // up) fails to match an ABSOLUTE test-file filter against --root on
@@ -288,13 +325,15 @@ function runVitestOnce(scratchDir: string, testFilePath: string): boolean {
       stderr: run.stderr.slice(-4000)
     });
   }
-  if (run.timedOut || run.exitCode !== 0) return false;
+  const timeoutMs = vitestRunTimeoutMs();
+  if (run.timedOut || run.exitCode !== 0) return { ok: false, reason: failureReason(run, timeoutMs) };
   try {
     const jsonStart = run.stdout.indexOf('{');
-    return JSON.parse(run.stdout.slice(jsonStart)).success === true;
+    if (JSON.parse(run.stdout.slice(jsonStart)).success === true) return { ok: true };
   } catch {
-    return false;
+    // fall through
   }
+  return { ok: false, reason: failureReason(run, timeoutMs) };
 }
 
 // Real, live-triggered finding (smoke test against a real 19-page Next.js
@@ -336,14 +375,14 @@ function removeScratchDirWithRetry(scratchDir: string): void {
 // zero real signal, which is worse than a weak test (0% kill rate) because a
 // weak test at least gets flagged and moved to tests/weak/ instead of
 // silently looking trustworthy.
-function passesBaseline(originalRepoPath: string, target: MutationTarget, authStorageStatePath?: string): boolean {
+function passesBaseline(originalRepoPath: string, target: MutationTarget, authStorageStatePath?: string): VitestRun {
   const scratchDir = prepareScratchCopy(originalRepoPath, authStorageStatePath);
   try {
     const testDir = join(scratchDir, 'tests', 'visible');
     mkdirSync(testDir, { recursive: true });
     const testFilePath = join(testDir, target.filename);
     writeFileSync(testFilePath, target.content);
-    return runVitestOnce(scratchDir, testFilePath);
+    return runVitestDetailed(scratchDir, testFilePath);
   } finally {
     removeScratchDirWithRetry(scratchDir);
   }
@@ -356,6 +395,7 @@ export function runMutationCheck(
 ): MutationCheckReport {
   const results: MutationResult[] = [];
   const unrunnableTestFiles: string[] = [];
+  const unrunnableReasons: Record<string, string> = {};
 
   const sitesBySourceFile = new Map<string, MutationSite[]>();
   for (const target of targets) {
@@ -368,8 +408,10 @@ export function runMutationCheck(
   }
 
   for (const target of targets) {
-    if (!passesBaseline(originalRepoPath, target, authStorageStatePath)) {
+    const baseline = passesBaseline(originalRepoPath, target, authStorageStatePath);
+    if (!baseline.ok) {
       unrunnableTestFiles.push(target.filename);
+      if (baseline.reason) unrunnableReasons[target.filename] = baseline.reason;
       continue;
     }
 
@@ -407,5 +449,5 @@ export function runMutationCheck(
       return forThisFile.length > 0 && forThisFile.every((r) => !r.killed);
     });
 
-  return { results, weakTestFiles, unrunnableTestFiles };
+  return { results, weakTestFiles, unrunnableTestFiles, unrunnableReasons };
 }

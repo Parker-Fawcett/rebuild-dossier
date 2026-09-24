@@ -19,8 +19,10 @@
 //     interpreter one-liners that write), with `cd` tracked across chained
 //     statements; pure reads (`cat spec/...`, `rg ... spec/`) stay allowed;
 //   - an unreadable blocklist or payload blocks instead of allowing;
-//   - the guard protects itself: .claude/settings.json and .claude/hooks/
-//     are locked like spec/.
+//   - the guard protects itself: .claude/settings.json, .claude/hooks/ and
+//     .codex/ (the Codex hook config) are locked like spec/;
+//   - Codex's apply_patch edits are checked by the paths in their patch
+//     headers, and argv-array shell commands are unwrapped (bash -lc "...").
 // Known limit, stated in the paper: shell parsing is heuristic. A write
 // hidden behind indirection it cannot see (a script file the agent wrote
 // earlier, eval of a computed string) is not caught.
@@ -35,6 +37,9 @@ import { readFileSync, existsSync, realpathSync } from 'node:fs';
 import { resolve, dirname, basename, join, sep } from 'node:path';
 
 const FOLD = process.platform === 'darwin' || process.platform === 'win32';
+const SHELL_TOOLS = new Set(['Bash', 'shell', 'exec_command', 'local_shell', 'container.exec']);
+const PATCH_HEADER = /^\*\*\* (?:Begin Patch|Add File:|Update File:|Delete File:)/m;
+const PATCH_TARGETS = /^\*\*\* (?:Add File|Update File|Delete File|Move to): (.+)$/gm;
 const UNTESTED_MSG = 'this file corresponds to a locked contract with no associated test in tests/visible/ yet. ' +
   'Building it now is batch regeneration, which this workspace disallows -- work test-by-test. ' +
   'If this file genuinely must be built ahead of a failing test, stop and ask first.';
@@ -139,6 +144,7 @@ process.stdin.on('end', () => {
   const specDir = canonical('spec', cwd);
   const settings = canonical('.claude/settings.json', cwd);
   const hooksDir = canonical('.claude/hooks', cwd);
+  const codexDir = canonical('.codex', cwd);
   let untested = [];
   const listPath = join(cwd, 'spec', 'untested-contracts.json');
   if (existsSync(listPath)) {
@@ -152,14 +158,25 @@ process.stdin.on('end', () => {
   }
   const reason = (p) => {
     if (within(p, specDir)) return 'spec/ is locked — do not edit files under spec/.';
-    if (p === settings || within(p, hooksDir)) return 'the workspace guard and its settings are locked.';
+    if (p === settings || within(p, hooksDir) || within(p, codexDir)) return 'the workspace guard and its settings are locked.';
     if (untested.includes(p)) return UNTESTED_MSG;
     return null;
   };
   const input = j.tool_input || {};
   const targets = [];
-  if (j.tool_name === 'Bash') targets.push(...bashTargets(String(input.command || ''), cwd));
-  else for (const k of ['file_path', 'notebook_path', 'path']) if (typeof input[k] === 'string') targets.push([input[k], cwd]);
+  // Codex edits files with apply_patch: no file_path field, the targets are
+  // the patch's own "*** Add/Update/Delete File:" and "*** Move to:" headers.
+  const patch = [input.command, input.patch, input.input].find((v) => typeof v === 'string' && PATCH_HEADER.test(v));
+  // Codex may pass a shell command as an argv array (bash -lc "...").
+  const argv = Array.isArray(input.command) ? input.command.map(String) : null;
+  const command = argv ? (argv.length >= 3 && /^-l?c$/.test(argv[1]) ? argv[argv.length - 1] : argv.join(' ')) : String(input.command || '');
+  if (patch) {
+    for (const m of patch.matchAll(PATCH_TARGETS)) targets.push([m[1].trim(), cwd]);
+  } else if (SHELL_TOOLS.has(j.tool_name) || (command && !('file_path' in input))) {
+    targets.push(...bashTargets(command, cwd));
+  } else {
+    for (const k of ['file_path', 'notebook_path', 'path']) if (typeof input[k] === 'string') targets.push([input[k], cwd]);
+  }
   for (const [t, base] of targets) {
     for (const variant of [t, t.replace(/\\(.)/g, '$1')]) {
       const why = reason(canonical(variant, base));
