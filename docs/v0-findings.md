@@ -5757,3 +5757,46 @@ The last two pre-registered reps (`rev-ultra-rep1` re-run, `rev-ultra-rep2`) fin
   the repository). It now calls it an earlier extended report and frozen mirror.
 - §III and Threats test counts updated to 611/90. Main text still ends on p.10, 0 errors, 0 undefined
   references.
+
+## Cold run of the validator guide: under `npx`, 0.2.9–0.2.10 could not run the mutation check at all (2026-09-24)
+
+Before sending `docs/validators.md` to the external validators, the author ran it literally, as a
+stranger would, on an app neither had touched: `uroojismail48/Crew` at `d9101fff` (Next.js App
+Router, 8 routes, user CRUD over an in-memory array; picked by pre-stated criteria: public, small,
+App Router or Express, no database or credentials, never used before; no license, so run locally
+and not redistributed).
+- **The finding.** `generate_spec` on `rebuild-dossier@0.2.10` (via `npx`, as the guide says)
+  finished in 72 s and reported `mutationsChecked: 0` with **all 8 tests `unrunnable`**, leaving
+  `tests/visible` and `tests/held-out` empty. The package was useless, and nothing said why.
+- **Root cause, traced.** 0.2.9's `b14b349` moved `vitest` from dependencies to devDependencies to
+  fix the cold-install arborist crash logged earlier, reasoning that runtime code never imports
+  it. The mutation check does not import vitest, but it *runs* `vitest.mjs` from the tool's own
+  install, and `npx` never installs devDependencies. Every baseline run then failed with
+  `Cannot find module …/vitest/vitest.mjs`, and every test was classed unrunnable. Confirmed three
+  ways: `npm view` shows vitest in 0.2.7/0.2.8's dependencies and absent from 0.2.9/0.2.10's; the
+  missing path in the npx cache; the same generated test passing on the unmodified app with a
+  real vitest.
+- **Why no earlier check caught it.** Every study in the paper ran packages generated from the repo
+  checkout, where devDependencies are installed, so none are affected. The 0.2.9 quickstart check
+  only ran `--help`. The 0.2.10 post-publish check covered a cold install and the MCP handshake. The
+  Madeline smoke test imported `dist/` from the repo.
+- **Fix options, tested empirically on a cold npm cache:** vitest back in dependencies still
+  crashes arborist (`edgesOut`); `npx -p rebuild-dossier -p vitest` crashes the same way; a
+  separate `npm install --prefix <dir> vitest@4.1.10 --legacy-peer-deps` succeeds (34 MB).
+- **0.2.11** (`src/mutation/vitestRunner.ts`) resolves vitest in this order: an env override, then
+  the tool's own install, then a pinned runner in `~/.cache/rebuild-dossier/` installed on first
+  use. If none works, it **throws a clear error** instead of degrading. 6 new tests; suite
+  617/617 across 91 files.
+- **End-to-end check on the real install path:** the packed 0.2.11 tarball, launched by `npx` with
+  an empty npm cache and no runner on the machine, via `claude -p --strict-mcp-config`, on a fresh
+  copy of Crew. `generate_spec` installed the runner and checked **31 mutation sites**. Result:
+  2 visible page tests, 1 held-out (`PUT`), 5 weak "doesn't crash" API tests, and
+  `POST /api/users/:id` correctly unrunnable (the original crashes on an unknown id). The app
+  copy's `db.js` was untouched, although its handlers write to it.
+- **Other cold-run notes, folded into the guide:** Playwright's install prints an alarming but
+  harmless "install your project's dependencies first" warning; a user-scope `rebuild-dossier`
+  registration would leak into the rebuild session (true on the author's machine); `next dev`
+  writes `AGENTS.md`/`CLAUDE.md` into the app copy during capture (harmless, copy only).
+- **Paper:** no claim changes, since its runs used the repo checkout. The artifact list's
+  "install-breaking dependency fix" is the 0.2.9 change that introduced this regression; this entry
+  is the record of it. The E7 pin moves to 0.2.11 (PREREGISTRATION §12 deviation).

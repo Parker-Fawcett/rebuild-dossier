@@ -289,7 +289,8 @@ array in the source vs. a `fetch`/`useState` call — rather than only guessing 
 rendered string looks like. Both variables are required together on purpose: an ambient
 `GROQ_API_KEY` left over from some unrelated tool must never silently start sending this target
 repo's code to a third party. Neither variable set (the default) means zero behavior change and
-zero network calls beyond what `generate_spec` already does.
+zero network calls beyond what `generate_spec` already does (the only one is a one-time download of
+the pinned `vitest` runner the mutation check uses, into `~/.cache/rebuild-dossier/`, the first time it runs).
 
 This is real added cost, not free: one Groq API call per captured page, plus a deliberate ~20s
 pacing delay between pages (Groq's free tier has a tight per-minute token budget, and firing

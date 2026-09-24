@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.11] - 2026-09-24
+
+Upgrade required if you installed with `npx`: from 0.2.9 through 0.2.10 the mutation check could not run at all.
+
+### Fixed
+- **Every generated test was marked `unrunnable` under `npx`.** 0.2.9 moved `vitest` to devDependencies to fix an npm arborist crash on cold installs, but the mutation check runs vitest itself, and npx never installs devDependencies. Every test failed its baseline, and `generate_spec` reported 0 mutation sites with no error. The tool now finds vitest in its own install, or installs a pinned `vitest@4.1.10` once into `~/.cache/rebuild-dossier/` with `--legacy-peer-deps` (which avoids the crash). If neither works, `generate_spec` stops with a clear error instead of silently degrading. Override with `REBUILD_DOSSIER_VITEST_ENTRY` or `REBUILD_DOSSIER_RUNNER_DIR`.
+
+### Changed
+- The first `generate_spec` on a machine downloads that runner from the npm registry (about 34 MB), the only network fetch the default path makes beyond `npx` itself.
+
 ## [0.2.10] - 2026-09-23
 
 Upgrade strongly recommended: earlier releases did not enforce the untested-contracts rail at all.
