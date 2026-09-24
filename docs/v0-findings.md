@@ -5738,3 +5738,22 @@ The last two pre-registered reps (`rev-ultra-rep1` re-run, `rev-ultra-rep2`) fin
 - **Manuscript:** §V-B and Appendix C now report the revision completing at `xhigh` and `ultra`
   (4/4), meeting the pre-registered rule, and the abstract calls the fix "robust to effort." To
   stay at 10 pages, Appendix A's trial-2 re-run sentence was cut; Table IV and §V-E already state it.
+
+## Final paper pin: `v0.2.14-paper` (2026-09-24 01:07Z)
+
+- Tag `v0.2.14-paper` → commit `7464703` (PR #41's merge), GitHub release created, Zenodo version
+  DOI **10.5281/zenodo.22928034** (concept DOI 10.5281/zenodo.22036800). Suite at that commit:
+  611 passing across 90 files. Code is identical to npm `rebuild-dossier@0.2.10`.
+- `v0.2.13-paper` (→ 41672c1, no release, never cited) was deleted. The new pin takes a fresh name
+  rather than re-pointing it, since the old tag was public for ~11 hours.
+- **Manuscript artifact block rewritten.** It cites the tag, the real commit and the version DOI;
+  the concept DOI appears only as "lists all versions."
+- **Two older citation errors corrected on the way:**
+  - The paper gave `81b09de` as `v0.2.12-paper`'s commit. That is the annotated tag object's SHA;
+    the commit is `3db5cb7`.
+  - The paper said the concept DOI "currently" pointed at the paper version. By the time of the
+    v0.2.10 npm release it pointed at that release instead, and it will keep moving.
+- The arXiv sentence no longer says the report is "archived at the version DOI above" (it is not in
+  the repository). It now calls it an earlier extended report and frozen mirror.
+- §III and Threats test counts updated to 611/90. Main text still ends on p.10, 0 errors, 0 undefined
+  references.
