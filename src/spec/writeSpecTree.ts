@@ -2,7 +2,8 @@ import { existsSync, mkdirSync, writeFileSync, renameSync, rmSync, copyFileSync 
 import { randomUUID } from 'node:crypto';
 import { join, dirname, basename } from 'node:path';
 import type { EvidenceBundle } from '../ingest/evidenceSchema.js';
-import type { Case } from '../reconciliation/types.js';
+import type { Case, KnownBug } from '../reconciliation/types.js';
+import { loadKnownBugs } from '../state/knownBugs.js';
 import { generateClaudeMd } from './generateClaudeMd.js';
 import { generateTestingRule } from './generateRules.js';
 import { generateCodexHooksJson, generateSettingsJson } from './generateSettingsJson.js';
@@ -108,15 +109,32 @@ function sanitizeTopicKeyFilename(topicKey: string): string {
   );
 }
 
-function decisionMarkdown(kase: Case): string {
+// What a decision means for the rebuild, in words an agent can't misread.
+// Found live: a rebuild agent read "Decision: bug" as "reproduce the bug
+// as-is", the opposite of what flagging a known bug means.
+function decisionMeaning(decision: string): string | undefined {
+  const d = decision.trim().toLowerCase();
+  if (d === 'bug' || d.startsWith('bug')) {
+    return 'This behavior is a known bug in the original app. Do NOT reproduce it: implement the intended behavior described below. Everything else about the route still follows its contract.';
+  }
+  if (d === 'intentional' || d.startsWith('intentional')) {
+    return 'This behavior is intentional in the original app. Reproduce it as-is, even if it looks odd.';
+  }
+  return undefined;
+}
+
+function decisionMarkdown(kase: Case, knownBugs: KnownBug[] = []): string {
   const decision = kase.autoResolution?.decision ?? kase.humanDecision?.decision ?? 'unresolved';
   const reason = kase.autoResolution?.reason ?? kase.humanDecision?.note;
   const signalLines = kase.signals.map((s) => `- (${s.source}) ${s.claim}`).join('\n');
+  const meaning = decisionMeaning(decision);
+  const bugs = knownBugs.filter((b) => (kase.matchedKnownBugs ?? []).includes(b.id));
+  const bugLines = bugs.map((b) => `- ${b.description}`).join('\n');
   return `# Decision: ${kase.topicKey}
 
 - **Status:** ${kase.status}
 - **Decision:** ${decision}
-${reason ? `- **Reason:** ${reason}\n` : ''}
+${meaning ? `- **What this means for the rebuild:** ${meaning}\n` : ''}${reason ? `- **Reason:** ${reason}\n` : ''}${bugLines ? `\n## Known bugs this covers (as flagged by the owner)\n\n${bugLines}\n` : ''}
 ## Evidence
 
 ${signalLines || '(no signals recorded)'}
@@ -255,8 +273,9 @@ async function writeSpecTreeInto(
     );
   }
 
+  const knownBugs = loadKnownBugs(repoPath);
   for (const kase of cases.filter((c) => c.status !== 'open')) {
-    writeFileSync(join(outputDir, 'spec', sanitizeTopicKeyFilename(kase.topicKey)), decisionMarkdown(kase));
+    writeFileSync(join(outputDir, 'spec', sanitizeTopicKeyFilename(kase.topicKey)), decisionMarkdown(kase, knownBugs));
   }
 
   writeFileSync(join(outputDir, 'kickoff-prompt.txt'), KICKOFF_PROMPT);

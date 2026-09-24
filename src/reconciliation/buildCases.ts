@@ -30,8 +30,14 @@ function groupByTopicKey(signals: Signal[]): Map<string, Signal[]> {
 // silently vanish instead of surfacing — worse than the silent-agreement
 // failure mode this tool exists to catch.
 function seedOrphanedKnownBugGroups(grouped: Map<string, Signal[]>, knownBugs: KnownBug[]): void {
+  // Only real signal groups count as "already covered". Checking against the
+  // synthetic groups seeded here let a second flagged bug match the first's
+  // description by word overlap (both name /api/v1/recipes), so three flagged
+  // bugs collapsed into one case and two descriptions never reached the
+  // package. Found live, twice: 5 flags -> 1 decision, and 3 -> 1.
+  const realGroups = [...grouped.entries()].filter(([key]) => !key.startsWith('known-bug:')).map(([, signals]) => signals);
   for (const bug of knownBugs) {
-    const alreadyCovered = [...grouped.values()].some((signals) => matchKnownBug(bug, signals));
+    const alreadyCovered = realGroups.some((signals) => matchKnownBug(bug, signals));
     if (alreadyCovered) continue;
 
     const topicKey = `known-bug:${bug.id}`;
@@ -114,7 +120,9 @@ export function buildCases(repoPath: string): Case[] {
       cases.push(existing);
       continue;
     }
-    cases.push(classifyCase({ id, topicKey, signals, knownBugs }));
+    // A bug's own seeded case matches that bug only, not its neighbors.
+    const ownBug = topicKey.startsWith('known-bug:') ? knownBugs.filter((k) => `known-bug:${k.id}` === topicKey) : knownBugs;
+    cases.push(classifyCase({ id, topicKey, signals, knownBugs: ownBug }));
   }
 
   attachNearDuplicateCrossReferences(repoPath, cases);

@@ -5974,3 +5974,24 @@ The Codex rebuild above refused to build because contracts held only registratio
   - Told to fix them, it then stopped on the empty `tests/visible/`.
   - The final run, with the bugs flagged and the guide's answer ready, hit the Codex usage limit before its first edit. **The full build-from-contracts rebuild has not yet been observed.**
 - Regression: the todo app regenerates identically (130 sites, 4 visible, 1 held-out, 5 weak). Suite 653/653 across 92 files.
+
+## Build-from-contracts rebuild, Claude Code (Sonnet 5), recipes app (2026-09-24 ~16:35Z)
+
+Codex was rate-limited, so the same sealed package was rebuilt with Claude Code (`claude-sonnet-5`, headless). Source, siblings and held-out tests were hidden. Three owner-flagged bugs were in the package.
+- **Two more bugs found first, both fixed:**
+  - **Flagged bugs collapsed.** 3 flags produced 1 decision file (the stand-in operator saw 5 → 1). `seedOrphanedKnownBugGroups` let each later bug match the first bug's *synthetic* case by word overlap. Now each bug gets its own case, matched only to itself; regression test added.
+  - **The decision wording misled.** A rebuild agent read "Decision: bug" as "reproduce it as-is". Decision files now say "known bug … Do NOT reproduce it: implement the intended behavior", with each bug's description.
+- **After regenerating (3 decision files), the agent stated them correctly** ("telling me to fix, not reproduce"). It then stopped on the empty `tests/visible/`, as `noVisibleTestsNote` predicted, and was given the guide's answer ("build from the contracts one route at a time, treating `tests/weak/` as hints").
+- **Result: all 8 routes built in 4.2 minutes**, in the original's own structure (routers, controllers, services, middleware). Heartbeat count 13; `spec/` untouched (mtimes predate the session). The agent listed its own judgment calls, all of them gaps in extraction:
+  - the auth middleware's code (`auth.authenticate()` is middleware, not the handler, so it's in no contract);
+  - the 404 response shape;
+  - seed data.
+- **Side by side, the same 14-request sequence against both:**
+  - **Every correctly-working behavior matched:** the `GET /` redirect; `{data}` list and item shapes; 401 without a token; `{token}` from signup and login; 201 `{data}` on create.
+  - **All three flagged bugs fixed as asked:** wrong password 401 (was 200 with a token); `PUT` 200 (was 500); `DELETE` 204 (was 500).
+  - **It also fixed one unflagged bug:** a missing id is a 404, where the original crashes the server.
+  - **Remaining differences are app-level setup no contract covers:**
+    - error responses are Express's default HTML, where the original's `app.use(handleError)` returns JSON `{status,statusCode,message}`;
+    - the rebuild starts with no recipes (the original has 12 seeded);
+    - it never calls `listen`, so `node src/index.js` doesn't serve.
+- Compared with the same app before handler resolution (a contract of one line per route, and a Codex agent that refused to build), the contracts now carry enough behavior for a faithful rebuild of every route handler. What's missing is app-level: error middleware, auth strategy, startup, seed data.
