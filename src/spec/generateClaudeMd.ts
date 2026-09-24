@@ -33,7 +33,7 @@ ${input.stackLines.join('\n')}
   break something that was passing. Re-run the full visible suite,
   not just the test you were targeting, before considering a change
   complete.
-- See rules/ for topic-specific conventions.
+- See .claude/rules/ for topic-specific conventions.
 
 ## Working style
 - Prefer small, verifiable increments over large rewrites: fix one

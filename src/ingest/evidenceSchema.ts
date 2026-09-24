@@ -20,7 +20,11 @@ export const routeEntrySchema = z.object({
   method: z.string().optional(),
   file: z.string(),
   kind: routeKindSchema,
-  startLine: z.number().int().optional()
+  startLine: z.number().int().optional(),
+  // The path exactly as written at the registration, when a mount prefix
+  // makes `path` differ from it (Express `app.use('/api', router)`): the
+  // source-reading extractors have to find the literal, not the full path.
+  sourcePath: z.string().optional()
 });
 export type RouteEntry = z.infer<typeof routeEntrySchema>;
 

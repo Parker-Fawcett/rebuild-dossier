@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.13] - 2026-09-24
+
+Found by a stand-in validator run through the OpenAI Codex CLI, on an unfamiliar Express app with routers, JWT auth and JSON-file storage.
+
+### Added
+- **Codex support.** Every package now also ships `AGENTS.md` (the same rules as `CLAUDE.md`, which Codex doesn't read) and `.codex/hooks.json`, which runs the same write guard and heartbeat. The guard now reads Codex's `apply_patch` edits by their `*** Add/Update/Delete File:` and `*** Move to:` headers, unwraps argv-array shell commands, and locks `.codex/`. Checked live on Codex CLI 0.153.4: 4 of 4 protected writes were blocked and an ordinary write was allowed. **Codex runs a project's hooks only after you trust them** (the startup review prompt); untrusted, nothing is guarded, and nothing says so. The validator guide covers both CLIs.
+- **`unrunnableReasons`** in `generate_spec`'s output: the first error line for each test that failed against the unmodified app, plus a note on the usual cause (the app can't start in a scratch copy: a missing `.env` value, a service, a Node version). Before this, a package could come back entirely unrunnable with no clue why.
+
+- **Contracts now carry the handler's code, not just its registration line.** For each Express route, the handler is followed from the registration, including by name through `require`/`import` into controller files, and its source is written into the contract verbatim, plus the local functions it calls (one level: services, file-persistence helpers). The same resolved code now feeds the extractors (request fields, success status, response fields, validation), and the mutation check mutates the handler's file instead of the router. Before this, `router.put('/:id', auth, updateRecipe)` produced a contract with no behavior, tests that looked trusted only because the router file had nothing to mutate, and a Codex rebuild that correctly refused to guess. With it, the same agent read the behavior and reported three real bugs in the original app before building.
+
+### Fixed
+- **Flagged known bugs collapsed into one decision.** A second flagged bug matched the first's synthetic case by shared words (both named `/api/v1/recipes`), so 3 flags produced 1 decision file, and only the first description reached the package (5 → 1 in the stand-in validator's run). Each flagged bug now gets its own case, matched only to itself.
+- **"Decision: bug" was read as "reproduce the bug."** Decision files now spell it out: "known bug in the original app. Do NOT reproduce it: implement the intended behavior", and they list each covered bug's description, not just its id.
+- **Express routes chained with `router.route('/x').get(…).post(…)` were invisible.** They're now one route per method.
+- **Router mount prefixes were ignored.** `app.use('/api/v1/users', usersRouter)` now makes `usersRouter`'s `/signup` into `/api/v1/users/signup`. Mounts resolve through `require`/`import` bindings, inline `require(...)`, middleware arguments, and nested routers. Before this, generated tests hit paths that 404 (which still passes "status < 500"). On the cold-run app, routes found went from 3 of 8 to 8 of 8.
+- Route detection accepts any router variable declared from `express()`/`Router()`, not only `app`/`router`, and still ignores lookalikes such as `axios.get('/x')`.
+- **The blocklist could deadlock an Express rebuild.** When the file that exports the app (or a router it loads at startup) had only weak tests, it went on `untested-contracts.json`. Every API test imports the app, so the agent couldn't create the one file all of them need; a Codex rebuild stopped and asked, correctly. Files in the exported app's static import closure are no longer blocklisted. The cost is that untested routes inside them go unguarded, the same file-level limit a single-file app already has.
+- **Every deliberate block also said the guard "did not run cleanly".** The hook command's fallback ran on any non-zero exit, including an intentional block, so agents were told a working guard was broken. It now runs only when the guard itself fails.
+- The generated `CLAUDE.md` said `TypeScript` for JavaScript apps, and pointed to `rules/` instead of `.claude/rules/`.
+- The "delete the `<repo>-rebuild/` folder" advice now says "delete or move aside", since Codex refuses `rm -rf`.
+
 ## [0.2.12] - 2026-09-24
 
 Found by a second cold run of `docs/validators.md`, on an unfamiliar Express app.

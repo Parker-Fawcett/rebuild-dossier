@@ -41,6 +41,30 @@ describe('runMutationCheck baseline-pass check', () => {
     expect(report.unrunnableTestFiles).toEqual([brokenTarget.filename]);
     expect(report.weakTestFiles).toEqual([]); // must not be conflated with a weak-but-runnable test
     expect(report.results.filter((r) => r.testFile === brokenTarget.filename)).toEqual([]); // no fake "killed" results
+    // Cold-run regression: unrunnable used to come with no reason at all.
+    expect(report.unrunnableReasons[brokenTarget.filename]).toMatch(/does-not-exist/);
+  }, 60000);
+
+  it('reports the error an app throws at import as the reason, e.g. a missing secret', () => {
+    const aliasedRepoPath = join(here, '../../fixtures/aliased-repo');
+    const evidence: EvidenceBundle = {
+      repoPath: aliasedRepoPath,
+      generatedAt: now,
+      packageJson: { scripts: {}, dependencies: { express: '^4.19.0' }, devDependencies: {} },
+      buildConfig: [],
+      routes: [{ path: '/api/users/:id', method: 'GET', file: 'src/server.ts', kind: 'api', startLine: 6 }],
+      existingTests: [],
+      signals: []
+    };
+    const { visible, heldOut } = generateTests(aliasedRepoPath, evidence, []);
+    const target = [...visible, ...heldOut][0]!;
+    const throwingTarget = {
+      ...target,
+      content: "import { it } from 'vitest';\nthrow new TypeError('JwtStrategy requires a secret or key');\nit('never runs', () => {});\n"
+    };
+    const report = runMutationCheck(aliasedRepoPath, [throwingTarget]);
+    expect(report.unrunnableTestFiles).toEqual([throwingTarget.filename]);
+    expect(report.unrunnableReasons[throwingTarget.filename]).toContain('JwtStrategy requires a secret or key');
   }, 60000);
 });
 
@@ -72,6 +96,7 @@ describe('runMutationCheck per-run cap', () => {
     try {
       const report = runMutationCheck(aliasedRepoPath, [hungTarget]);
       expect(report.unrunnableTestFiles).toEqual([hungTarget.filename]);
+      expect(report.unrunnableReasons[hungTarget.filename]).toMatch(/^timed out after 4s/);
     } finally {
       if (previous === undefined) delete process.env.REBUILD_DOSSIER_MUTATION_TIMEOUT_MS;
       else process.env.REBUILD_DOSSIER_MUTATION_TIMEOUT_MS = previous;

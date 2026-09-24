@@ -5919,3 +5919,95 @@ exported. Picked by the same pre-stated criteria; no license, so run locally onl
     rebuild no existing client could use. It is the third-party version of the notarybox and
     NextTS gaps (status codes, required fields, value types), extended to parameter location and
     response shape.
+
+## Stand-in validator run through Codex: Codex support added, three extractor bugs fixed, one gap left open (2026-09-24)
+
+One of the two validators uses the OpenAI Codex CLI, so a stand-in run was done with Codex as the operator. `gpt-6-astra` at medium effort played "Hyrum", knowing only the author's two messages and the public guide. The app was `abdoulayebinta/mini-express-recipes-api` @ `857d02fb`: Express 4, routers mounted under `/api/v1`, passport JWT, bcrypt, JSON files, no license (run locally only). The operator's report (`~/rd-validation/VALIDATION-REPORT.md`) was checked claim by claim against the files before anything was acted on.
+
+**What the run found (on 0.2.12):**
+- **Ingest found 3 of 8 routes.** `router.route('/:id').get(…).put(…).delete(…)` chains were never matched, and `app.use('/api/v1/users', usersRouter)` prefixes were ignored (`/signup`, not `/api/v1/users/signup`). A 404 on the wrong path still passes the generated "status < 500" check.
+- **All 3 generated tests came back unrunnable, with no reason given.** Reproduced: the app throws `JwtStrategy requires a secret or key` on import without its `.env`.
+- **The package had nothing for Codex.** Codex reads `AGENTS.md`, not `CLAUDE.md`, and `.codex/hooks.json`, not `.claude/settings.json`, so there was no guard and no heartbeat. Codex also refused the `rm -rf` the "delete the rebuild folder" note asks for.
+- Smaller: `lang: TypeScript` for a JavaScript app; `CLAUDE.md` pointing at `rules/` instead of `.claude/rules/`.
+
+**0.2.13 (unreleased) changes, each with tests (suite 649/649 across 91 files):**
+- **Express detector:**
+  - chained `.route()` registrations;
+  - mount prefixes through `require`/`import` bindings, inline requires, middleware arguments and nested routers;
+  - any router variable declared from `express()`/`Router()`, while lookalikes (`axios.get('/x')`) stay out.
+  - On the app: 8 of 8 routes, with their full paths. The earlier cold-run apps are unchanged (10 and 8 routes).
+- **`unrunnableReasons`:** the first error line per unrunnable test (import error, a throw at import, a timeout), plus a note on the usual causes.
+- **Codex support:**
+  - the package ships `AGENTS.md` and `.codex/hooks.json`, running the same guard and heartbeat;
+  - the guard reads `apply_patch` targets from its patch headers, unwraps argv-array shell commands, and locks `.codex/`.
+- **Guard message:** the block message no longer adds "did not run cleanly" to every deliberate block.
+- **Blocklist deadlock:** files in the exported app's static import closure are never blocklisted (below).
+- **Guide:** a Codex path, "check the copy starts" and route-count checks, "delete or move aside", and the empty-suite wording. The report form records the CLI.
+
+**Live checks on real Codex (0.153.4, `gpt-6-astra`, medium):**
+- **Guard challenge, hooks trusted:** 4 of 4 protected writes blocked (`apply_patch` into `spec/`, an untested contract, a shell append to `spec/`, an edit to `.codex/hooks.json`). The ordinary write was allowed, protected files were byte-identical afterward, and the heartbeat fired from `PostToolUse`.
+- **Hooks not trusted:** the same `apply_patch` into `spec/` **succeeded silently**. Codex runs a project's hooks only after the user trusts them at the startup review prompt (or `--dangerously-bypass-hook-trust` in automation). The guide now makes this step explicit, and the heartbeat check catches a skipped trust.
+- **Rebuild 1 hit a real deadlock.** `src/index.js` (the app export, whose `GET /` had only a weak test) and `usersRouter.js` (loaded at startup) were both blocklisted. Every visible test imports the app, so no test could ever load. The agent stopped and asked, correctly. Fixed: import-closure files stay off the blocklist, at the cost of guarding the untested routes inside them.
+- **Rebuild 2 stopped for a real reason, and this is left open.** The agent refused to build: "the contracts specify route declarations but no handler behavior, and both visible tests accept any status below 500—including a missing route's 404." That is accurate:
+  - the locked contract for `PUT /api/v1/recipes/:id` is the single line `.put(auth.authenticate(), updateRecipe)`;
+  - the handlers live in controller files the router only imports, so the contract carries no behavior;
+  - the mutation check mutates the router file, which has 1 applicable site, so its tests count as unassessed rather than weak.
+
+  The same signature-only gap made the todo-app rebuild break every caller while passing every test. Here a stricter agent refused rather than guess. Closing it means resolving identifier handlers to their definitions (through the router's imports) and including their source in the contract, and mutating that file.
+
+Not published. The validator guide on `main` still pins 0.2.12 until 0.2.13 is released.
+
+## Closing the signature-only contract gap for Express (2026-09-24, same branch)
+
+The Codex rebuild above refused to build because contracts held only registration lines. Closed as follows, still in 0.2.13:
+- **`resolveExpressHandler`** follows a route's handler to its code:
+  - inline, a local definition, or by name through destructured `require`, a module member, or ESM named/default/star imports, into controller files;
+  - plus one level of the local functions it calls (services, persistence helpers).
+  - On the recipes app all 8 handlers resolved, e.g. `handleLogin` → `usersService#find` and `#authenticate`.
+- **Contracts gain a "Handler (verbatim from source)" section** with that code and its callees. The single-file todo app's contracts now show that `POST /users` reads `req.query.name`: the query-vs-body detail its earlier all-green rebuild got wrong.
+- **The extractors (request fields, success status, response fields, validation) now analyze the resolved handler**, via a synthesized registration. On the recipes app they went from nothing to real field names, statuses and response fields.
+- **The mutation check now mutates the handler's file, not the router.** Routes are recorded with `sourcePath`, the path as written, so mount prefixes don't break source matching. Handler isolation accepts any receiver and chained `.route()`, and returns nothing for handlers passed by name instead of isolating an unrelated function.
+- **Tests on this app are now honestly weak or unrunnable.** Before, they were trusted only because the router file had nothing to mutate. Real fields and statuses made them fail for real reasons: 401 without a JWT, 500 on placeholder values, the app's own hang on an unknown ID. A plain `GET` with no dynamic segment now also asserts its inferred status, since the baseline run sets aside a wrong guess. `getAllRecipes` still kills no mutant: 5 applicable sites in the whole run.
+- **`noVisibleTestsNote`:** `generate_spec` now says when no test survived as visible. The guide says a fair answer, if the agent asks, is "build from the contracts one route at a time".
+- **Live effect, Codex `gpt-6-astra`:**
+  - With handler code in the contracts, the rebuild agent read the behavior and reported three real bugs in the original before writing anything: `PUT` reads instead of writing, `DELETE` calls `res.statusCode(204)` as a function, login ignores the password check. These are the same three the stand-in operator flagged from the source.
+  - Told to fix them, it then stopped on the empty `tests/visible/`.
+  - The final run, with the bugs flagged and the guide's answer ready, hit the Codex usage limit before its first edit. **The full build-from-contracts rebuild has not yet been observed.**
+- Regression: the todo app regenerates identically (130 sites, 4 visible, 1 held-out, 5 weak). Suite 653/653 across 92 files.
+
+## Build-from-contracts rebuild, Claude Code (Sonnet 5), recipes app (2026-09-24 ~16:35Z)
+
+Codex was rate-limited, so the same sealed package was rebuilt with Claude Code (`claude-sonnet-5`, headless). Source, siblings and held-out tests were hidden. Three owner-flagged bugs were in the package.
+- **Two more bugs found first, both fixed:**
+  - **Flagged bugs collapsed.** 3 flags produced 1 decision file (the stand-in operator saw 5 → 1). `seedOrphanedKnownBugGroups` let each later bug match the first bug's *synthetic* case by word overlap. Now each bug gets its own case, matched only to itself; regression test added.
+  - **The decision wording misled.** A rebuild agent read "Decision: bug" as "reproduce it as-is". Decision files now say "known bug … Do NOT reproduce it: implement the intended behavior", with each bug's description.
+- **After regenerating (3 decision files), the agent stated them correctly** ("telling me to fix, not reproduce"). It then stopped on the empty `tests/visible/`, as `noVisibleTestsNote` predicted, and was given the guide's answer ("build from the contracts one route at a time, treating `tests/weak/` as hints").
+- **Result: all 8 routes built in 4.2 minutes**, in the original's own structure (routers, controllers, services, middleware). Heartbeat count 13; `spec/` untouched (mtimes predate the session). The agent listed its own judgment calls, all of them gaps in extraction:
+  - the auth middleware's code (`auth.authenticate()` is middleware, not the handler, so it's in no contract);
+  - the 404 response shape;
+  - seed data.
+- **Side by side, the same 14-request sequence against both:**
+  - **Every correctly-working behavior matched:** the `GET /` redirect; `{data}` list and item shapes; 401 without a token; `{token}` from signup and login; 201 `{data}` on create.
+  - **All three flagged bugs fixed as asked:** wrong password 401 (was 200 with a token); `PUT` 200 (was 500); `DELETE` 204 (was 500).
+  - **It also fixed one unflagged bug:** a missing id is a 404, where the original crashes the server.
+  - **Remaining differences are app-level setup no contract covers:**
+    - error responses are Express's default HTML, where the original's `app.use(handleError)` returns JSON `{status,statusCode,message}`;
+    - the rebuild starts with no recipes (the original has 12 seeded);
+    - it never calls `listen`, so `node src/index.js` doesn't serve.
+- Compared with the same app before handler resolution (a contract of one line per route, and a Codex agent that refused to build), the contracts now carry enough behavior for a faithful rebuild of every route handler. What's missing is app-level: error middleware, auth strategy, startup, seed data.
+
+## Build-from-contracts rebuild on Codex, Hyrum's setup (2026-09-24 ~21:21Z)
+
+The same flow on the OpenAI Codex CLI (0.153.4, `gpt-6-astra`, medium). The package was freshly generated from the committed 0.2.13 build, with the three bugs flagged: 3 decision files, a handler section in all 8 contracts, 0 visible tests. Sealed, with source and siblings hidden and the hooks trusted.
+- **First pass:** stopped on the empty `tests/visible/`, as predicted. Given the guide's answer ("build from the contracts one route at a time, treating `tests/weak/` as hints"), it built all 8 routes in 5.3 minutes.
+- **Checked against the filesystem:**
+  - heartbeat count 16; `spec/` mtimes predate the session;
+  - `tests/visible/` still empty (it put its own checks in `scripts/check-contracts.js`, outside the suites);
+  - `src/` mirrors the original's structure;
+  - it added a guarded `app.listen`, so unlike both earlier Express rebuilds, `node src/index.js` serves.
+- **Side by side (the same 14-request sequence as the Claude run):**
+  - every correctly-working behavior matched: the redirect, `{data}` shapes, 401 without a token, `{token}` from signup and login, 201/200;
+  - the three flagged bugs were fixed (wrong password 401, `PUT` 200, `DELETE` 204), and a missing id is a 404 rather than a server crash;
+  - error bodies are JSON `{message}` against the original's `{status,statusCode,message}` (Claude's were Express's HTML);
+  - the rebuild starts with no recipes (the original has 12 seeded).
+- **Remaining app-level gaps, shared across both CLIs:** the error-middleware response shape and seed data. Neither is in any route contract.

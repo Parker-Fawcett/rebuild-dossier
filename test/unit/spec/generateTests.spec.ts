@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { generateTests } from '../../../src/spec/generateTests.js';
+import { generateTests, importClosure } from '../../../src/spec/generateTests.js';
 import type { EvidenceBundle } from '../../../src/ingest/evidenceSchema.js';
 import type { Case } from '../../../src/reconciliation/types.js';
 
@@ -503,4 +503,47 @@ describe('generateTests', () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  // Codex cold-run regression: the app-export file and a router it mounts
+  // were blocklisted, so no visible test could ever import the app.
+  describe('importClosure', () => {
+    it('follows relative require/import chains, resolves index files and extensions, and survives cycles', () => {
+      const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-closure-'));
+      try {
+        mkdirSync(join(dir, 'src', 'routers'), { recursive: true });
+        mkdirSync(join(dir, 'src', 'lib'), { recursive: true });
+        writeFileSync(join(dir, 'src', 'index.js'), "const express = require('express');\nconst users = require('./routers/users');\nconst lib = require('./lib');\nmodule.exports = express();\n");
+        writeFileSync(join(dir, 'src', 'routers', 'users.js'), "const svc = require('../lib/svc.js');\nmodule.exports = 1;\n");
+        writeFileSync(join(dir, 'src', 'lib', 'index.js'), "import helper from './helper.mjs';\nexport * from './svc.js';\n");
+        writeFileSync(join(dir, 'src', 'lib', 'helper.mjs'), "import back from '../index.js';\nexport default 1;\n");
+        writeFileSync(join(dir, 'src', 'lib', 'svc.js'), "module.exports = 2;\n");
+        writeFileSync(join(dir, 'src', 'unrelated.js'), "module.exports = 3;\n");
+        expect(importClosure(dir, 'src/index.js').sort()).toEqual([
+          'src/index.js',
+          'src/lib/helper.mjs',
+          'src/lib/index.js',
+          'src/lib/svc.js',
+          'src/routers/users.js'
+        ]);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('is returned by generateTests for the exported app, so writeSpecTree can keep those files off the blocklist', () => {
+      const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-closure-'));
+      try {
+        mkdirSync(join(dir, 'routers'), { recursive: true });
+        writeFileSync(join(dir, 'index.js'), "const express = require('express');\nconst r = require('./routers/r');\nconst app = express();\napp.use('/r', r);\nmodule.exports = app;\n");
+        writeFileSync(join(dir, 'routers', 'r.js'), "const router = require('express').Router();\nrouter.get('/x', h);\nmodule.exports = router;\n");
+        const evidence = minimalEvidence({
+          routes: [{ path: '/r/x', method: 'GET', file: 'routers/r.js', kind: 'api', startLine: 2 }]
+        });
+        expect(generateTests(dir, evidence, []).importClosure?.sort()).toEqual(['index.js', 'routers/r.js']);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+  });
 });
+

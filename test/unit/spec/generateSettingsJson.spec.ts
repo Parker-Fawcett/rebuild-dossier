@@ -78,6 +78,6 @@ describe('generateSettingsJson', () => {
     expect(preToolUse).toHaveLength(1);
     expect(preToolUse[0]?.matcher).toBe('Edit|Write|MultiEdit|NotebookEdit|Bash');
     expect(preToolUse[0]?.hooks[0]?.type).toBe('command');
-    expect(preToolUse[0]?.hooks[0]?.command).toMatch(/^node \.claude\/hooks\/rebuild-guard\.mjs \|\| \{.*exit 2; \}$/);
+    expect(preToolUse[0]?.hooks[0]?.command).toMatch(/^node \.claude\/hooks\/rebuild-guard\.mjs; s=\$\?; .*exit 2$/);
   });
 });

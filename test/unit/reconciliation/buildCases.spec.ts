@@ -193,6 +193,29 @@ describe('buildCases', () => {
     }
   });
 
+  // Found live twice (5 flags -> 1 decision, 3 -> 1): bugs sharing route words
+  // matched each other's synthetic case, and only the first description
+  // reached the package.
+  it('gives each flagged known bug its own case, even when their descriptions share words', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-buildcases-'));
+    try {
+      const put = addKnownBug(dir, 'PUT /api/v1/recipes/:id reads the data file instead of writing the update; intended: save it and return 200.');
+      const del = addKnownBug(dir, 'DELETE /api/v1/recipes/:id calls res.statusCode(204) as a function and throws; intended: return 204.');
+      const login = addKnownBug(dir, 'POST /api/v1/users/login issues a token even when the password is wrong; intended: reject it.');
+
+      const cases = buildCases(dir);
+
+      expect(cases).toHaveLength(3);
+      for (const bug of [put, del, login]) {
+        const own = cases.find((c) => c.topicKey === `known-bug:${bug.id}`);
+        expect(own?.matchedKnownBugs).toEqual([bug.id]);
+        expect(own?.signals[0]?.claim).toBe(bug.description);
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('does not create a duplicate synthetic case for a known bug that already matches a real signal', () => {
     const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-buildcases-'));
     try {

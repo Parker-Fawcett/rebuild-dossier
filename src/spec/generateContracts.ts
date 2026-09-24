@@ -10,6 +10,7 @@ import { inferZodRequiredFields } from './parseZodObjectSchema.js';
 import { inferResponseBodyFields, inferResponseValueFormatHints } from './inferResponseBodyFields.js';
 import { inferSuccessStatusCode } from './inferSuccessStatusCode.js';
 import { resolveDelegatedResponseFields } from './resolveDelegatedResponseFields.js';
+import { resolveExpressHandler, routeSourceForAnalysis } from './resolveExpressHandler.js';
 import { METHODS_WITH_BODY } from './routeTestAssertions.js';
 
 export interface GeneratedFile {
@@ -49,6 +50,27 @@ function sourceLine(repoPath: string, route: RouteEntry): string {
 // philosophy as sourceLine above, for the same reason — a route whose file
 // genuinely can't be read should surface as a real failure here, not a
 // silently-empty section.
+// The code that runs for this route, verbatim, plus the local functions it
+// calls (one level). For a handler registered by name, the signature line
+// alone (`.put(auth.authenticate(), updateRecipe)`) carries no behavior at
+// all; see resolveExpressHandler.ts for why this exists.
+function handlerSection(repoPath: string, route: RouteEntry): string | undefined {
+  const handler = resolveExpressHandler(repoPath, route);
+  if (!handler || (handler.name === '(inline)' && handler.callees.length === 0 && handler.source.split('\n').length < 2)) return undefined;
+  const block = (f: { file: string; startLine: number; name: string; source: string }) =>
+    [`From \`${f.file}\`, line ${f.startLine}${f.name === '(inline)' ? '' : ` (\`${f.name}\`)`}:`, '', '```js', f.source, '```'].join('\n');
+  return [
+    '## Handler (verbatim from source)',
+    '',
+    'The behavior to reproduce: status codes, where each input is read from (query string, body, params), response shape, side effects such as files written. Existing callers depend on these, so match them unless a known-bug decision says otherwise.',
+    '',
+    block(handler),
+    ...(handler.callees.length > 0
+      ? ['', '### Functions it calls (verbatim, one level)', '', ...handler.callees.flatMap((c) => [block(c), ''])]
+      : [])
+  ].join('\n');
+}
+
 function validationRuleClause(rule: ValidationRule): string {
   const base =
     rule.kind === 'type'
@@ -64,7 +86,7 @@ function validationRuleClause(rule: ValidationRule): string {
 
 function inferredFieldsSection(repoPath: string, route: RouteEntry): string | undefined {
   if (!METHODS_WITH_BODY.has(route.method ?? '')) return undefined;
-  const text = readFileSync(join(repoPath, route.file), 'utf-8');
+  const text = routeSourceForAnalysis(repoPath, route);
   const fields = inferRequestBodyFields(text, route);
   // Issue #11: Zod-validated handlers rarely destructure req.body, so the
   // handler-source list is empty exactly when a schema names the fields.
@@ -111,7 +133,7 @@ function inferredFieldsSection(repoPath: string, route: RouteEntry): string | un
 // same reason.
 function inferredResponseFieldsSection(repoPath: string, route: RouteEntry): string | undefined {
   if (route.kind !== 'api') return undefined;
-  const text = readFileSync(join(repoPath, route.file), 'utf-8');
+  const text = routeSourceForAnalysis(repoPath, route);
   let fields = inferResponseBodyFields(text, route);
   let formatHints = inferResponseValueFormatHints(text, route);
   let delegatedNote: string | undefined;
@@ -299,6 +321,8 @@ export function generateContracts(
       '```',
       sourceLine(repoPath, route),
       '```',
+      '',
+      handlerSection(repoPath, route),
       '',
       inferredFieldsSection(repoPath, route),
       '',

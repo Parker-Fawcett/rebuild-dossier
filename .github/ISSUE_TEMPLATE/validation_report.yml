@@ -12,15 +12,15 @@ body:
     id: version
     attributes:
       label: rebuild-dossier version
-      placeholder: "0.2.12"
+      placeholder: "0.2.13"
     validations:
       required: true
   - type: input
     id: model
     attributes:
-      label: Model and Claude Code version
-      description: The model `/status` showed in the rebuild session (step 4), and `claude --version`.
-      placeholder: "claude-sonnet-5; Claude Code 3.1.4"
+      label: Model and CLI version
+      description: The CLI you used (Claude Code or Codex), the model `/status` showed in the rebuild session (step 4), and `claude --version` or `codex --version`.
+      placeholder: "Codex 0.153.4, gpt-6-astra (medium)"
     validations:
       required: true
   - type: textarea

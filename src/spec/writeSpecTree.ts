@@ -2,10 +2,11 @@ import { existsSync, mkdirSync, writeFileSync, renameSync, rmSync, copyFileSync 
 import { randomUUID } from 'node:crypto';
 import { join, dirname, basename } from 'node:path';
 import type { EvidenceBundle } from '../ingest/evidenceSchema.js';
-import type { Case } from '../reconciliation/types.js';
+import type { Case, KnownBug } from '../reconciliation/types.js';
+import { loadKnownBugs } from '../state/knownBugs.js';
 import { generateClaudeMd } from './generateClaudeMd.js';
 import { generateTestingRule } from './generateRules.js';
-import { generateSettingsJson } from './generateSettingsJson.js';
+import { generateCodexHooksJson, generateSettingsJson } from './generateSettingsJson.js';
 import { GUARD_HOOK_RELATIVE_PATH, GUARD_HOOK_SOURCE } from './generateGuardHook.js';
 import { generateContracts } from './generateContracts.js';
 import { generateTests } from './generateTests.js';
@@ -69,7 +70,10 @@ function buildStackLines(evidence: EvidenceBundle): string[] {
       : Object.hasOwn(deps, 'react')
         ? 'React'
         : 'unknown';
-  return [`lang: TypeScript / ${framework}`];
+  // Was hardcoded to TypeScript; a cold run's JavaScript/CommonJS app was
+  // told its stack was TypeScript.
+  const typescript = Object.hasOwn(deps, 'typescript') || evidence.routes.some((r) => /\.tsx?$/.test(r.file));
+  return [`lang: ${typescript ? 'TypeScript' : 'JavaScript'} / ${framework}`];
 }
 
 // TypeScript's own toolchain (the `typescript` package itself, plus any
@@ -105,15 +109,32 @@ function sanitizeTopicKeyFilename(topicKey: string): string {
   );
 }
 
-function decisionMarkdown(kase: Case): string {
+// What a decision means for the rebuild, in words an agent can't misread.
+// Found live: a rebuild agent read "Decision: bug" as "reproduce the bug
+// as-is", the opposite of what flagging a known bug means.
+function decisionMeaning(decision: string): string | undefined {
+  const d = decision.trim().toLowerCase();
+  if (d === 'bug' || d.startsWith('bug')) {
+    return 'This behavior is a known bug in the original app. Do NOT reproduce it: implement the intended behavior described below. Everything else about the route still follows its contract.';
+  }
+  if (d === 'intentional' || d.startsWith('intentional')) {
+    return 'This behavior is intentional in the original app. Reproduce it as-is, even if it looks odd.';
+  }
+  return undefined;
+}
+
+function decisionMarkdown(kase: Case, knownBugs: KnownBug[] = []): string {
   const decision = kase.autoResolution?.decision ?? kase.humanDecision?.decision ?? 'unresolved';
   const reason = kase.autoResolution?.reason ?? kase.humanDecision?.note;
   const signalLines = kase.signals.map((s) => `- (${s.source}) ${s.claim}`).join('\n');
+  const meaning = decisionMeaning(decision);
+  const bugs = knownBugs.filter((b) => (kase.matchedKnownBugs ?? []).includes(b.id));
+  const bugLines = bugs.map((b) => `- ${b.description}`).join('\n');
   return `# Decision: ${kase.topicKey}
 
 - **Status:** ${kase.status}
 - **Decision:** ${decision}
-${reason ? `- **Reason:** ${reason}\n` : ''}
+${meaning ? `- **What this means for the rebuild:** ${meaning}\n` : ''}${reason ? `- **Reason:** ${reason}\n` : ''}${bugLines ? `\n## Known bugs this covers (as flagged by the owner)\n\n${bugLines}\n` : ''}
 ## Evidence
 
 ${signalLines || '(no signals recorded)'}
@@ -184,19 +205,22 @@ async function writeSpecTreeInto(
   mkdirSync(join(outputDir, 'tests', 'visible'), { recursive: true });
   mkdirSync(join(outputDir, 'tests', 'held-out'), { recursive: true });
 
-  writeFileSync(
-    join(outputDir, 'CLAUDE.md'),
-    generateClaudeMd({
-      projectName: evidence.packageJson.name ?? 'rebuild',
-      stackLines: buildStackLines(evidence),
-      testCommand: RUN_TESTS_COMMAND
-    })
-  );
+  const agentInstructions = generateClaudeMd({
+    projectName: evidence.packageJson.name ?? 'rebuild',
+    stackLines: buildStackLines(evidence),
+    testCommand: RUN_TESTS_COMMAND
+  });
+  writeFileSync(join(outputDir, 'CLAUDE.md'), agentInstructions);
+  // Codex reads AGENTS.md, not CLAUDE.md; same rules, so either CLI starts
+  // from the same instructions.
+  writeFileSync(join(outputDir, 'AGENTS.md'), agentInstructions);
 
   const testingRule = generateTestingRule(RUN_TESTS_COMMAND);
   writeFileSync(join(outputDir, '.claude', 'rules', testingRule.filename), testingRule.content);
 
   writeFileSync(join(outputDir, '.claude', 'settings.json'), JSON.stringify(generateSettingsJson(RUN_TESTS_COMMAND), null, 2));
+  mkdirSync(join(outputDir, '.codex'), { recursive: true });
+  writeFileSync(join(outputDir, '.codex', 'hooks.json'), JSON.stringify(generateCodexHooksJson(RUN_TESTS_COMMAND), null, 2));
   mkdirSync(join(outputDir, '.claude', 'hooks'), { recursive: true });
   writeFileSync(join(outputDir, GUARD_HOOK_RELATIVE_PATH), GUARD_HOOK_SOURCE);
 
@@ -249,8 +273,9 @@ async function writeSpecTreeInto(
     );
   }
 
+  const knownBugs = loadKnownBugs(repoPath);
   for (const kase of cases.filter((c) => c.status !== 'open')) {
-    writeFileSync(join(outputDir, 'spec', sanitizeTopicKeyFilename(kase.topicKey)), decisionMarkdown(kase));
+    writeFileSync(join(outputDir, 'spec', sanitizeTopicKeyFilename(kase.topicKey)), decisionMarkdown(kase, knownBugs));
   }
 
   writeFileSync(join(outputDir, 'kickoff-prompt.txt'), KICKOFF_PROMPT);
@@ -263,7 +288,7 @@ async function writeSpecTreeInto(
     writeFileSync(join(outputDir, 'spec', 'assets-manifest.json'), JSON.stringify(pageResult.assetManifest, null, 2));
   }
 
-  const { visible: expressVisible, heldOut: expressHeldOut, note: apiTestNote } = generateTests(repoPath, evidence, cases);
+  const { visible: expressVisible, heldOut: expressHeldOut, note: apiTestNote, importClosure: expressImportClosure } = generateTests(repoPath, evidence, cases);
   const { visible: nextApiVisible, heldOut: nextApiHeldOut } = generateNextApiTests(repoPath, evidence, cases);
   const gateTests = [...generateGateTests(repoPath, evidence, cases), ...generateSecretEntryTests(repoPath, evidence, cases)];
   const visible = [...expressVisible, ...nextApiVisible, ...gateTests, ...pageResult.visible];
@@ -354,7 +379,13 @@ export default defineConfig({
   // reason — the prior rationale for the old behavior isn't reconstructable
   // from anything left in this repo.
   const testedSourceFiles = computeTestedSourceFiles([...visible, ...heldOut], weak);
-  const untestedContractFiles = computeUntestedContractFiles(evidence.routes, testedSourceFiles);
+  // Files the exported Express app loads at import can't be blocked: every
+  // generated API test imports the app, so blocking one deadlocks the rebuild
+  // (see importClosure in generateTests.ts). The cost is that untested routes
+  // inside those files go unguarded, the same file-level limit a single-file
+  // app already has.
+  const importRequired = new Set(expressVisible.length + expressHeldOut.length > 0 ? (expressImportClosure ?? []) : []);
+  const untestedContractFiles = computeUntestedContractFiles(evidence.routes, testedSourceFiles).filter((f) => !importRequired.has(f));
   writeFileSync(join(outputDir, 'spec', 'untested-contracts.json'), JSON.stringify(untestedContractFiles, null, 2));
 
   if (weak.size > 0) {

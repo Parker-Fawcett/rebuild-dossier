@@ -1,5 +1,5 @@
 import * as z from 'zod/v4';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, basename, join } from 'node:path';
 import { loadCases } from '../state/caseStore.js';
 import { loadEvidenceBundle } from '../state/evidenceStore.js';
@@ -47,7 +47,12 @@ export const generateSpecOutputSchema = z.object({
   pageVisionFallbacks: z.array(skippedPageOutputSchema).optional(),
   pageVisionFallbackNote: z.string().optional(),
   // Present only when Express API routes exist but none got a generated test.
-  apiTestNote: z.string().optional()
+  apiTestNote: z.string().optional(),
+  // Present only when unrunnableTests is non-empty: the first error line per file.
+  unrunnableReasons: z.record(z.string(), z.string()).optional(),
+  unrunnableNote: z.string().optional(),
+  // Present only when no generated test survived as visible.
+  noVisibleTestsNote: z.string().optional()
 });
 
 export const generateSpecConfig = {
@@ -185,6 +190,11 @@ export async function generateSpecHandler(args: z.infer<typeof generateSpecInput
   // initially misdiagnosed as a database/infrastructure problem; the actual
   // cause (missing `npm install`) is much simpler and worth stating plainly.
   const missingNodeModules = !existsSync(join(args.repoPath, 'node_modules'));
+  // Found live: an auth-protected Express API ended with every test weak or
+  // unrunnable, and the rebuild agent, told to start from a failing visible
+  // test, had none and could only stop and ask.
+  const visibleDir = join(outputDir, 'tests', 'visible');
+  const visibleCount = existsSync(visibleDir) ? readdirSync(visibleDir).filter((f) => f.endsWith('.ts') || f.endsWith('.js')).length : 0;
 
   const result = {
     outputDir,
@@ -221,7 +231,20 @@ export async function generateSpecHandler(args: z.infer<typeof generateSpecInput
             'One or more pages could not be vision-classified and fell back to regex-based classification for that page (see pageVisionFallbacks) — those pages\' dynamic-vs-static assertions may be less accurate.'
         }
       : {}),
-    ...(apiTestNote ? { apiTestNote } : {})
+    ...(apiTestNote ? { apiTestNote } : {}),
+    ...(visibleCount === 0
+      ? {
+          noVisibleTestsNote:
+            'No generated test survived as a visible test (see weakTests and unrunnableTests), so the rebuilding agent has no failing test to start from and will likely stop and ask. The contracts in spec/contracts/ still carry each handler\'s code. When it asks, telling it to build from the contracts one route at a time, treating tests/weak/ as hints, is a fair answer; note that you gave it.'
+        }
+      : {}),
+    ...(Object.keys(mutationReport.unrunnableReasons).length > 0
+      ? {
+          unrunnableReasons: mutationReport.unrunnableReasons,
+          unrunnableNote:
+            'Each unrunnable test failed against your unmodified app, so it was set aside, not trusted (see unrunnableReasons for the first error from each). When most or all fail with the same error, the app usually cannot even be imported in a scratch copy: a missing environment variable its .env normally supplies, a service it connects to at startup, or a Node version its dependencies do not support. Fix that in your copy, delete or move aside the <repo>-rebuild/ directory this run wrote, and re-run generate_spec.'
+        }
+      : {})
   };
 
   return {

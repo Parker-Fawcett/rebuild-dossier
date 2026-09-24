@@ -1,9 +1,10 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync, statSync } from 'node:fs';
+import { join, posix } from 'node:path';
 import type { EvidenceBundle, RouteEntry } from '../ingest/evidenceSchema.js';
 import type { Case } from '../reconciliation/types.js';
 import type { GeneratedFile } from './generateContracts.js';
 import { inferRequestBodyFields } from './inferRequestBodyFields.js';
+import { resolveExpressHandler, routeSourceForAnalysis } from './resolveExpressHandler.js';
 import { inferSuccessStatusCode } from './inferSuccessStatusCode.js';
 import { inferZodRequiredFields } from './parseZodObjectSchema.js';
 import {
@@ -111,7 +112,7 @@ function requestInitFor(method: string, fields: string[]): string {
 // string-with-min-length case, no worse than `{}` anywhere else.
 function inferFieldsSafely(repoPath: string, route: RouteEntry): string[] {
   try {
-    const text = readFileSync(join(repoPath, route.file), 'utf-8');
+    const text = routeSourceForAnalysis(repoPath, route);
     const fromSource = inferRequestBodyFields(text, route);
     if (fromSource.length > 0) return fromSource;
     return inferZodRequiredFields(text, route);
@@ -124,8 +125,14 @@ function inferFieldsSafely(repoPath: string, route: RouteEntry): string[] {
 // identical helper — see its comment for the real, live-triggered failure
 // (a GET /:id route whose placeholder path segment doesn't match a real
 // record) that motivated it.
+// Also a plain GET with no dynamic segment (a list or index route): it needs
+// no placeholder record, and a wrong guess can't ship as trusted anyway,
+// since runMutationCheck's baseline run sets aside any test that fails
+// against the unmodified app. Found live: an Express app's every GET test was
+// a weak "status < 500" check, leaving tests/visible empty.
 function canTrustSuccessStatusForTest(route: RouteEntry): boolean {
-  return METHODS_WITH_BODY.has(route.method ?? '') && !/:[^/]+/.test(route.path);
+  if (/:[^/]+/.test(route.path)) return false;
+  return METHODS_WITH_BODY.has(route.method ?? '') || route.method === 'GET';
 }
 
 // Same safe-read convention as inferFieldsSafely above, and same
@@ -135,7 +142,7 @@ function canTrustSuccessStatusForTest(route: RouteEntry): boolean {
 function inferSuccessStatusSafely(repoPath: string, route: RouteEntry) {
   if (!canTrustSuccessStatusForTest(route)) return null;
   try {
-    const text = readFileSync(join(repoPath, route.file), 'utf-8');
+    const text = routeSourceForAnalysis(repoPath, route);
     return inferSuccessStatusCode(text, route);
   } catch {
     return null;
@@ -206,6 +213,47 @@ ${tests.join('\n\n')}
 `;
 }
 
+// Repo-relative files the app-export module loads at import time, following
+// relative require()/import specifiers transitively (the export file itself
+// included). Every generated API test imports the app, so every one of these
+// must exist before any test can even load. Found live in a Codex cold run:
+// src/index.js (the app export, whose own GET / had only a weak test) and a
+// router it mounts both landed on the untested-contracts blocklist, so the
+// rebuild agent could not create the file every visible test imports. Static
+// and heuristic: computed or conditional requires are not followed.
+const REQUIRE_OR_IMPORT = /(?:require\s*\(\s*|\bimport\s+(?:[^'"]*?\sfrom\s+)?|\bimport\s*\(\s*|\bexport\s+[^'"]*?\sfrom\s+)(['"])(\.{1,2}\/[^'"]+)\1/g;
+const MODULE_EXTENSIONS = ['', '.js', '.ts', '.mjs', '.cjs', '.jsx', '.tsx', '/index.js', '/index.ts', '/index.mjs', '/index.cjs'];
+
+function isFile(path: string): boolean {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
+}
+
+export function importClosure(repoPath: string, entryFile: string): string[] {
+  const seen = new Set<string>();
+  const queue = [posix.normalize(entryFile)];
+  while (queue.length > 0) {
+    const file = queue.shift()!;
+    if (seen.has(file)) continue;
+    seen.add(file);
+    let text: string;
+    try {
+      text = readFileSync(join(repoPath, file), 'utf-8');
+    } catch {
+      continue;
+    }
+    for (const m of text.matchAll(REQUIRE_OR_IMPORT)) {
+      const base = posix.join(posix.dirname(file), m[2]!);
+      const hit = MODULE_EXTENSIONS.map((ext) => base + ext).find((c) => isFile(join(repoPath, c)));
+      if (hit && !seen.has(hit)) queue.push(hit);
+    }
+  }
+  return [...seen];
+}
+
 export function noExportedAppNote(routeCount: number): string {
   return (
     `Found ${routeCount} Express API route(s) but no exported Express app instance ` +
@@ -213,7 +261,7 @@ export function noExportedAppNote(routeCount: number): string {
     'in the route files and in index/server/app/main entry files), so no API tests were generated, and every route file ' +
     'stays in spec/untested-contracts.json. To enable them, export the app in your copy: add `module.exports = app;` ' +
     '(ESM: `export default app;`) and wrap the `app.listen(...)` call in `if (require.main === module) { ... }` so importing ' +
-    'the app does not start a server. Then delete the <repo>-rebuild/ directory this run wrote (generate_spec will not overwrite it) and re-run generate_spec.'
+    'the app does not start a server. Then delete or move aside the <repo>-rebuild/ directory this run wrote (generate_spec will not overwrite it) and re-run generate_spec.'
   );
 }
 
@@ -235,7 +283,7 @@ export function generateTests(
   repoPath: string,
   evidence: EvidenceBundle,
   cases: Case[]
-): { visible: GeneratedTestFile[]; heldOut: GeneratedTestFile[]; note?: string } {
+): { visible: GeneratedTestFile[]; heldOut: GeneratedTestFile[]; note?: string; importClosure?: string[] } {
   const apiRoutes = evidence.routes.filter((r) => r.kind === 'api');
   if (apiRoutes.length === 0 || !Object.hasOwn(evidence.packageJson.dependencies, 'express')) {
     return { visible: [], heldOut: [] };
@@ -264,7 +312,10 @@ export function generateTests(
     const file: GeneratedTestFile = {
       filename: `${sanitizeFilenameBase(route.method, route.path)}.spec.ts`,
       content: testFileFor(repoPath, route, importPath, appExport.isDefault, cases, fields),
-      sourceFile: route.file
+      // Mutate where the handler actually lives (a controllers/ file, when the
+      // route registers it by name); coverage still belongs to the route file.
+      sourceFile: resolveExpressHandler(repoPath, route)?.file ?? route.file,
+      coveredRouteFiles: [route.file]
     };
     if (index % HELD_OUT_EVERY === HELD_OUT_EVERY - 1) {
       heldOut.push(file);
@@ -273,5 +324,5 @@ export function generateTests(
     }
   });
 
-  return { visible, heldOut };
+  return { visible, heldOut, importClosure: importClosure(repoPath, appExport.file) };
 }
