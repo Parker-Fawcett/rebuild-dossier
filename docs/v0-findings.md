@@ -6012,6 +6012,33 @@ The same flow on the OpenAI Codex CLI (0.153.4, `gpt-6-astra`, medium). The pack
   - the rebuild starts with no recipes (the original has 12 seeded).
 - **Remaining app-level gaps, shared across both CLIs:** the error-middleware response shape and seed data. Neither is in any route contract.
 
+## Possible misattribution in Ahmed's Sep 15 catchandtrade attempt (flagged 2026-09-24, pending his Friday re-run)
+
+The paper's Threats section says S. N. Ahmed's independent catchandtrade ablation attempt
+(`docs/verification/ahmed-ablation-attempt-2026-09-15.md`) "yielded no usable comparison" because
+`with-rep1`'s mutation check could not verify any generated test against a bare checkout — every
+test landed in `tests/weak/`, attributed in that report to catchandtrade needing live Postgres,
+Stripe and Supabase infrastructure a fresh clone doesn't have.
+
+That may not be the real cause. `cbe1be2` (2026-09-16), one day after his attempt, fixed a
+separate, unrelated bug: under the documented `npx rebuild-dossier@latest` install (as opposed to
+this project's own dev checkout), `vitest` was a devDependency and never installed at all, so
+every `runVitestOnce` call threw and every generated test was silently marked unrunnable —
+regardless of the target app's own infrastructure. `npm view rebuild-dossier time` confirms
+`0.2.6` was still the published `latest` on Sep 15, and it has this bug. If Ahmed registered the
+tool as the README instructed at the time (`npx rebuild-dossier@latest`, not a clone of this
+repo), his result is consistent with the packaging bug alone: our own catchandtrade runs, with
+the same missing infrastructure, produced 20 visible and 12 held-out tests once a real vitest was
+present.
+
+Not yet confirmed either way — his report doesn't say which install path he used. He is re-running
+a real test on 2026-09-26 (Friday), on the current `0.2.13`, with instructions to note his install
+method and CLI/model. His new result is expected to supersede the Sep 15 sentence in the paper
+outright, so this entry is a record of the open question, not a correction on its own. Nothing in
+the paper's own reported reps is affected: every paper package was generated from this repo's own
+dev checkout throughout, never via `npx` against a published version, so this packaging bug never
+touched a number the paper reports.
+
 ## A clear refusal for an unsupported stack, instead of a silent empty package (0.2.14, 2026-09-24)
 
 Prompted by scoping a request to add Python support (a validator's only projects are Python/dbt,
