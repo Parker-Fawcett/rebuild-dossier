@@ -5724,3 +5724,17 @@ inconsistencies, all fixed in the tex (backup `rebuild-dossier-seip.pre-round12.
   finding), and Fig. 1's "PreToolUse hooks" → "guard".
 - Main text still ends on p.10, 0 errors. Still stale, by plan: the artifact block (v0.2.12-paper,
   566/88) until the final paper tag; Appendix C until the 2 `rev-ultra` reps finish.
+
+## §11 effort follow-up complete: the Astra wording fix holds at `xhigh` and `ultra` (2026-09-24 00:23Z)
+
+The last two pre-registered reps (`rev-ultra-rep1` re-run, `rev-ultra-rep2`) finished at confirmed
+`ultra` effort, both with no stall, all 16 routes built, and 20/20 visible.
+- **§11 totals:** revision 0/4 stalled at higher effort (`xhigh` 2/2 and `ultra` 2/2 complete);
+  original `ultra` 2/2 stalled. The registered reading ("generalizes if `rev` stalls ≤1 of 4 and
+  `orig`-`ultra` stalls 2/2") is met: **the fix generalizes across effort.**
+- With this, every rep registered in `ablation/review-2026-09/PREREGISTRATION.md` has run
+  (Haiku 20, Sonnet 10, E5 15 + 6 `gpt-5.5`, §11 6). Aggregates are committed under
+  `ablation/review-2026-09/results/`.
+- **Manuscript:** §V-B and Appendix C now report the revision completing at `xhigh` and `ultra`
+  (4/4), meeting the pre-registered rule, and the abstract calls the fix "robust to effort." To
+  stay at 10 pages, Appendix A's trial-2 re-run sentence was cut; Table IV and §V-E already state it.
