@@ -37,6 +37,7 @@ export interface WriteSpecTreeResult {
   skippedPages: SkippedPage[]; // page route files visibly skipped, with why — see generatePageTests.ts
   visionClassificationEnabled: boolean; // whether vision-assisted classification was attempted this run — see generatePageTests.ts
   pageVisionFallbacks: SkippedPage[]; // captured pages that fell back to the regex classifier despite vision being enabled, with why
+  apiTestNote?: string; // why Express API routes got no generated tests, when that happened — see generateTests.ts
 }
 
 // The generated tests are always vitest, regardless of what test runner the
@@ -262,7 +263,7 @@ async function writeSpecTreeInto(
     writeFileSync(join(outputDir, 'spec', 'assets-manifest.json'), JSON.stringify(pageResult.assetManifest, null, 2));
   }
 
-  const { visible: expressVisible, heldOut: expressHeldOut } = generateTests(repoPath, evidence, cases);
+  const { visible: expressVisible, heldOut: expressHeldOut, note: apiTestNote } = generateTests(repoPath, evidence, cases);
   const { visible: nextApiVisible, heldOut: nextApiHeldOut } = generateNextApiTests(repoPath, evidence, cases);
   const gateTests = [...generateGateTests(repoPath, evidence, cases), ...generateSecretEntryTests(repoPath, evidence, cases)];
   const visible = [...expressVisible, ...nextApiVisible, ...gateTests, ...pageResult.visible];
@@ -393,6 +394,7 @@ export default defineConfig({
     capturedPages: pageResult.capturedPages,
     skippedPages: pageResult.skippedPages,
     visionClassificationEnabled: pageResult.visionClassificationEnabled,
-    pageVisionFallbacks: pageResult.pageVisionFallbacks
+    pageVisionFallbacks: pageResult.pageVisionFallbacks,
+    ...(apiTestNote ? { apiTestNote } : {})
   };
 }

@@ -64,7 +64,12 @@ function findAppExport(repoPath: string, files: string[]): AppExport | null {
     if (def) return { file, exportName: def[1]!, isDefault: true };
     if (/export\s+(?:const|let|var)\s+app\b/.test(text)) return { file, exportName: 'app', isDefault: false };
     if (/export\s*\{[^}]*\bapp\b[^}]*\}/.test(text)) return { file, exportName: 'app', isDefault: false };
-    if (/module\.exports\s*=\s*app\b/.test(text)) return { file, exportName: 'app', isDefault: false };
+    // `module.exports = app` makes the app function itself the module, so ESM
+    // sees it only as the default export; `import { app }` binds undefined, the
+    // test server gets no handler, and every request hangs to a timeout. Found
+    // live in a cold run (all 10 tests of an Express app came back unrunnable);
+    // the old test here only string-matched the import and never ran it.
+    if (/module\.exports\s*=\s*app\b/.test(text)) return { file, exportName: 'app', isDefault: true };
     if (/module\.exports\s*=\s*\{[^}]*\bapp\b[^}]*\}/.test(text)) return { file, exportName: 'app', isDefault: false };
     if (/exports\.app\s*=/.test(text)) return { file, exportName: 'app', isDefault: false };
   }
@@ -201,6 +206,17 @@ ${tests.join('\n\n')}
 `;
 }
 
+export function noExportedAppNote(routeCount: number): string {
+  return (
+    `Found ${routeCount} Express API route(s) but no exported Express app instance ` +
+    '(looked for `module.exports = app`, `exports.app`, `export default`, and `export const app` / `export { app }` ' +
+    'in the route files and in index/server/app/main entry files), so no API tests were generated, and every route file ' +
+    'stays in spec/untested-contracts.json. To enable them, export the app in your copy: add `module.exports = app;` ' +
+    '(ESM: `export default app;`) and wrap the `app.listen(...)` call in `if (require.main === module) { ... }` so importing ' +
+    'the app does not start a server. Then delete the <repo>-rebuild/ directory this run wrote (generate_spec will not overwrite it) and re-run generate_spec.'
+  );
+}
+
 export interface GeneratedTestFile extends GeneratedFile {
   sourceFile: string; // original repo's file the mutation check should mutate
   coveredRouteFiles?: string[]; // route/contract files this test actually exercises, for
@@ -219,7 +235,7 @@ export function generateTests(
   repoPath: string,
   evidence: EvidenceBundle,
   cases: Case[]
-): { visible: GeneratedTestFile[]; heldOut: GeneratedTestFile[] } {
+): { visible: GeneratedTestFile[]; heldOut: GeneratedTestFile[]; note?: string } {
   const apiRoutes = evidence.routes.filter((r) => r.kind === 'api');
   if (apiRoutes.length === 0 || !Object.hasOwn(evidence.packageJson.dependencies, 'express')) {
     return { visible: [], heldOut: [] };
@@ -227,7 +243,16 @@ export function generateTests(
 
   const appExport = findAppExport(repoPath, [...new Set(apiRoutes.map((r) => r.file))]);
   if (!appExport) {
-    return { visible: [], heldOut: [] };
+    // Found live in a cold run of docs/validators.md: the most common shape
+    // for a small Express app (`const app = express(); ... app.listen(5500)`,
+    // nothing exported) produced zero tests with no explanation, leaving
+    // every route file blocklisted and the rebuild nothing to build against.
+    // Still no guessing at a binding (see findAppExport), but never silent.
+    return {
+      visible: [],
+      heldOut: [],
+      note: noExportedAppNote(apiRoutes.length)
+    };
   }
   const importPath = importPathFor(appExport.file);
 

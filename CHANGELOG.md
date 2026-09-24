@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.12] - 2026-09-24
+
+Found by a second cold run of `docs/validators.md`, on an unfamiliar Express app.
+
+### Fixed
+- **Express apps exported with `module.exports = app` got tests that could never pass.** The generated test used `import { app }`, which binds `undefined` for a CommonJS module whose export is the app itself. The test server had no handler, and every request hung to a timeout. It's now a default import. On the cold-run app, this took mutation sites checked from 0 to 130. The old unit test only string-matched the import; a new one executes it.
+- **Section comments were read as TODOs.** The detector matched the word "todo" anywhere, so a todo-list app's `// Add todo for user by index` headers became bug-admitting cases in the queue. It now requires a marker: uppercase `TODO`/`FIXME` anywhere, or a lowercase marker as the comment's first word (`// todo: …`).
+- **A header comment was filed under the route above it.** A comment ending on the line directly above a route registration now belongs to that route.
+
+### Changed
+- **An Express app that isn't exported is no longer silent.** Before, `generate_spec` produced zero API tests without saying why, and blocklisted every route file. It now returns an `apiTestNote` that says what to add (`module.exports = app;` plus a `require.main === module` guard around `listen`), and that the existing `<repo>-rebuild/` must be deleted before re-running.
+
 ## [0.2.11] - 2026-09-24
 
 Upgrade required if you installed with `npx`: from 0.2.9 through 0.2.10 the mutation check could not run at all.

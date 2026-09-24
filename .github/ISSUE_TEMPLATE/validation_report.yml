@@ -12,7 +12,7 @@ body:
     id: version
     attributes:
       label: rebuild-dossier version
-      placeholder: "0.2.11"
+      placeholder: "0.2.12"
     validations:
       required: true
   - type: input
