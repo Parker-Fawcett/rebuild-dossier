@@ -5851,3 +5851,7 @@ allow, and `--strict-mcp-config` with no servers, to match a clean machine.
   MCP Registry publish all succeeded. A cold registry install (empty npm cache) contains
   `vitestRunner.js` and the revised kickoff. Paper re-pinned as `v0.2.15-paper` on the same commit
   `3766ba7`.
+- **Paper pin, final:** `v0.2.15-paper` → `3766ba7`, Zenodo version DOI **10.5281/zenodo.22931584**
+  (supersedes `v0.2.14-paper` / 10.5281/zenodo.22928034, which stays as a historical version).
+  Manuscript artifact block, reference and test counts (619/91) updated; main text still ends
+  on p.10. The frozen PDF is `rebuild-dossier-seip-v0.2.15-paper.pdf`.
