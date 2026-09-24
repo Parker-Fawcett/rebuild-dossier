@@ -5800,3 +5800,18 @@ and not redistributed).
 - **Paper:** no claim changes, since its runs used the repo checkout. The artifact list's
   "install-breaking dependency fix" is the 0.2.9 change that introduced this regression; this entry
   is the record of it. The E7 pin moves to 0.2.11 (PREREGISTRATION §12 deviation).
+
+## The Astra wording fix had never shipped (found in the same cold run, 2026-09-24)
+
+Reading the cold-run package's `kickoff-prompt.txt` showed step 6 still in its **original** form,
+"Only once the full visible suite is green, move to the next test", the sentence the
+pre-registered E5 test showed stalls `gpt-6-astra` (5/5 original, 5/5 neutral control, 0/5 revised;
+§11: 0/4 revised at `xhigh`/`ultra`). The revision lived only in
+`ablation/review-2026-09/prompts/kickoff-astra-revised.txt`; `src/spec/generateKickoffPrompt.ts`
+was never updated. The manuscript's "one new instruction-inconsistency failure was fixed" was true
+of the experiment, not of the tool anyone installs.
+- **Fixed in 0.2.11.** The generator emits the revised step 6. A unit test asserts
+  `KICKOFF_PROMPT` equals the tested file byte for byte, and another asserts the old sentence is
+  gone, so the shipped prompt cannot drift from what was validated.
+- The sealed Claude Code studies used their own pre-registered prompt files, so no reported result
+  depended on the shipped kickoff.

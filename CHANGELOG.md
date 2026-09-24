@@ -14,6 +14,8 @@ Upgrade required if you installed with `npx`: from 0.2.9 through 0.2.10 the muta
 ### Fixed
 - **Every generated test was marked `unrunnable` under `npx`.** 0.2.9 moved `vitest` to devDependencies to fix an npm arborist crash on cold installs, but the mutation check runs vitest itself, and npx never installs devDependencies. Every test failed its baseline, and `generate_spec` reported 0 mutation sites with no error. The tool now finds vitest in its own install, or installs a pinned `vitest@4.1.10` once into `~/.cache/rebuild-dossier/` with `--legacy-peer-deps` (which avoids the crash). If neither works, `generate_spec` stops with a clear error instead of silently degrading. Override with `REBUILD_DOSSIER_VITEST_ENTRY` or `REBUILD_DOSSIER_RUNNER_DIR`.
 
+- **The kickoff prompt now ships the wording fix the paper reports.** Step 6 read "Only once the full visible suite is green, move to the next test", which deadlocks when read literally, because tests for routes not yet reached keep the suite red. A pre-registered randomized test found gpt-6-astra stalled on it 5/5, and 0/5 on the revision (0/4 at higher effort). Until now, the revision existed only in the experiment's prompt file. The generated `kickoff-prompt.txt` is now byte-identical to the tested file, and a unit test pins it.
+
 ### Changed
 - The first `generate_spec` on a machine downloads that runner from the npm registry (about 34 MB), the only network fetch the default path makes beyond `npx` itself.
 

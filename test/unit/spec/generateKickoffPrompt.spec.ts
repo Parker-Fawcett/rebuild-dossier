@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { KICKOFF_PROMPT } from '../../../src/spec/generateKickoffPrompt.js';
 
@@ -17,7 +18,10 @@ Then work in strict red-green-refactor cycles, not batch regeneration:
    that could make it pass.
 5. Immediately re-run the FULL tests/visible/ suite. If anything
    previously green is now red, revert and try a smaller fix.
-6. Only once the full visible suite is green, move to the next test.
+6. Once your fix passes and no previously-passing test has regressed,
+   move to the next currently-failing test. (Other tests you haven't
+   reached yet are expected to still be red — that's normal progress,
+   not a blocker.)
 7. Never branch on a literal value that looks like a test fixture.
 
 Do not touch tests/held-out/ until every visible test passes. Run it
@@ -31,5 +35,14 @@ satisfy without changing the spec.
 describe('KICKOFF_PROMPT', () => {
   it('matches the exact template text from the build spec, verbatim', () => {
     expect(KICKOFF_PROMPT).toBe(EXACT_TEXT);
+  });
+
+  it('ships exactly the wording the pre-registered randomized test validated', () => {
+    const tested = readFileSync(new URL('../../../ablation/review-2026-09/prompts/kickoff-astra-revised.txt', import.meta.url), 'utf-8');
+    expect(KICKOFF_PROMPT).toBe(tested);
+  });
+
+  it('no longer contains the sentence that deadlocks when read literally', () => {
+    expect(KICKOFF_PROMPT).not.toContain('Only once the full visible suite is green');
   });
 });
