@@ -5,6 +5,7 @@ import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tsMorphEngine } from './tsMorphEngine.js';
 import { runWithWatchdog } from './runWithWatchdog.js';
+import { resolveVitestEntry } from './vitestRunner.js';
 import type { MutationSite } from './engine.js';
 
 // .next is build output, not source the scratch copy needs to mutate — same
@@ -38,12 +39,15 @@ function resolveOwnPackageDir(pkg: string): string | undefined {
   }
 }
 
-function resolveVitestEntry(): string {
-  const vitestDir = resolveOwnPackageDir('vitest');
-  return vitestDir ? join(vitestDir, 'vitest.mjs') : join(OWN_PROJECT_ROOT, 'node_modules/vitest/vitest.mjs');
+// Resolved on first use, not at import: under npx, vitest is not installed
+// with this package, and obtaining it may mean a one-time install (see
+// vitestRunner.ts). A failure throws out of generate_spec with a clear
+// message instead of turning every test into `unrunnable`.
+let vitestEntry: string | undefined;
+function getVitestEntry(): string {
+  vitestEntry ??= resolveVitestEntry(() => resolveOwnPackageDir('vitest'));
+  return vitestEntry;
 }
-
-const VITEST_ENTRY = resolveVitestEntry();
 const OWN_CONFIG_FILENAMES = ['vitest.config.ts', 'vitest.config.js', 'vitest.config.mts', 'vite.config.ts', 'vite.config.js', 'vite.config.mts'];
 
 // playwright is never a real target app's own dependency — it's only ever
@@ -272,7 +276,7 @@ function runVitestOnce(scratchDir: string, testFilePath: string): boolean {
   // execFileSync's `timeout`, which was observed not to fire at all (a ~97-min
   // run that exited on its own, signal: null) and which never killed
   // grandchildren. A timed-out run counts as not succeeding.
-  const run = runWithWatchdog('node', [VITEST_ENTRY, 'run', relativeTestFilePath, '--root', scratchDir, '--reporter=json', '--no-color'], {
+  const run = runWithWatchdog('node', [getVitestEntry(), 'run', relativeTestFilePath, '--root', scratchDir, '--reporter=json', '--no-color'], {
     cwd: scratchDir,
     timeoutMs: vitestRunTimeoutMs()
   });

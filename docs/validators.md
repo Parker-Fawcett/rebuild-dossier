@@ -25,9 +25,12 @@ tell you the truth about whether it did?**
   (a Vite/React single-page app, the Next.js Pages Router, Python, and so on), say so before you
   start: the tool will find few or no routes, and that run tells us little.
 - **Node 20.12+**, **Claude Code** (the `claude` CLI, logged in), and Chromium for page capture:
-  `npx playwright install chromium`.
+  `npx playwright install chromium`. It prints a large warning about installing your project's
+  dependencies first; that's expected here, and safe to ignore.
 - **Privacy:** everything runs on your machine. The tool makes no LLM calls and has no telemetry;
-  its only network traffic is to your app's own local dev server. Two exceptions, both off
+  its only network traffic is to your app's own local dev server, plus a one-time download of
+  its test runner (`vitest`, about 34 MB, from the npm registry) the first time `generate_spec`
+  runs on your machine. Two exceptions, both off
   unless you choose them: the optional `crawl_site` tool visits a URL you give it, and an opt-in
   vision classifier needs two environment variables you'd set yourself. Skip both.
 - Work on a **copy** of your app, not your working checkout, and run `npm install` in the copy
@@ -39,12 +42,13 @@ tell you the truth about whether it did?**
 **1. Install and connect** (use exactly this version so both validators test the same thing).
 Run these **from inside your app's copy**. `claude mcp add` registers the tool for the current
 directory only, which is what you want: it's available while you generate the package, and the
-rebuilding session in step 4 (a different directory) can't call it.
+rebuilding session in step 4 (a different directory) can't call it. (If you've ever added
+`rebuild-dossier` with `--scope user`, remove that first: `claude mcp remove rebuild-dossier -s user`.)
 
 ```bash
 cd /abs/path/to/your-app
-npx rebuild-dossier@0.2.10 --help
-claude mcp add rebuild-dossier -- npx -y rebuild-dossier@0.2.10
+npx rebuild-dossier@0.2.11 --help
+claude mcp add rebuild-dossier -- npx -y rebuild-dossier@0.2.11
 ```
 
 **2. Generate the package.** In a Claude Code session opened *in your app's copy*, ask it to call
