@@ -21,7 +21,9 @@ tell you the truth about whether it did?**
 
 - **An app you know well and are allowed to run locally.** Supported today: **Next.js App Router**
   and **Express**, TypeScript or JavaScript. It should run with `npm install` and `npm run dev`
-  (or similar). Small to mid-sized is ideal; tens of routes is fine.
+  (or similar). Small to mid-sized is ideal; tens of routes is fine. If your app is anything else
+  (a Vite/React single-page app, the Next.js Pages Router, Python, and so on), say so before you
+  start: the tool will find few or no routes, and that run tells us little.
 - **Node 20.12+**, **Claude Code** (the `claude` CLI, logged in), and Chromium for page capture:
   `npx playwright install chromium`.
 - **Privacy:** everything runs on your machine. The tool makes no LLM calls and has no telemetry;
@@ -34,9 +36,13 @@ tell you the truth about whether it did?**
 
 ## Steps
 
-**1. Install and connect** (use exactly this version so both validators test the same thing):
+**1. Install and connect** (use exactly this version so both validators test the same thing).
+Run these **from inside your app's copy**. `claude mcp add` registers the tool for the current
+directory only, which is what you want: it's available while you generate the package, and the
+rebuilding session in step 4 (a different directory) can't call it.
 
 ```bash
+cd /abs/path/to/your-app
 npx rebuild-dossier@0.2.10 --help
 claude mcp add rebuild-dossier -- npx -y rebuild-dossier@0.2.10
 ```
@@ -68,8 +74,16 @@ cd /abs/path/to/your-app-rebuild
 mv tests/held-out ~/held-out-sealed-$(date +%s)
 ```
 
+Then move your app's copy away too. The package sits right next to it, so an agent that lists
+`..` would find the original source one directory up:
+
+```bash
+mv /abs/path/to/your-app ~/source-hidden-$(date +%s)
+```
+
 (This keeps casual access out. An agent with shell access could still go looking, so note in
-your report if you see it try.)
+your report if you see it try. Move the copy back after step 5 if you want it for step 6; your
+real working checkout is untouched either way.)
 
 **4. Rebuild, in a fresh top-level session.** This matters: start a new `claude` session **in the
 package directory** itself. Don't start it from another session's Agent tool or subagent,
@@ -80,9 +94,11 @@ cd /abs/path/to/your-app-rebuild
 claude
 ```
 
-Paste the contents of `kickoff-prompt.txt` as your only message, then let it work without
-steering it. If it stops to ask you something, answer briefly and honestly, and write down what
-it asked.
+First run `/status` and note the model it shows; the report asks for it. Then paste the contents
+of `kickoff-prompt.txt` as your only message, and let it work without steering it. Approving
+Claude Code's permission prompts isn't steering; approve anything that stays inside the package
+directory. (Starting it as `claude --permission-mode acceptEdits` cuts the prompts down.) If it
+stops to ask you something, answer briefly and honestly, and write down what it asked.
 
 **5. Check what actually happened**, not what the agent says happened:
 
