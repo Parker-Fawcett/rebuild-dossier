@@ -7,6 +7,7 @@ import { atomicWriteFile } from '../state/atomicWrite.js';
 import { buildCases } from '../reconciliation/buildCases.js';
 import { enforcePathAllowlist } from '../security/pathAllowlist.js';
 import { findCandidateAppDirs } from '../ingest/detectMonorepoHint.js';
+import { unsupportedStackHint } from '../ingest/unsupportedStackHint.js';
 
 export const ingestRepoInputSchema = z.object({
   path: z.string().describe('Absolute path to the repo to ingest'),
@@ -33,7 +34,10 @@ export const ingestRepoOutputSchema = z.object({
     .optional(),
   // Only present when the interactive elicitation branch re-ingested a
   // chosen candidate on the caller's behalf — see ingestRepoHandler below.
-  resolvedMonorepoChoice: z.string().optional()
+  resolvedMonorepoChoice: z.string().optional(),
+  // Only present when 0 routes were found and it isn't a monorepo-root case —
+  // see unsupportedStackHint.ts.
+  unsupportedStackNote: z.string().optional()
 });
 
 export const ingestRepoConfig = {
@@ -122,6 +126,14 @@ export async function ingestRepoHandler(
     }
   }
 
+  // Surfaced here, at the very first tool call, rather than only after
+  // generate_spec's own refusal — same reasoning as the monorepo hint above,
+  // but for the case where 0 routes means "wrong stack" rather than "wrong
+  // directory." Only checked once there's no monorepo hint to give instead,
+  // since that's the more specific and more actionable diagnosis when both
+  // could technically apply.
+  const stackHint = bundle.routes.length === 0 && monorepoCandidates.length === 0 ? unsupportedStackHint(args.path, bundle) : undefined;
+
   const summary = {
     routes: bundle.routes.length,
     existingTests: bundle.existingTests.length,
@@ -137,7 +149,8 @@ export async function ingestRepoHandler(
             candidates: monorepoCandidates
           }
         }
-      : {})
+      : {}),
+    ...(stackHint ? { unsupportedStackNote: stackHint } : {})
   };
 
   return {

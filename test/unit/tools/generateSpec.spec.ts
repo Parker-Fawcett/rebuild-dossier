@@ -14,17 +14,26 @@ import { createServer } from '../../../src/server.js';
 
 const now = new Date(0).toISOString();
 
+// Defaults to a supported framework (express) as a real, on-disk dependency:
+// most of this file's tests are about output writing, schema shape, and
+// flags unrelated to stack detection, so their fixture should read as an
+// ordinary supported app. Tests that specifically exercise unsupportedStackHint
+// (below) override packageJson explicitly to omit express/next.
 function minimalEvidence(overrides: Partial<EvidenceBundle> = {}): EvidenceBundle {
   return {
     repoPath: 'irrelevant',
     generatedAt: now,
-    packageJson: { name: 'sample-app', scripts: {}, dependencies: {}, devDependencies: {} },
+    packageJson: { name: 'sample-app', scripts: {}, dependencies: { express: '^4.19.0' }, devDependencies: {} },
     buildConfig: [],
     routes: [],
     existingTests: [],
     signals: [],
     ...overrides
   };
+}
+
+function writeSupportedPackageJson(dir: string): void {
+  writeFileSync(join(dir, 'package.json'), JSON.stringify({ name: 'sample-app', dependencies: { express: '^4.19.0' } }));
 }
 
 describe('generate_spec tool', () => {
@@ -53,6 +62,7 @@ describe('generate_spec tool', () => {
     const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-genspec-structured-'));
     const outputDir = `${dir}-rebuild`;
     try {
+      writeSupportedPackageJson(dir);
       atomicWriteFile(evidencePath(dir), JSON.stringify(minimalEvidence()));
       saveCases(dir, []);
 
@@ -86,6 +96,7 @@ describe('generate_spec tool', () => {
     const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-genspec-'));
     const outputDir = `${dir}-rebuild`;
     try {
+      writeSupportedPackageJson(dir);
       atomicWriteFile(evidencePath(dir), JSON.stringify(minimalEvidence()));
       saveCases(dir, []);
 
@@ -174,17 +185,67 @@ describe('generate_spec tool', () => {
     }
   });
 
-  it('does not refuse for a genuinely route-less repo that is not monorepo-shaped', async () => {
+  it('does not refuse for a genuinely route-less repo that is a supported framework, just an early-stage one', async () => {
+    // Real, supported shape: an Express app with only middleware wired up
+    // and no routes registered yet (or a Next.js app with only a layout).
+    // Distinct from the fixture below — this one has real, on-disk evidence
+    // of a supported framework, so 0 routes here is a legitimate state, not
+    // a sign the stack itself is unsupported (see unsupportedStackHint.ts).
     const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-genspec-noroutes-'));
     const outputDir = `${dir}-rebuild`;
     try {
-      atomicWriteFile(evidencePath(dir), JSON.stringify(minimalEvidence({ repoPath: dir })));
+      writeFileSync(join(dir, 'package.json'), JSON.stringify({ name: 'sample-app', dependencies: { express: '^4.19.0' } }));
+      atomicWriteFile(evidencePath(dir), JSON.stringify(minimalEvidence({ repoPath: dir, packageJson: { name: 'sample-app', scripts: {}, dependencies: { express: '^4.19.0' }, devDependencies: {} } })));
       saveCases(dir, []);
 
       const result = await generateSpecHandler({ repoPath: dir });
 
       expect(result.isError).toBeUndefined();
       expect(existsSync(join(outputDir, 'CLAUDE.md'))).toBe(true);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+      rmSync(outputDir, { recursive: true, force: true });
+    }
+  });
+
+  it('refuses with a clear reason for a Python project instead of silently writing an empty package', async () => {
+    // Real, live-triggered finding: before this, 0 routes + no monorepo
+    // candidates fell through silently, and generate_spec went on to produce
+    // a valid-looking but completely empty package whose only complaint was
+    // "run npm install" — actively misleading for a stack npm can't help.
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-genspec-python-'));
+    const outputDir = `${dir}-rebuild`;
+    try {
+      writeFileSync(join(dir, 'requirements.txt'), 'fastapi\n');
+      writeFileSync(join(dir, 'main.py'), 'from fastapi import FastAPI\napp = FastAPI()\n');
+      atomicWriteFile(evidencePath(dir), JSON.stringify(minimalEvidence({ repoPath: dir })));
+      saveCases(dir, []);
+
+      const result = await generateSpecHandler({ repoPath: dir });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0]!.text).toContain('Python');
+      expect(result.content[0]!.text).toContain('requirements.txt');
+      expect(existsSync(outputDir)).toBe(false);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+      rmSync(outputDir, { recursive: true, force: true });
+    }
+  });
+
+  it('refuses with a clear reason when package.json exists but names neither next nor express', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-genspec-unsupported-'));
+    const outputDir = `${dir}-rebuild`;
+    try {
+      writeFileSync(join(dir, 'package.json'), JSON.stringify({ name: 'some-cli-tool', dependencies: { commander: '^12.0.0' } }));
+      atomicWriteFile(evidencePath(dir), JSON.stringify(minimalEvidence({ repoPath: dir, packageJson: { name: 'some-cli-tool', scripts: {}, dependencies: { commander: '^12.0.0' }, devDependencies: {} } })));
+      saveCases(dir, []);
+
+      const result = await generateSpecHandler({ repoPath: dir });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0]!.text).toContain('neither `next` nor `express`');
+      expect(existsSync(outputDir)).toBe(false);
     } finally {
       rmSync(dir, { recursive: true, force: true });
       rmSync(outputDir, { recursive: true, force: true });
@@ -227,6 +288,7 @@ describe('generate_spec tool', () => {
     const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-genspec-'));
     const outputDir = `${dir}-rebuild`;
     try {
+      writeSupportedPackageJson(dir);
       atomicWriteFile(evidencePath(dir), JSON.stringify(minimalEvidence()));
       saveCases(dir, []);
       const statePath = join(dir, 'good-state.json');
@@ -251,6 +313,7 @@ describe('generate_spec tool', () => {
     const outputDir = `${dir}-rebuild`;
     try {
       mkdirSync(join(dir, 'node_modules'), { recursive: true });
+      writeSupportedPackageJson(dir);
       atomicWriteFile(evidencePath(dir), JSON.stringify(minimalEvidence()));
       saveCases(dir, []);
 

@@ -6,6 +6,7 @@ import { loadEvidenceBundle } from '../state/evidenceStore.js';
 import { writeSpecTree } from '../spec/writeSpecTree.js';
 import { enforcePathAllowlist } from '../security/pathAllowlist.js';
 import { findCandidateAppDirs } from '../ingest/detectMonorepoHint.js';
+import { unsupportedStackHint } from '../ingest/unsupportedStackHint.js';
 import { VISION_PAGE_PACING_DELAY_MS } from '../spec/visionClassifier.js';
 
 export const generateSpecInputSchema = z.object({
@@ -168,6 +169,21 @@ export async function generateSpecHandler(args: z.infer<typeof generateSpecInput
             text: `Cannot generate spec: 0 routes were ingested for ${args.repoPath} — this looks like a monorepo root, not the app itself. Re-run ingest_repo and generate_spec pointed at one of these candidates instead: ${candidates.join(', ')}`
           }
         ],
+        isError: true
+      };
+    }
+
+    // Real, live-triggered finding: pointing this at an unsupported stack
+    // (a Python app was the case that surfaced it, but any repo lacking
+    // next/express) fell through this same 0-routes branch with no monorepo
+    // candidates, and generated a valid-looking but silently empty spec
+    // whose only complaint was `missingNodeModules` — "run npm install" is
+    // actively misleading advice for a stack `npm install` can't help. This
+    // is the one case the tool can actually diagnose instead of guessing.
+    const stackHint = unsupportedStackHint(args.repoPath, evidence);
+    if (stackHint) {
+      return {
+        content: [{ type: 'text' as const, text: `Cannot generate spec: 0 routes were ingested for ${args.repoPath}. ${stackHint}` }],
         isError: true
       };
     }

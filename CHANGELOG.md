@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.14] - 2026-09-24
+
+Found while scoping a request to add Python support: on a project this tool doesn't support at all, it gave no indication of that — it looked like it ran successfully and produced an empty, useless package.
+
+### Added
+- **A clear refusal for an unsupported stack**, instead of silently generating an empty package. `ingest_repo` now reports `unsupportedStackNote` when 0 routes are found and it isn't a monorepo-root case, and `generate_spec` refuses outright with the same diagnosis. It names Python explicitly when it finds `requirements.txt`, `pyproject.toml`, `setup.py`, `Pipfile`, or `manage.py`; otherwise it says plainly that only Next.js (App Router) and Express are supported. Before this, a Python (or any other unsupported) project fell through to `generate_spec`'s `missingNodeModules` warning, whose fix ("run `npm install`") is actively misleading for a stack `npm install` can't help.
+
 ## [0.2.13] - 2026-09-24
 
 Found by a stand-in validator run through the OpenAI Codex CLI, on an unfamiliar Express app with routers, JWT auth and JSON-file storage.

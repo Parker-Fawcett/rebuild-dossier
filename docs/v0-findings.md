@@ -6011,3 +6011,47 @@ The same flow on the OpenAI Codex CLI (0.153.4, `gpt-6-astra`, medium). The pack
   - error bodies are JSON `{message}` against the original's `{status,statusCode,message}` (Claude's were Express's HTML);
   - the rebuild starts with no recipes (the original has 12 seeded).
 - **Remaining app-level gaps, shared across both CLIs:** the error-middleware response shape and seed data. Neither is in any route contract.
+
+## A clear refusal for an unsupported stack, instead of a silent empty package (0.2.14, 2026-09-24)
+
+Prompted by scoping a request to add Python support (a validator's only projects are Python/dbt,
+neither supported). Manually pointed `ingest_repo`/`generate_spec` at a small FastAPI project to
+see what actually happens today.
+
+**What happened before the fix:** `ingest_repo` reported `routes: 0` with no comment. `generate_spec`
+went on to produce a syntactically valid but completely empty package — no contracts, no tests —
+with its only complaint being `missingNodeModules`: "Run `npm install` in the target repo." That
+advice is actively wrong for a Python project; installing dependencies with npm does nothing.
+Someone unfamiliar with the tool's scope would have no way to learn "this isn't supported" short of
+reading the README closely.
+
+**Fix:** a new `unsupportedStackHint` (`src/ingest/unsupportedStackHint.ts`), consulted from both
+tools, exactly when 0 routes were found and it isn't the existing monorepo-root case (that
+diagnosis takes precedence when both could technically apply):
+- no `package.json`, with Python project markers present (`requirements.txt`, `pyproject.toml`,
+  `setup.py`, `Pipfile`, `manage.py`) → names Python explicitly and says what is supported;
+- no `package.json`, no Python markers → a generic "no package.json found" message with the same
+  supported-frameworks statement;
+- `package.json` exists but neither `next` nor `express` is a dependency → says so directly.
+- `ingest_repo` surfaces this as a non-fatal `unsupportedStackNote` (so the case queue and other
+  fields still populate normally); `generate_spec` refuses outright, the same way it already
+  refuses for a 0-routes monorepo root.
+- A route-less Next.js/Express app (a real, valid state — e.g. an Express app with only middleware
+  registered) is unaffected: the framework dependency being present is enough to skip the refusal.
+
+**Correcting an existing test that encoded the bug:** `generateSpec.spec.ts` had
+`'does not refuse for a genuinely route-less repo that is not monorepo-shaped'`, whose fixture had
+no on-disk `package.json` and empty `dependencies` — indistinguishable, by any evidence available,
+from an unsupported stack. That fixture was the exact silent-failure shape this fix closes. Rewrote
+it to represent a real supported-but-early-stage app (an on-disk `package.json` naming `express`),
+and added two new tests for the actual refusal (Python markers; `package.json` with neither
+framework). Four other pre-existing tests in that file used the same generic empty-dependency
+fixture for unrelated purposes (schema shape, output-directory writing, `authStorageStatePath`,
+the `node_modules` warning) — extended `minimalEvidence()`'s shared default there to a real
+`express` dependency plus a matching on-disk `package.json`, so those fixtures now read as an
+ordinary supported app rather than an ambiguous one.
+
+Verified end to end (not just unit-tested) against a real FastAPI project with no `package.json`:
+`ingest_repo` now reports `unsupportedStackNote: "This looks like a Python project (found
+requirements.txt)..."`, and `generate_spec` refuses with the same text before writing anything.
+Suite 664/664 across 93 files (was 654/92).

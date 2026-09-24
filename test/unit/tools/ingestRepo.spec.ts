@@ -100,6 +100,44 @@ describe('ingest_repo tool', () => {
     rmSync(join(sampleRepoPath, '.dossier'), { recursive: true, force: true });
   });
 
+  // Real, live-triggered shape: pointing this at a Python project silently
+  // returned 0 routes with no indication the stack itself is unsupported —
+  // distinct from the monorepo case above, which is "wrong directory," not
+  // "wrong stack."
+  it('surfaces an unsupported-stack note for a Python project, not a monorepo hint', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-ingest-python-'));
+    try {
+      writeFileSync(join(dir, 'requirements.txt'), 'fastapi\n');
+      writeFileSync(join(dir, 'main.py'), 'from fastapi import FastAPI\napp = FastAPI()\n');
+
+      const result = await ingestRepoHandler({ path: dir });
+      const summary = JSON.parse(result.content[0]!.text);
+
+      expect(summary.routes).toBe(0);
+      expect(summary.monorepoHint).toBeUndefined();
+      expect(summary.unsupportedStackNote).toContain('Python');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('does not surface an unsupported-stack note when a monorepo hint already applies', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rebuild-dossier-ingest-monorepo-'));
+    try {
+      writeFileSync(join(dir, 'package.json'), JSON.stringify({ name: 'temp', private: true }));
+      mkdirSync(join(dir, 'apps', 'web'), { recursive: true });
+      writeFileSync(join(dir, 'apps', 'web', 'package.json'), JSON.stringify({ name: '@app/web', dependencies: { next: '^14.0.0' } }));
+
+      const result = await ingestRepoHandler({ path: dir });
+      const summary = JSON.parse(result.content[0]!.text);
+
+      expect(summary.monorepoHint).toBeDefined();
+      expect(summary.unsupportedStackNote).toBeUndefined();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('with interactive:true and elicitation supported, asks which candidate is the real app and ingests it', async () => {
     // Deliberately does NOT silently auto-redirect (that would be the same
     // class of silent-resolution violation as reconciliation auto-resolving
