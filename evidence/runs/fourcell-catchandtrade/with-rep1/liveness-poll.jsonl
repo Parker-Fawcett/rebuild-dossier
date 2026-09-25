@@ -1,0 +1,12 @@
+{"polledAt":"2026-08-27T21:31:12.555Z","heartbeat":null}
+{"polledAt":"2026-08-27T21:31:32.596Z","heartbeat":null}
+{"polledAt":"2026-08-27T21:31:52.643Z","heartbeat":{"lastFiredAt":"2026-08-27T21:31:44.872Z","cwd":"/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/with-rep1","count":1}}
+{"polledAt":"2026-08-27T21:32:12.702Z","heartbeat":{"lastFiredAt":"2026-08-27T21:32:05.882Z","cwd":"/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/with-rep1","count":3}}
+{"polledAt":"2026-08-27T21:32:32.749Z","heartbeat":{"lastFiredAt":"2026-08-27T21:32:05.882Z","cwd":"/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/with-rep1","count":3}}
+{"polledAt":"2026-08-27T21:32:52.792Z","heartbeat":{"lastFiredAt":"2026-08-27T21:32:52.669Z","cwd":"/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/with-rep1","count":4}}
+{"polledAt":"2026-08-27T21:33:12.832Z","heartbeat":{"lastFiredAt":"2026-08-27T21:33:08.985Z","cwd":"/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/with-rep1","count":10}}
+{"polledAt":"2026-08-27T21:33:32.870Z","heartbeat":{"lastFiredAt":"2026-08-27T21:33:31.380Z","cwd":"/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/with-rep1","count":17}}
+{"polledAt":"2026-08-27T21:33:52.907Z","heartbeat":{"lastFiredAt":"2026-08-27T21:33:51.500Z","cwd":"/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/with-rep1","count":18}}
+{"polledAt":"2026-08-27T21:34:12.964Z","heartbeat":{"lastFiredAt":"2026-08-27T21:34:12.702Z","cwd":"/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/with-rep1","count":25}}
+{"polledAt":"2026-08-27T21:34:33.028Z","heartbeat":{"lastFiredAt":"2026-08-27T21:34:18.932Z","cwd":"/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/with-rep1","count":28}}
+{"polledAt":"2026-08-27T21:34:53.072Z","heartbeat":{"lastFiredAt":"2026-08-27T21:34:18.932Z","cwd":"/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/with-rep1","count":28}}

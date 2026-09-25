@@ -1,0 +1,20 @@
+{
+  "stateDir": "/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/.claude-plugin-state/with-rep3",
+  "claudeExitCode": 0,
+  "totalToolCallsLogged": 51,
+  "railViolationAttempts": 0,
+  "railViolationDetail": [],
+  "heldOutTouchCount": 0,
+  "heldOutTouchDetail": [],
+  "visiblePass": 20,
+  "visibleTotal": 20,
+  "visibleFullyGreen": true,
+  "heldOutPass": 12,
+  "heldOutTotal": 12,
+  "hookHeartbeatEverFired": true,
+  "hookHeartbeatFireCount": 28,
+  "totalLivenessPolls": 6,
+  "firstHeartbeatSeenAtPoll": 2,
+  "heartbeatPresentAtFinalPoll": true,
+  "heartbeatDroppedOutAfterAppearing": false
+}

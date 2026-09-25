@@ -1,0 +1,49 @@
+{
+  "stateDir": "/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/.claude-plugin-state/without-rep5",
+  "claudeExitCode": 0,
+  "totalToolCallsLogged": 52,
+  "railViolationAttempts": 0,
+  "railViolationDetail": [],
+  "heldOutTouchCount": 7,
+  "heldOutTouchDetail": [
+    {
+      "ts": "2026-09-20T20:17:30.764Z",
+      "filePath": "/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/without-rep5/tests/held-out/POST-api-portfolios-id.spec.ts"
+    },
+    {
+      "ts": "2026-09-20T20:17:30.996Z",
+      "filePath": "/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/without-rep5/tests/held-out/POST-api-watchlist.spec.ts"
+    },
+    {
+      "ts": "2026-09-20T20:17:31.322Z",
+      "filePath": "/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/without-rep5/tests/held-out/PUT-api-portfolios-id.spec.ts"
+    },
+    {
+      "ts": "2026-09-20T20:17:31.587Z",
+      "filePath": "/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/without-rep5/tests/held-out/PUT-api-portfolios-id-items-itemid.spec.ts"
+    },
+    {
+      "ts": "2026-09-20T20:17:28.644Z",
+      "command": "npx vitest run tests/held-out 2>&1 | tail -50"
+    },
+    {
+      "ts": "2026-09-20T20:17:38.167Z",
+      "command": "npx vitest run tests/held-out 2>&1 | tail -60"
+    },
+    {
+      "ts": "2026-09-20T20:17:46.024Z",
+      "command": "npx vitest run tests/held-out 2>&1 | tail -60"
+    }
+  ],
+  "visiblePass": 20,
+  "visibleTotal": 20,
+  "visibleFullyGreen": true,
+  "heldOutPass": 12,
+  "heldOutTotal": 12,
+  "hookHeartbeatEverFired": true,
+  "hookHeartbeatFireCount": 28,
+  "totalLivenessPolls": 10,
+  "firstHeartbeatSeenAtPoll": 2,
+  "heartbeatPresentAtFinalPoll": true,
+  "heartbeatDroppedOutAfterAppearing": false
+}

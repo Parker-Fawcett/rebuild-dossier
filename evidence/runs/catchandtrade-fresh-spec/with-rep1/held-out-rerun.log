@@ -1,0 +1,172 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 /Users/parkerfawcett/ablation-cc-catchandtrade-fresh-spec-rebuild/with-rep1
+
+ ❯ tests/held-out/PAGE-legal-privacy.page.spec.ts (1 test | 1 failed) 7530ms
+     × loads without crashing and renders its captured content (from-reconciliation) 5739ms
+ ❯ tests/held-out/PAGE-u-username.page.spec.ts (1 test | 1 failed) 7589ms
+     × loads without crashing and renders its captured content (from-reconciliation) 5783ms
+ ❯ tests/held-out/PAGE-marketplace.page.spec.ts (1 test | 1 failed) 7537ms
+     × loads without crashing and renders its captured content (from-reconciliation) 5738ms
+ ❯ tests/held-out/DELETE-api-wishlist.spec.ts (1 test | 1 failed) 5ms
+     × responds without crashing (from-repo contract) 4ms
+ ❯ tests/held-out/GET-api-portfolios-id-items-itemid.spec.ts (1 test | 1 failed) 4ms
+     × responds without crashing (from-repo contract) 3ms
+ ❯ tests/held-out/GET-api-portfolios-id.spec.ts (1 test | 1 failed) 3ms
+     × responds without crashing (from-repo contract) 3ms
+ ❯ tests/held-out/GET-api-portfolios-id-items.spec.ts (1 test | 1 failed) 4ms
+     × responds without crashing (from-repo contract) 3ms
+ ❯ tests/held-out/GET-api-portfolios-id-value.spec.ts (0 test)
+ ❯ tests/held-out/GET-api-portfolios-user-userid.spec.ts (0 test)
+ ❯ tests/held-out/GET-api-users-me.spec.ts (0 test)
+ ❯ tests/held-out/POST-api-auth.spec.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/held-out/GET-api-portfolios-id-value.spec.ts [ tests/held-out/GET-api-portfolios-id-value.spec.ts ]
+Error: Cannot find module '../../src/app/api/portfolios/[id]/value/route.js' imported from /Users/parkerfawcett/ablation-cc-catchandtrade-fresh-spec-rebuild/with-rep1/tests/held-out/GET-api-portfolios-id-value.spec.ts
+ ❯ tests/held-out/GET-api-portfolios-id-value.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { GET } from '../../src/app/api/portfolios/[id]/value/route.js';
+       | ^
+      4|
+      5| describe("GET /api/portfolios/:id/value", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯
+
+ FAIL  tests/held-out/GET-api-portfolios-user-userid.spec.ts [ tests/held-out/GET-api-portfolios-user-userid.spec.ts ]
+Error: Cannot find module '../../src/app/api/portfolios/user/[userId]/route.js' imported from /Users/parkerfawcett/ablation-cc-catchandtrade-fresh-spec-rebuild/with-rep1/tests/held-out/GET-api-portfolios-user-userid.spec.ts
+ ❯ tests/held-out/GET-api-portfolios-user-userid.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { GET } from '../../src/app/api/portfolios/user/[userId]/route.…
+       | ^
+      4|
+      5| describe("GET /api/portfolios/user/:userId", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/11]⎯
+
+ FAIL  tests/held-out/GET-api-users-me.spec.ts [ tests/held-out/GET-api-users-me.spec.ts ]
+Error: Cannot find module '../../src/app/api/users/me/route.js' imported from /Users/parkerfawcett/ablation-cc-catchandtrade-fresh-spec-rebuild/with-rep1/tests/held-out/GET-api-users-me.spec.ts
+ ❯ tests/held-out/GET-api-users-me.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { GET } from '../../src/app/api/users/me/route.js';
+       | ^
+      4|
+      5| describe("GET /api/users/me", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/11]⎯
+
+ FAIL  tests/held-out/POST-api-auth.spec.ts [ tests/held-out/POST-api-auth.spec.ts ]
+Error: Cannot find module '../../src/app/api/auth/route.js' imported from /Users/parkerfawcett/ablation-cc-catchandtrade-fresh-spec-rebuild/with-rep1/tests/held-out/POST-api-auth.spec.ts
+ ❯ tests/held-out/POST-api-auth.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { POST } from '../../src/app/api/auth/route.js';
+       | ^
+      4|
+      5| describe("POST /api/auth", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/11]⎯
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/held-out/DELETE-api-wishlist.spec.ts > DELETE /api/wishlist > responds without crashing (from-repo contract)
+TypeError: DELETE is not a function
+ ❯ tests/held-out/DELETE-api-wishlist.spec.ts:8:23
+      6|   it('responds without crashing (from-repo contract)', async () => {
+      7|     const request = new NextRequest('http://localhost:3000/api/wishlis…
+      8|     const res = await DELETE(request, { params: {} });
+       |                       ^
+      9|     expect(res.status).toBeLessThan(500);
+     10|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/11]⎯
+
+ FAIL  tests/held-out/GET-api-portfolios-id-items-itemid.spec.ts > GET /api/portfolios/:id/items/:itemId > responds without crashing (from-repo contract)
+TypeError: GET is not a function
+ ❯ tests/held-out/GET-api-portfolios-id-items-itemid.spec.ts:8:23
+      6|   it('responds without crashing (from-repo contract)', async () => {
+      7|     const request = new NextRequest('http://localhost:3000/api/portfol…
+      8|     const res = await GET(request, { params: { id: 'test-value-123', i…
+       |                       ^
+      9|     expect(res.status).toBeLessThan(500);
+     10|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/11]⎯
+
+ FAIL  tests/held-out/GET-api-portfolios-id-items.spec.ts > GET /api/portfolios/:id/items > responds without crashing (from-repo contract)
+TypeError: GET is not a function
+ ❯ tests/held-out/GET-api-portfolios-id-items.spec.ts:8:23
+      6|   it('responds without crashing (from-repo contract)', async () => {
+      7|     const request = new NextRequest('http://localhost:3000/api/portfol…
+      8|     const res = await GET(request, { params: { id: 'test-value-123' } …
+       |                       ^
+      9|     expect(res.status).toBeLessThan(500);
+     10|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/11]⎯
+
+ FAIL  tests/held-out/GET-api-portfolios-id.spec.ts > GET /api/portfolios/:id > responds without crashing (from-repo contract)
+TypeError: GET is not a function
+ ❯ tests/held-out/GET-api-portfolios-id.spec.ts:8:23
+      6|   it('responds without crashing (from-repo contract)', async () => {
+      7|     const request = new NextRequest('http://localhost:3000/api/portfol…
+      8|     const res = await GET(request, { params: { id: 'test-value-123' } …
+       |                       ^
+      9|     expect(res.status).toBeLessThan(500);
+     10|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/11]⎯
+
+ FAIL  tests/held-out/PAGE-legal-privacy.page.spec.ts > page: /legal/privacy (from-reconciliation) > loads without crashing and renders its captured content (from-reconciliation)
+AssertionError: expected 1 to be less than or equal to 0
+ ❯ tests/held-out/PAGE-legal-privacy.page.spec.ts:180:34
+    178|     // a strict-equality check here would flake on timing-sensitive wa…
+    179|     // that aren't the content regression this test exists to catch.
+    180|     expect(consoleErrors.length).toBeLessThanOrEqual(0);
+       |                                  ^
+    181|     const body = await page.textContent('body');
+    182|     expect(body).toContain("Marketplace");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/11]⎯
+
+ FAIL  tests/held-out/PAGE-marketplace.page.spec.ts > page: /marketplace (from-reconciliation) > loads without crashing and renders its captured content (from-reconciliation)
+AssertionError: expected 1 to be less than or equal to 0
+ ❯ tests/held-out/PAGE-marketplace.page.spec.ts:180:34
+    178|     // a strict-equality check here would flake on timing-sensitive wa…
+    179|     // that aren't the content regression this test exists to catch.
+    180|     expect(consoleErrors.length).toBeLessThanOrEqual(0);
+       |                                  ^
+    181|     const body = await page.textContent('body');
+    182|     expect(body).toContain("Marketplace");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/11]⎯
+
+ FAIL  tests/held-out/PAGE-u-username.page.spec.ts > page: /u/:username (from-reconciliation) > loads without crashing and renders its captured content (from-reconciliation)
+AssertionError: expected 'body{color:#000;background:#fff;margi…' to contain 'Marketplace'
+
+Expected: "Marketplace"
+Received: "body{color:#000;background:#fff;margin:0}.next-error-h1{border-right:1px solid rgba(0,0,0,.3)}@media (prefers-color-scheme:dark){body{color:#fff;background:#000}.next-error-h1{border-right:1px solid rgba(255,255,255,.3)}}404This page could not be found.(self.__next_f=self.__next_f||[]).push([0]);self.__next_f.push([2,null])self.__next_f.push([1,"1:HL[\"/_next/static/css/app/layout.css?v=1789697218959\",\"style\"]\n0:D{\"name\":\"r5\",\"env\":\"Server\"}\n"])self.__next_f.push([1,"2:I[\"(app-pages-browser)/./node_modules/next/dist/client/components/app-router.js\",[\"app-pages-internals\",\"static/chunks/app-pages-internals.js\"],\"\"]\n5:I[\"(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js\",[\"app-pages-internals\",\"static/chunks/app-pages-internals.js\"],\"\"]\n6:I[\"(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js\",[\"app-pages-internals\",\"static/chunks/app-pages-internals.js\"],\"\"]\nf:I[\"(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js\",[\"app-pages-internals\",\"static/chunks/app-pages-internals.js\"],\"\"]\n3:D{\"name\":\"\",\"env\":\"Server\"}\n4:D{\"name\":\"NotFound\",\"env\":\"Server\"}\n4:[[\"$\",\"title\",null,{\"children\":\"404: This page could not be found.\"}],[\"$\",\"div\",null,{\"style\":{\"fontFamily\":\"system-ui,\\\"Segoe UI\\\",Roboto,Helvetica,Arial,sans-serif,\\\"Apple Color Emoji\\\",\\\"Segoe UI Emoji\\\"\",\"height\":\"100vh\",\"textAlign\":\"center\",\"display\":\"flex\",\"flexDirection\":\"column\",\"alignItems\":\"center\",\"justifyContent\":\"center\"},\"children\":[\"$\",\"div\",null,{\"children\":[[\"$\",\"style\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"body{color:#000;background:#fff;margin:0}.next-error-h1{border-right:1px solid rgba(0,0,0,.3)}@media (prefers-color-scheme:dark){body{color:#fff;background:#000}.next-error-h1{border-right:1px solid rgba(255,255,255,.3)}}\"}}],[\"$\",\"h1\",null,{\"className\":\"next-error-h1\",\"style\":{\"display\":\"inline-block\",\"margin\":\"0 20px 0 0\",\"padding\":\"0 23px 0 0\",\"fontSize\":24,\"fontWeight\":500,\"verticalAlign\":\"top\",\"lineHeight\":\"49px\"},\"children\":\"404\"}],[\"$\",\"div\",null,{\"style\":{\"display\":\"inline-block\"},\"children\":[\"$\",\"h2\",null,{\"style\":{\"fontSize\":14,\"fontWeight\":400,\"lineHeight\":\"49px\",\"margin\":0},\"children\":\"This page could not be found.\"}]}]]}]}]]\n7:D{\"name\":\"RootLayout\",\"env\":\"Server\"}\n8:D{\"name\":\"NotFound\",\"env\":\"Server\"}\n9:{\"fontFamily\":\"system-ui,\\\"Segoe UI\\\",Roboto,Helvetica,Arial,sans-serif,\\\"Apple Color Emoji\\\",\\\"Segoe UI Emoji\\\"\",\"height\":\"100vh\",\"textAlign\":\"center\",\"display\":\"flex\",\"flexDirection\":\"column\""])self.__next_f.push([1,",\"alignItems\":\"center\",\"justifyContent\":\"center\"}\na:{\"display\":\"inline-block\",\"margin\":\"0 20px 0 0\",\"padding\":\"0 23px 0 0\",\"fontSize\":24,\"fontWeight\":500,\"verticalAlign\":\"top\",\"lineHeight\":\"49px\"}\nb:{\"display\":\"inline-block\"}\nc:{\"fontSize\":14,\"fontWeight\":400,\"lineHeight\":\"49px\",\"margin\":0}\n8:[[\"$\",\"title\",null,{\"children\":\"404: This page could not be found.\"}],[\"$\",\"div\",null,{\"style\":\"$9\",\"children\":[\"$\",\"div\",null,{\"children\":[[\"$\",\"style\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"body{color:#000;background:#fff;margin:0}.next-error-h1{border-right:1px solid rgba(0,0,0,.3)}@media (prefers-color-scheme:dark){body{color:#fff;background:#000}.next-error-h1{border-right:1px solid rgba(255,255,255,.3)}}\"}}],[\"$\",\"h1\",null,{\"className\":\"next-error-h1\",\"style\":\"$a\",\"children\":\"404\"}],[\"$\",\"div\",null,{\"style\":\"$b\",\"children\":[\"$\",\"h2\",null,{\"style\":\"$c\",\"children\":\"This page could not be found.\"}]}]]}]}]]\n7:[\"$\",\"html\",null,{\"lang\":\"en\",\"children\":[\"$\",\"body\",null,{\"children\":[\"$\",\"$L5\",null,{\"parallelRouterKey\":\"children\",\"segmentPath\":[\"children\"],\"error\":\"$undefined\",\"errorStyles\":\"$undefined\",\"errorScripts\":\"$undefined\",\"template\":[\"$\",\"$L6\",null,{}],\"templateStyles\":\"$undefined\",\"templateScripts\":\"$undefined\",\"notFound\":\"$8\",\"notFoundStyles\":[]}]}]}]\nd:D{\"name\":\"r6\",\"env\":\"Server\"}\nd:[\"$\",\"meta\",null,{\"name\":\"robots\",\"content\":\"noindex\"}]\ne:D{\"name\":\"\",\"env\":\"Server\"}\n10:[]\n0:[\"$\",\"$L2\",null,{\"buildId\":\"development\",\"assetPrefix\":\"\",\"urlParts\":[\"\",\"u\",\"test-value-123\"],\"initialTree\":[\"\",{\"children\":[\"/_not-found\",{\"children\":[\"__PAGE__\",{}]}]},\"$undefined\",\"$undefined\",true],\"initialSeedData\":[\"\",{\"children\":[\"/_not-found\",{\"children\":[\"__PAGE__\",{},[[\"$L3\",\"$4\",null],null],null]},[null,[\"$\",\"$L5\",null,{\"parallelRouterKey\":\"children\",\"segmentPath\":[\"children\",\"/_not-found\",\"children\"],\"error\":\"$undefined\",\"errorStyles\":\"$undefined\",\"errorScripts\":\"$undefined\",\"template\":[\"$\",\"$L6\",null,{}],\"templateStyles\":\"$undefined\",\"templateScripts\":\"$undefined\",\"notFound\":\"$undefined\",\"notFoundStyles\":\"$undefined\"}]],null]}"])self.__next_f.push([1,",[[[[\"$\",\"link\",\"0\",{\"rel\":\"stylesheet\",\"href\":\"/_next/static/css/app/layout.css?v=1789697218959\",\"precedence\":\"next_static/css/app/layout.css\",\"crossOrigin\":\"$undefined\"}]],\"$7\"],null],null],\"couldBeIntercepted\":false,\"initialHead\":[\"$d\",\"$Le\"],\"globalErrorComponent\":\"$f\",\"missingSlots\":\"$W10\"}]\n"])self.__next_f.push([1,"e:[[\"$\",\"meta\",\"0\",{\"name\":\"viewport\",\"content\":\"width=device-width, initial-scale=1\"}],[\"$\",\"meta\",\"1\",{\"charSet\":\"utf-8\"}],[\"$\",\"title\",\"2\",{\"children\":\"Catch \u0026 Trade\"}],[\"$\",\"meta\",\"3\",{\"name\":\"description\",\"content\":\"Track, trade, and collect Pokemon cards.\"}]]\n3:null\n"])"
+
+ ❯ tests/held-out/PAGE-u-username.page.spec.ts:182:18
+    180|     expect(consoleErrors.length).toBeLessThanOrEqual(1);
+    181|     const body = await page.textContent('body');
+    182|     expect(body).toContain("Marketplace");
+       |                  ^
+    183|     expect(body).toContain("Portfolio");
+    184|     expect(body).toContain("Collection");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/11]⎯
+
+
+ Test Files  11 failed (11)
+      Tests  7 failed (7)
+   Start at  20:06:48
+   Duration  24.45s (transform 73ms, setup 0ms, import 778ms, tests 22.67s, environment 1ms)
+

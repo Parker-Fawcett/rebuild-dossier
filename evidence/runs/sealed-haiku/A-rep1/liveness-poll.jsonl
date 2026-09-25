@@ -1,0 +1,15 @@
+{"polledAt":"2026-09-23T16:53:05.637Z","heartbeat":null}
+{"polledAt":"2026-09-23T16:53:25.699Z","heartbeat":null}
+{"polledAt":"2026-09-23T16:53:45.755Z","heartbeat":null}
+{"polledAt":"2026-09-23T16:54:05.808Z","heartbeat":null}
+{"polledAt":"2026-09-23T16:54:25.870Z","heartbeat":{"lastFiredAt":"2026-09-23T16:54:12.522Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09/A-rep1","count":1}}
+{"polledAt":"2026-09-23T16:54:45.929Z","heartbeat":{"lastFiredAt":"2026-09-23T16:54:30.198Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09/A-rep1","count":2}}
+{"polledAt":"2026-09-23T16:55:05.967Z","heartbeat":{"lastFiredAt":"2026-09-23T16:54:55.941Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09/A-rep1","count":3}}
+{"polledAt":"2026-09-23T16:55:26.022Z","heartbeat":{"lastFiredAt":"2026-09-23T16:55:18.178Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09/A-rep1","count":5}}
+{"polledAt":"2026-09-23T16:55:46.071Z","heartbeat":{"lastFiredAt":"2026-09-23T16:55:30.560Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09/A-rep1","count":6}}
+{"polledAt":"2026-09-23T16:56:06.121Z","heartbeat":{"lastFiredAt":"2026-09-23T16:56:04.793Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09/A-rep1","count":11}}
+{"polledAt":"2026-09-23T16:56:26.170Z","heartbeat":{"lastFiredAt":"2026-09-23T16:56:20.393Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09/A-rep1","count":17}}
+{"polledAt":"2026-09-23T16:56:46.213Z","heartbeat":{"lastFiredAt":"2026-09-23T16:56:20.393Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09/A-rep1","count":17}}
+{"polledAt":"2026-09-23T16:57:06.277Z","heartbeat":{"lastFiredAt":"2026-09-23T16:56:20.393Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09/A-rep1","count":17}}
+{"polledAt":"2026-09-23T16:57:26.329Z","heartbeat":{"lastFiredAt":"2026-09-23T16:56:20.393Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09/A-rep1","count":17}}
+{"polledAt":"2026-09-23T16:57:46.391Z","heartbeat":{"lastFiredAt":"2026-09-23T16:56:20.393Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09/A-rep1","count":17}}

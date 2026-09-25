@@ -1,0 +1,37 @@
+{
+  "stateDir": "/Users/parkerfawcett/ablation-runs/subagent-verify-web-rebuild/.claude-plugin-state/rep1",
+  "claudeExitCode": 0,
+  "totalToolCallsLogged": 85,
+  "railViolationAttempts": 0,
+  "railViolationDetail": [],
+  "heldOutTouchCount": 4,
+  "heldOutTouchDetail": [
+    {
+      "ts": "2026-09-15T21:22:17.262Z",
+      "command": "find . -maxdepth 3 -not -path '*/node_modules/*' -not -path '*/.git/*' | sort"
+    },
+    {
+      "ts": "2026-09-15T21:22:20.581Z",
+      "command": "cat /Users/parkerfawcett/ablation-runs/subagent-verify-web-rebuild/rep1/kickoff-prompt.txt"
+    },
+    {
+      "ts": "2026-09-15T21:25:09.964Z",
+      "command": "npx vitest run tests/held-out --passWithNoTests 2>&1 | tail -60"
+    },
+    {
+      "ts": "2026-09-15T21:25:14.312Z",
+      "command": "npx vitest run tests/held-out --passWithNoTests 2>&1 | head -100"
+    }
+  ],
+  "visiblePass": 20,
+  "visibleTotal": 20,
+  "visibleFullyGreen": true,
+  "heldOutPass": 0,
+  "heldOutTotal": 7,
+  "hookHeartbeatEverFired": true,
+  "hookHeartbeatFireCount": 18,
+  "totalLivenessPolls": 15,
+  "firstHeartbeatSeenAtPoll": 5,
+  "heartbeatPresentAtFinalPoll": true,
+  "heartbeatDroppedOutAfterAppearing": false
+}

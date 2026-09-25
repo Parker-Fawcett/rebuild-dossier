@@ -1,0 +1,17 @@
+{"polledAt":"2026-09-17T00:39:34.959Z","heartbeat":null}
+{"polledAt":"2026-09-17T00:39:55.015Z","heartbeat":null}
+{"polledAt":"2026-09-17T00:40:15.077Z","heartbeat":null}
+{"polledAt":"2026-09-17T00:40:35.140Z","heartbeat":null}
+{"polledAt":"2026-09-17T00:40:55.204Z","heartbeat":null}
+{"polledAt":"2026-09-17T00:41:15.270Z","heartbeat":null}
+{"polledAt":"2026-09-17T00:41:35.322Z","heartbeat":null}
+{"polledAt":"2026-09-17T00:41:55.387Z","heartbeat":null}
+{"polledAt":"2026-09-17T00:42:15.437Z","heartbeat":null}
+{"polledAt":"2026-09-17T00:42:35.482Z","heartbeat":{"lastFiredAt":"2026-09-17T00:42:32.993Z","cwd":"/Users/parkerfawcett/ablation-cc-mossgate-rebuild/with-rep3","count":2}}
+{"polledAt":"2026-09-17T00:42:55.550Z","heartbeat":{"lastFiredAt":"2026-09-17T00:42:36.866Z","cwd":"/Users/parkerfawcett/ablation-cc-mossgate-rebuild/with-rep3","count":3}}
+{"polledAt":"2026-09-17T00:43:15.616Z","heartbeat":{"lastFiredAt":"2026-09-17T00:42:36.866Z","cwd":"/Users/parkerfawcett/ablation-cc-mossgate-rebuild/with-rep3","count":3}}
+{"polledAt":"2026-09-17T00:43:35.676Z","heartbeat":{"lastFiredAt":"2026-09-17T00:42:36.866Z","cwd":"/Users/parkerfawcett/ablation-cc-mossgate-rebuild/with-rep3","count":3}}
+{"polledAt":"2026-09-17T00:43:55.729Z","heartbeat":{"lastFiredAt":"2026-09-17T00:42:36.866Z","cwd":"/Users/parkerfawcett/ablation-cc-mossgate-rebuild/with-rep3","count":3}}
+{"polledAt":"2026-09-17T00:44:15.772Z","heartbeat":{"lastFiredAt":"2026-09-17T00:42:36.866Z","cwd":"/Users/parkerfawcett/ablation-cc-mossgate-rebuild/with-rep3","count":3}}
+{"polledAt":"2026-09-17T00:44:35.835Z","heartbeat":{"lastFiredAt":"2026-09-17T00:42:36.866Z","cwd":"/Users/parkerfawcett/ablation-cc-mossgate-rebuild/with-rep3","count":3}}
+{"polledAt":"2026-09-17T00:44:55.902Z","heartbeat":{"lastFiredAt":"2026-09-17T00:42:36.866Z","cwd":"/Users/parkerfawcett/ablation-cc-mossgate-rebuild/with-rep3","count":3}}

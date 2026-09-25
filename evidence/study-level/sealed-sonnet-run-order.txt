@@ -1,0 +1,13 @@
+# Pre-committed run order for the strong-tier extension (PREREGISTRATION.md §10),
+# generated 2026-09-22 before any strong rep existed:
+#   python3 -c "import random; a=[f'{x}-rep{i}' for x in 'AB' for i in range(1,6)]; r=random.Random(202609224); r.shuffle(a); print(a)"
+B-rep3
+A-rep5
+B-rep2
+A-rep2
+B-rep5
+A-rep3
+B-rep1
+A-rep1
+B-rep4
+A-rep4

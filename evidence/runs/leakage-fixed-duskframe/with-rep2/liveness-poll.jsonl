@@ -1,0 +1,14 @@
+{"polledAt":"2026-09-18T01:47:59.882Z","heartbeat":null}
+{"polledAt":"2026-09-18T01:48:19.940Z","heartbeat":null}
+{"polledAt":"2026-09-18T01:48:40.002Z","heartbeat":null}
+{"polledAt":"2026-09-18T01:49:00.057Z","heartbeat":null}
+{"polledAt":"2026-09-18T01:49:20.119Z","heartbeat":null}
+{"polledAt":"2026-09-18T01:49:40.177Z","heartbeat":null}
+{"polledAt":"2026-09-18T01:50:00.238Z","heartbeat":null}
+{"polledAt":"2026-09-18T01:50:20.276Z","heartbeat":null}
+{"polledAt":"2026-09-18T01:50:40.342Z","heartbeat":{"lastFiredAt":"2026-09-18T01:50:39.629Z","cwd":"/Users/parkerfawcett/ablation-cc-duskframe-rebuild/with-rep2","count":2}}
+{"polledAt":"2026-09-18T01:51:00.379Z","heartbeat":{"lastFiredAt":"2026-09-18T01:50:52.932Z","cwd":"/Users/parkerfawcett/ablation-cc-duskframe-rebuild/with-rep2","count":7}}
+{"polledAt":"2026-09-18T01:51:20.431Z","heartbeat":{"lastFiredAt":"2026-09-18T01:50:52.932Z","cwd":"/Users/parkerfawcett/ablation-cc-duskframe-rebuild/with-rep2","count":7}}
+{"polledAt":"2026-09-18T01:51:40.474Z","heartbeat":{"lastFiredAt":"2026-09-18T01:50:52.932Z","cwd":"/Users/parkerfawcett/ablation-cc-duskframe-rebuild/with-rep2","count":7}}
+{"polledAt":"2026-09-18T01:52:00.535Z","heartbeat":{"lastFiredAt":"2026-09-18T01:50:52.932Z","cwd":"/Users/parkerfawcett/ablation-cc-duskframe-rebuild/with-rep2","count":7}}
+{"polledAt":"2026-09-18T01:52:20.572Z","heartbeat":{"lastFiredAt":"2026-09-18T01:50:52.932Z","cwd":"/Users/parkerfawcett/ablation-cc-duskframe-rebuild/with-rep2","count":7}}

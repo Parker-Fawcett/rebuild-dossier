@@ -1,0 +1,9 @@
+rep=C-rep3
+model=claude-haiku-4-5-20251001
+claude=2.1.247 (Claude Code)
+node=v22.16.0
+startedAt=2026-09-22T23:35:21Z
+markers=lock run-meta.txt 
+8595aabbe989892d9363242bf8f7a63b80e75cca09be6b1dfdb23f96fbdbf57f  kickoff-prompt.txt
+finishedAt=2026-09-22T23:38:45Z
+claudeExit=0

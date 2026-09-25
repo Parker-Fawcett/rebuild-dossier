@@ -1,0 +1,17 @@
+{"polledAt":"2026-09-23T17:37:14.053Z","heartbeat":null}
+{"polledAt":"2026-09-23T17:37:34.119Z","heartbeat":null}
+{"polledAt":"2026-09-23T17:37:54.189Z","heartbeat":null}
+{"polledAt":"2026-09-23T17:38:14.248Z","heartbeat":null}
+{"polledAt":"2026-09-23T17:38:34.321Z","heartbeat":null}
+{"polledAt":"2026-09-23T17:38:54.390Z","heartbeat":null}
+{"polledAt":"2026-09-23T17:39:14.461Z","heartbeat":null}
+{"polledAt":"2026-09-23T17:39:34.532Z","heartbeat":{"lastFiredAt":"2026-09-23T17:39:30.380Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09-strong/A-rep3","count":2}}
+{"polledAt":"2026-09-23T17:39:54.599Z","heartbeat":{"lastFiredAt":"2026-09-23T17:39:53.788Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09-strong/A-rep3","count":6}}
+{"polledAt":"2026-09-23T17:40:14.670Z","heartbeat":{"lastFiredAt":"2026-09-23T17:40:12.619Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09-strong/A-rep3","count":8}}
+{"polledAt":"2026-09-23T17:40:34.712Z","heartbeat":{"lastFiredAt":"2026-09-23T17:40:21.167Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09-strong/A-rep3","count":9}}
+{"polledAt":"2026-09-23T17:40:54.783Z","heartbeat":{"lastFiredAt":"2026-09-23T17:40:51.721Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09-strong/A-rep3","count":12}}
+{"polledAt":"2026-09-23T17:41:14.828Z","heartbeat":{"lastFiredAt":"2026-09-23T17:41:14.664Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09-strong/A-rep3","count":15}}
+{"polledAt":"2026-09-23T17:41:34.887Z","heartbeat":{"lastFiredAt":"2026-09-23T17:41:29.685Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09-strong/A-rep3","count":17}}
+{"polledAt":"2026-09-23T17:41:54.955Z","heartbeat":{"lastFiredAt":"2026-09-23T17:41:51.066Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09-strong/A-rep3","count":20}}
+{"polledAt":"2026-09-23T17:42:15.003Z","heartbeat":{"lastFiredAt":"2026-09-23T17:42:12.238Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09-strong/A-rep3","count":22}}
+{"polledAt":"2026-09-23T17:42:35.075Z","heartbeat":{"lastFiredAt":"2026-09-23T17:42:19.021Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09-strong/A-rep3","count":23}}

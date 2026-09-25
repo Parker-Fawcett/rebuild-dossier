@@ -1,0 +1,14 @@
+{"polledAt":"2026-09-23T13:12:38.863Z","elapsedSeconds":0,"heartbeat":null}
+{"polledAt":"2026-09-23T13:12:58.923Z","elapsedSeconds":20,"heartbeat":{"lastFiredAt":"2026-09-23T13:12:54.846Z","cwd":"/Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep2","count":5}}
+{"polledAt":"2026-09-23T13:13:18.988Z","elapsedSeconds":40,"heartbeat":{"lastFiredAt":"2026-09-23T13:13:15.365Z","cwd":"/Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep2","count":11}}
+{"polledAt":"2026-09-23T13:13:39.030Z","elapsedSeconds":60,"heartbeat":{"lastFiredAt":"2026-09-23T13:13:38.442Z","cwd":"/Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep2","count":16}}
+{"polledAt":"2026-09-23T13:13:59.080Z","elapsedSeconds":80,"heartbeat":{"lastFiredAt":"2026-09-23T13:13:57.148Z","cwd":"/Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep2","count":21}}
+{"polledAt":"2026-09-23T13:14:19.135Z","elapsedSeconds":100,"heartbeat":{"lastFiredAt":"2026-09-23T13:14:17.988Z","cwd":"/Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep2","count":26}}
+{"polledAt":"2026-09-23T13:14:39.200Z","elapsedSeconds":120,"heartbeat":{"lastFiredAt":"2026-09-23T13:14:36.657Z","cwd":"/Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep2","count":31}}
+{"polledAt":"2026-09-23T13:14:59.243Z","elapsedSeconds":140,"heartbeat":{"lastFiredAt":"2026-09-23T13:14:55.870Z","cwd":"/Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep2","count":36}}
+{"polledAt":"2026-09-23T13:15:19.284Z","elapsedSeconds":160,"heartbeat":{"lastFiredAt":"2026-09-23T13:15:19.082Z","cwd":"/Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep2","count":43}}
+{"polledAt":"2026-09-23T13:15:39.362Z","elapsedSeconds":180,"heartbeat":{"lastFiredAt":"2026-09-23T13:15:35.974Z","cwd":"/Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep2","count":48}}
+{"polledAt":"2026-09-23T13:15:59.433Z","elapsedSeconds":200,"heartbeat":{"lastFiredAt":"2026-09-23T13:15:58.001Z","cwd":"/Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep2","count":54}}
+{"polledAt":"2026-09-23T13:16:19.485Z","elapsedSeconds":220,"heartbeat":{"lastFiredAt":"2026-09-23T13:16:13.272Z","cwd":"/Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep2","count":59}}
+{"polledAt":"2026-09-23T13:16:39.539Z","elapsedSeconds":240,"heartbeat":{"lastFiredAt":"2026-09-23T13:16:38.839Z","cwd":"/Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep2","count":65}}
+{"polledAt":"2026-09-23T13:16:59.586Z","elapsedSeconds":260,"heartbeat":{"lastFiredAt":"2026-09-23T13:16:51.099Z","cwd":"/Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep2","count":68}}

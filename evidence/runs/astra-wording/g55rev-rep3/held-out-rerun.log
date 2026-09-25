@@ -1,0 +1,77 @@
+
+ RUN  v4.1.10 /Users/parkerfawcett/sealed-runs/astra-2026-09/g55rev-rep3
+
+ ❯ tests/held-out/GET-api-slabs.spec.ts (0 test)
+ ❯ tests/held-out/GET-api-users.spec.ts (0 test)
+ ❯ tests/held-out/GET-api-users-check-username.spec.ts (0 test)
+ ❯ tests/held-out/POST-api-scan.spec.ts (0 test)
+ ❯ tests/held-out/GET-api-health.spec.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/held-out/GET-api-health.spec.ts [ tests/held-out/GET-api-health.spec.ts ]
+Error: Cannot find module '../../src/app/api/health/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/g55rev-rep3/tests/held-out/GET-api-health.spec.ts
+ ❯ tests/held-out/GET-api-health.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { GET } from '../../src/app/api/health/route.js';
+       | ^
+      4|
+      5| describe("GET /api/health", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  tests/held-out/GET-api-slabs.spec.ts [ tests/held-out/GET-api-slabs.spec.ts ]
+Error: Cannot find module '../../src/app/api/slabs/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/g55rev-rep3/tests/held-out/GET-api-slabs.spec.ts
+ ❯ tests/held-out/GET-api-slabs.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { GET } from '../../src/app/api/slabs/route.js';
+       | ^
+      4|
+      5| describe("GET /api/slabs", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  tests/held-out/GET-api-users-check-username.spec.ts [ tests/held-out/GET-api-users-check-username.spec.ts ]
+Error: Cannot find module '../../src/app/api/users/check-username/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/g55rev-rep3/tests/held-out/GET-api-users-check-username.spec.ts
+ ❯ tests/held-out/GET-api-users-check-username.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { GET } from '../../src/app/api/users/check-username/route.js';
+       | ^
+      4|
+      5| describe("GET /api/users/check-username", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  tests/held-out/GET-api-users.spec.ts [ tests/held-out/GET-api-users.spec.ts ]
+Error: Cannot find module '../../src/app/api/users/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/g55rev-rep3/tests/held-out/GET-api-users.spec.ts
+ ❯ tests/held-out/GET-api-users.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { GET } from '../../src/app/api/users/route.js';
+       | ^
+      4|
+      5| describe("GET /api/users", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  tests/held-out/POST-api-scan.spec.ts [ tests/held-out/POST-api-scan.spec.ts ]
+Error: Cannot find module '../../src/app/api/scan/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/g55rev-rep3/tests/held-out/POST-api-scan.spec.ts
+ ❯ tests/held-out/POST-api-scan.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { POST } from '../../src/app/api/scan/route.js';
+       | ^
+      4|
+      5| describe("POST /api/scan", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  5 failed | 7 passed (12)
+      Tests  7 passed (7)
+   Start at  07:06:32
+   Duration  345ms (transform 332ms, setup 0ms, import 475ms, tests 33ms, environment 1ms)
+

@@ -1,0 +1,7 @@
+ RUN  v4.1.11 /Users/[operator]/rd-validation/[app]-rebuild
+
+
+ Test Files  7 passed (7)
+      Tests  8 passed (8)
+   Start at  19:01:28
+   Duration  231ms (transform 252ms, setup 0ms, import 781ms, tests 109ms, environment 0ms)

@@ -1,0 +1,9 @@
+rep=A-rep4
+model=claude-sonnet-5
+claude=2.1.247 (Claude Code)
+node=v22.16.0
+startedAt=2026-09-23T18:02:58Z
+markers=enforce lock run-meta.txt 
+87fcc89fa07e060490aa46daae58e0c2710a19e8dc779cf7f4ac03230b49d1f5  kickoff-prompt.txt
+finishedAt=2026-09-23T18:07:42Z
+claudeExit=0

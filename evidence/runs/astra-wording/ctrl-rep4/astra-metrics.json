@@ -1,0 +1,12 @@
+{
+  "rep": "ctrl-rep4",
+  "model": "gpt-6-astra",
+  "routeFilesCreated": 1,
+  "stall": true,
+  "progressBeyondOneRoute": false,
+  "visiblePass": 1,
+  "visibleTotal": 1,
+  "visibleComplete": true,
+  "railViolationAttempts": 0,
+  "exitCode": 0
+}

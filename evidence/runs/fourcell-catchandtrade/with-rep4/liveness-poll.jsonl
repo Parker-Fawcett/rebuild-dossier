@@ -1,0 +1,5 @@
+{"polledAt":"2026-09-20T19:50:05.435Z","heartbeat":null}
+{"polledAt":"2026-09-20T19:50:25.479Z","heartbeat":null}
+{"polledAt":"2026-09-20T19:50:45.551Z","heartbeat":null}
+{"polledAt":"2026-09-20T19:51:05.604Z","heartbeat":{"lastFiredAt":"2026-09-20T19:51:05.244Z","cwd":"/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/with-rep4","count":9}}
+{"polledAt":"2026-09-20T19:51:25.667Z","heartbeat":{"lastFiredAt":"2026-09-20T19:51:12.818Z","cwd":"/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/with-rep4","count":16}}

@@ -7,3 +7,6 @@ dist/
 .claude/settings.local.json
 .mcpb-build/
 *.mcpb
+
+# Per-trial evidence for the paper includes the harness's own test re-run logs.
+!evidence/**/*.log

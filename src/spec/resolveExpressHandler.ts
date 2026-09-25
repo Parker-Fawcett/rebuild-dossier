@@ -1,6 +1,7 @@
 import { readFileSync, statSync } from 'node:fs';
 import { join, posix } from 'node:path';
 import type { RouteEntry } from '../ingest/evidenceSchema.js';
+import { skipLiteralOrComment } from '../util/sourceScan.js';
 
 // Follows an Express route's handler to the code that actually runs.
 //
@@ -57,18 +58,20 @@ function escape(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// Index of the bracket closing the one at `open`, skipping string literals.
+// Index of the bracket closing the one at `open`, skipping string literals
+// and comments.
 function closing(text: string, open: number): number {
   const pairs: Record<string, string> = { '(': ')', '{': '}', '[': ']' };
   const want = pairs[text[open]!];
   if (!want) return -1;
   let depth = 0;
   for (let i = open; i < text.length; i++) {
-    const c = text[i]!;
-    if (c === "'" || c === '"' || c === '`') {
-      for (i++; i < text.length && text[i] !== c; i++) if (text[i] === '\\') i++;
+    const skipTo = skipLiteralOrComment(text, i);
+    if (skipTo !== -1) {
+      i = skipTo;
       continue;
     }
+    const c = text[i]!;
     if (c === text[open]) depth++;
     else if (c === want && --depth === 0) return i;
   }
@@ -80,11 +83,12 @@ function topLevelArgs(argsText: string): string[] {
   let depth = 0;
   let start = 0;
   for (let i = 0; i < argsText.length; i++) {
-    const c = argsText[i]!;
-    if (c === "'" || c === '"' || c === '`') {
-      for (i++; i < argsText.length && argsText[i] !== c; i++) if (argsText[i] === '\\') i++;
+    const skipTo = skipLiteralOrComment(argsText, i);
+    if (skipTo !== -1) {
+      i = skipTo;
       continue;
     }
+    const c = argsText[i]!;
     if (c === '(' || c === '[' || c === '{') depth++;
     else if (c === ')' || c === ']' || c === '}') depth--;
     else if (c === ',' && depth === 0) {

@@ -1,0 +1,3 @@
+{"polledAt":"2026-09-09T21:35:35.813Z","elapsedSeconds":0,"heartbeat":null}
+{"polledAt":"2026-09-09T21:35:55.856Z","elapsedSeconds":20,"heartbeat":{"lastFiredAt":"2026-09-09T21:35:50.048Z","cwd":"/Users/parkerfawcett/ablation-runs/ablation-codex-web-rebuild/with-rep1","count":3}}
+{"polledAt":"2026-09-09T21:36:15.920Z","elapsedSeconds":40,"heartbeat":{"lastFiredAt":"2026-09-09T21:36:12.486Z","cwd":"/Users/parkerfawcett/ablation-runs/ablation-codex-web-rebuild/with-rep1","count":7}}

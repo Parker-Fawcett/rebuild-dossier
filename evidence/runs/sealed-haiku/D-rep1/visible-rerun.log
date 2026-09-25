@@ -1,0 +1,30 @@
+
+ RUN  v4.1.10 /Users/parkerfawcett/sealed-runs/review-2026-09/D-rep1
+
+ ✓ tests/visible/DELETE-api-portfolios-id.spec.ts (1 test) 4ms
+ ✓ tests/visible/POST-api-orders.spec.ts (1 test) 5ms
+ ✓ tests/visible/DELETE-api-portfolios-id-items.spec.ts (1 test) 4ms
+ ✓ tests/visible/PUT-api-seller.spec.ts (1 test) 4ms
+ ✓ tests/visible/DELETE-api-portfolios-id-items-itemid.spec.ts (1 test) 4ms
+ ✓ tests/visible/POST-api-pricing.spec.ts (1 test) 6ms
+ ✓ tests/visible/GET-api-portfolios-id-value.spec.ts (1 test) 8ms
+ ✓ tests/visible/GET-api-watchlist.spec.ts (1 test) 5ms
+ ✓ tests/visible/GET-api-portfolios-id-items-itemid.spec.ts (1 test) 4ms
+ ✓ tests/visible/GET-api-pokedex.spec.ts (1 test) 4ms
+ ✓ tests/visible/PUT-api-orders.spec.ts (1 test) 4ms
+ ✓ tests/visible/GET-api-users-me.spec.ts (1 test) 4ms
+ ✓ tests/visible/POST-api-auth.spec.ts (1 test) 5ms
+ ✓ tests/visible/GET-api-portfolios-id.spec.ts (1 test) 6ms
+ ✓ tests/visible/POST-api-ebay.spec.ts (1 test) 4ms
+ ✓ tests/visible/PUT-api-listings-id.spec.ts (1 test) 4ms
+ ✓ tests/visible/GET-api-wishlist.spec.ts (1 test) 6ms
+ ✓ tests/visible/POST-api-portfolios.spec.ts (1 test) 6ms
+ ✓ tests/visible/GET-api-portfolios-id-items.spec.ts (1 test) 4ms
+ ✓ tests/visible/PUT-api-users-profile.spec.ts (1 test) 4ms
+
+ Test Files  20 passed (20)
+      Tests  20 passed (20)
+   Start at  17:26:12
+   Duration  472ms (transform 367ms, setup 0ms, import 1.17s, tests 98ms, environment 1ms)
+
+JSON report written to /Users/parkerfawcett/sealed-runs/review-2026-09/.claude-plugin-state/D-rep1/visible.json

@@ -1,0 +1,14 @@
+{"polledAt":"2026-09-23T17:17:57.724Z","heartbeat":null}
+{"polledAt":"2026-09-23T17:18:17.776Z","heartbeat":null}
+{"polledAt":"2026-09-23T17:18:37.818Z","heartbeat":null}
+{"polledAt":"2026-09-23T17:18:57.857Z","heartbeat":null}
+{"polledAt":"2026-09-23T17:19:17.896Z","heartbeat":null}
+{"polledAt":"2026-09-23T17:19:37.963Z","heartbeat":null}
+{"polledAt":"2026-09-23T17:19:58.032Z","heartbeat":null}
+{"polledAt":"2026-09-23T17:20:18.102Z","heartbeat":{"lastFiredAt":"2026-09-23T17:20:11.730Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09-strong/B-rep2","count":1}}
+{"polledAt":"2026-09-23T17:20:38.173Z","heartbeat":{"lastFiredAt":"2026-09-23T17:20:34.273Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09-strong/B-rep2","count":4}}
+{"polledAt":"2026-09-23T17:20:58.243Z","heartbeat":{"lastFiredAt":"2026-09-23T17:20:56.965Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09-strong/B-rep2","count":7}}
+{"polledAt":"2026-09-23T17:21:18.314Z","heartbeat":{"lastFiredAt":"2026-09-23T17:21:12.522Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09-strong/B-rep2","count":9}}
+{"polledAt":"2026-09-23T17:21:38.352Z","heartbeat":{"lastFiredAt":"2026-09-23T17:21:35.343Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09-strong/B-rep2","count":12}}
+{"polledAt":"2026-09-23T17:21:58.423Z","heartbeat":{"lastFiredAt":"2026-09-23T17:21:57.406Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09-strong/B-rep2","count":15}}
+{"polledAt":"2026-09-23T17:22:18.502Z","heartbeat":{"lastFiredAt":"2026-09-23T17:22:04.215Z","cwd":"/Users/parkerfawcett/sealed-runs/review-2026-09-strong/B-rep2","count":16}}

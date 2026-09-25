@@ -1,0 +1,37 @@
+{
+  "stateDir": "/Users/parkerfawcett/ablation-cc-mossgate-rebuild/.claude-plugin-state/without-rep3",
+  "claudeExitCode": 0,
+  "totalToolCallsLogged": 72,
+  "railViolationAttempts": 0,
+  "railViolationDetail": [],
+  "heldOutTouchCount": 4,
+  "heldOutTouchDetail": [
+    {
+      "ts": "2026-09-17T01:22:07.499Z",
+      "filePath": "/Users/parkerfawcett/ablation-cc-mossgate-rebuild/without-rep3/tests/held-out/PAGE-root.page.spec.ts"
+    },
+    {
+      "ts": "2026-09-17T01:15:14.012Z",
+      "command": "find tests -name \"*root*\" -o -name \"*contact*\" -o -name \"*PAGE-root*\" -o -name \"*PAGE-contact*\""
+    },
+    {
+      "ts": "2026-09-17T01:21:04.696Z",
+      "command": "until grep -q \"Test Files\" /private/tmp/claude-502/-Users-parkerfawcett-ablation-cc-mossgate-rebuild-without-rep3/64afcfea-fbc0-4517-a899-6914d86921b9/tasks/bt4p30z74.output; do sleep 10; done && tail -200 /private/tmp/claude-502/-Users-parkerfawcett-ablation-cc-mossgate-rebuild-without-rep3/64afcfea-fbc0-4517-a899-6914d86921b9/tasks/bt4p30z74.output"
+    },
+    {
+      "ts": "2026-09-17T01:22:05.043Z",
+      "command": "until grep -q \"Test Files\" /private/tmp/claude-502/-Users-parkerfawcett-ablation-cc-mossgate-rebuild-without-rep3/64afcfea-fbc0-4517-a899-6914d86921b9/tasks/bm0w3icol.output; do sleep 10; done && tail -200 /private/tmp/claude-502/-Users-parkerfawcett-ablation-cc-mossgate-rebuild-without-rep3/64afcfea-fbc0-4517-a899-6914d86921b9/tasks/bm0w3icol.output"
+    }
+  ],
+  "visiblePass": 3,
+  "visibleTotal": 3,
+  "visibleFullyGreen": true,
+  "heldOutPass": 2,
+  "heldOutTotal": 2,
+  "hookHeartbeatEverFired": true,
+  "hookHeartbeatFireCount": 13,
+  "totalLivenessPolls": 39,
+  "firstHeartbeatSeenAtPoll": 12,
+  "heartbeatPresentAtFinalPoll": true,
+  "heartbeatDroppedOutAfterAppearing": false
+}

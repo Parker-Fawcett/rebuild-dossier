@@ -1,0 +1,20 @@
+{
+  "stateDir": "/Users/parkerfawcett/ablation-cc-mossgate-rebuild/.claude-plugin-state/with-rep4",
+  "claudeExitCode": 0,
+  "totalToolCallsLogged": 30,
+  "railViolationAttempts": 0,
+  "railViolationDetail": [],
+  "heldOutTouchCount": 0,
+  "heldOutTouchDetail": [],
+  "visiblePass": 3,
+  "visibleTotal": 3,
+  "visibleFullyGreen": true,
+  "heldOutPass": 0,
+  "heldOutTotal": 2,
+  "hookHeartbeatEverFired": true,
+  "hookHeartbeatFireCount": 4,
+  "totalLivenessPolls": 13,
+  "firstHeartbeatSeenAtPoll": 8,
+  "heartbeatPresentAtFinalPoll": true,
+  "heartbeatDroppedOutAfterAppearing": false
+}

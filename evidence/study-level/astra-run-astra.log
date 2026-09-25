@@ -1,0 +1,506 @@
+=== ctrl-rep5 (gpt-6-astra) 23:06:46Z
+Running trial in /Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep5 with model gpt-6-astra (max 10800s) ...
+codex pid 52974 — polling heartbeat every 20s, hard cap 10800s ...
+codex exited with code 0 (124 = this script's own timeout, not codex's)
+Independently re-running tests/visible ...
+Independently re-running tests/held-out ...
+Done. Transcript: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/ctrl-rep5/transcript.log — mechanical metrics: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/ctrl-rep5/summary.json
+
+FIRST REAL RUN? Read /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/ctrl-rep5/summary.json's sampleRawStdin/hookErrors
+fields before trusting anything else in it — see ../README.md.
+{"rep":"ctrl-rep5","model":"gpt-6-astra","routeFilesCreated":1,"stall":true,"progressBeyondOneRoute":false,"visiblePass":1,"visibleTotal":1,"visibleComplete":true,"railViolationAttempts":0,"exitCode":0}
+=== orig-rep2 (gpt-6-astra) 23:07:49Z
+Running trial in /Users/parkerfawcett/sealed-runs/astra-2026-09/orig-rep2 with model gpt-6-astra (max 10800s) ...
+codex pid 53444 — polling heartbeat every 20s, hard cap 10800s ...
+codex exited with code 0 (124 = this script's own timeout, not codex's)
+Independently re-running tests/visible ...
+Independently re-running tests/held-out ...
+Done. Transcript: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/orig-rep2/transcript.log — mechanical metrics: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/orig-rep2/summary.json
+
+FIRST REAL RUN? Read /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/orig-rep2/summary.json's sampleRawStdin/hookErrors
+fields before trusting anything else in it — see ../README.md.
+{"rep":"orig-rep2","model":"gpt-6-astra","routeFilesCreated":1,"stall":true,"progressBeyondOneRoute":false,"visiblePass":1,"visibleTotal":1,"visibleComplete":true,"railViolationAttempts":0,"exitCode":0}
+=== ctrl-rep3 (gpt-6-astra) 23:08:51Z
+Running trial in /Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep3 with model gpt-6-astra (max 10800s) ...
+codex pid 54238 — polling heartbeat every 20s, hard cap 10800s ...
+codex exited with code 0 (124 = this script's own timeout, not codex's)
+Independently re-running tests/visible ...
+Independently re-running tests/held-out ...
+Done. Transcript: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/ctrl-rep3/transcript.log — mechanical metrics: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/ctrl-rep3/summary.json
+
+FIRST REAL RUN? Read /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/ctrl-rep3/summary.json's sampleRawStdin/hookErrors
+fields before trusting anything else in it — see ../README.md.
+{"rep":"ctrl-rep3","model":"gpt-6-astra","routeFilesCreated":1,"stall":true,"progressBeyondOneRoute":false,"visiblePass":1,"visibleTotal":1,"visibleComplete":true,"railViolationAttempts":0,"exitCode":0}
+=== orig-rep5 (gpt-6-astra) 23:09:33Z
+Running trial in /Users/parkerfawcett/sealed-runs/astra-2026-09/orig-rep5 with model gpt-6-astra (max 10800s) ...
+codex pid 54743 — polling heartbeat every 20s, hard cap 10800s ...
+codex exited with code 0 (124 = this script's own timeout, not codex's)
+Independently re-running tests/visible ...
+Independently re-running tests/held-out ...
+Done. Transcript: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/orig-rep5/transcript.log — mechanical metrics: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/orig-rep5/summary.json
+
+FIRST REAL RUN? Read /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/orig-rep5/summary.json's sampleRawStdin/hookErrors
+fields before trusting anything else in it — see ../README.md.
+{"rep":"orig-rep5","model":"gpt-6-astra","routeFilesCreated":1,"stall":true,"progressBeyondOneRoute":false,"visiblePass":1,"visibleTotal":1,"visibleComplete":true,"railViolationAttempts":0,"exitCode":0}
+=== orig-rep4 (gpt-6-astra) 23:10:35Z
+Running trial in /Users/parkerfawcett/sealed-runs/astra-2026-09/orig-rep4 with model gpt-6-astra (max 10800s) ...
+codex pid 55335 — polling heartbeat every 20s, hard cap 10800s ...
+codex exited with code 0 (124 = this script's own timeout, not codex's)
+Independently re-running tests/visible ...
+Independently re-running tests/held-out ...
+Done. Transcript: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/orig-rep4/transcript.log — mechanical metrics: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/orig-rep4/summary.json
+
+FIRST REAL RUN? Read /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/orig-rep4/summary.json's sampleRawStdin/hookErrors
+fields before trusting anything else in it — see ../README.md.
+{"rep":"orig-rep4","model":"gpt-6-astra","routeFilesCreated":1,"stall":true,"progressBeyondOneRoute":false,"visiblePass":1,"visibleTotal":1,"visibleComplete":true,"railViolationAttempts":0,"exitCode":0}
+=== rev-rep5 (gpt-6-astra) 23:11:37Z
+Running trial in /Users/parkerfawcett/sealed-runs/astra-2026-09/rev-rep5 with model gpt-6-astra (max 10800s) ...
+codex pid 55780 — polling heartbeat every 20s, hard cap 10800s ...
+codex exited with code 0 (124 = this script's own timeout, not codex's)
+Independently re-running tests/visible ...
+Independently re-running tests/held-out ...
+Done. Transcript: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/rev-rep5/transcript.log — mechanical metrics: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/rev-rep5/summary.json
+
+FIRST REAL RUN? Read /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/rev-rep5/summary.json's sampleRawStdin/hookErrors
+fields before trusting anything else in it — see ../README.md.
+{"rep":"rev-rep5","model":"gpt-6-astra","routeFilesCreated":16,"stall":false,"progressBeyondOneRoute":true,"visiblePass":20,"visibleTotal":20,"visibleComplete":true,"railViolationAttempts":0,"exitCode":0}
+=== ctrl-rep2 (gpt-6-astra) 23:15:00Z
+Running trial in /Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep2 with model gpt-6-astra (max 10800s) ...
+codex pid 57843 — polling heartbeat every 20s, hard cap 10800s ...
+codex exited with code 0 (124 = this script's own timeout, not codex's)
+Independently re-running tests/visible ...
+Independently re-running tests/held-out ...
+Done. Transcript: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/ctrl-rep2/transcript.log — mechanical metrics: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/ctrl-rep2/summary.json
+
+FIRST REAL RUN? Read /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/ctrl-rep2/summary.json's sampleRawStdin/hookErrors
+fields before trusting anything else in it — see ../README.md.
+{"rep":"ctrl-rep2","model":"gpt-6-astra","routeFilesCreated":1,"stall":true,"progressBeyondOneRoute":false,"visiblePass":1,"visibleTotal":1,"visibleComplete":true,"railViolationAttempts":0,"exitCode":0}
+=== rev-rep2 (gpt-6-astra) 23:16:02Z
+Running trial in /Users/parkerfawcett/sealed-runs/astra-2026-09/rev-rep2 with model gpt-6-astra (max 10800s) ...
+codex pid 58292 — polling heartbeat every 20s, hard cap 10800s ...
+codex exited with code 0 (124 = this script's own timeout, not codex's)
+Independently re-running tests/visible ...
+Independently re-running tests/held-out ...
+Done. Transcript: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/rev-rep2/transcript.log — mechanical metrics: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/rev-rep2/summary.json
+
+FIRST REAL RUN? Read /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/rev-rep2/summary.json's sampleRawStdin/hookErrors
+fields before trusting anything else in it — see ../README.md.
+{"rep":"rev-rep2","model":"gpt-6-astra","routeFilesCreated":16,"stall":false,"progressBeyondOneRoute":true,"visiblePass":20,"visibleTotal":20,"visibleComplete":true,"railViolationAttempts":0,"exitCode":0}
+=== rev-rep3 (gpt-6-astra) 23:19:44Z
+Running trial in /Users/parkerfawcett/sealed-runs/astra-2026-09/rev-rep3 with model gpt-6-astra (max 10800s) ...
+codex pid 60180 — polling heartbeat every 20s, hard cap 10800s ...
+codex exited with code 1 (124 = this script's own timeout, not codex's)
+Independently re-running tests/visible ...
+Independently re-running tests/held-out ...
+Done. Transcript: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/rev-rep3/transcript.log — mechanical metrics: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/rev-rep3/summary.json
+
+FIRST REAL RUN? Read /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/rev-rep3/summary.json's sampleRawStdin/hookErrors
+fields before trusting anything else in it — see ../README.md.
+{"rep":"rev-rep3","model":"gpt-6-astra","routeFilesCreated":3,"stall":false,"progressBeyondOneRoute":true,"visiblePass":5,"visibleTotal":6,"visibleComplete":false,"railViolationAttempts":0,"exitCode":1}
+=== rev-rep1 (gpt-6-astra) 23:21:06Z
+Running trial in /Users/parkerfawcett/sealed-runs/astra-2026-09/rev-rep1 with model gpt-6-astra (max 10800s) ...
+codex pid 60980 — polling heartbeat every 20s, hard cap 10800s ...
+=== resume 05:22:51Z
+skip ctrl-rep5
+skip orig-rep2
+skip ctrl-rep3
+skip orig-rep5
+skip orig-rep4
+skip rev-rep5
+skip ctrl-rep2
+skip rev-rep2
+=== rev-rep3 (gpt-6-astra) 05:22:51Z
+Running trial in /Users/parkerfawcett/sealed-runs/astra-2026-09/rev-rep3 with model gpt-6-astra (max 10800s) ...
+codex pid 88114 — polling heartbeat every 20s, hard cap 10800s ...
+codex exited with code 0 (124 = this script's own timeout, not codex's)
+Independently re-running tests/visible ...
+Independently re-running tests/held-out ...
+Done. Transcript: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/rev-rep3/transcript.log — mechanical metrics: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/rev-rep3/summary.json
+
+FIRST REAL RUN? Read /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/rev-rep3/summary.json's sampleRawStdin/hookErrors
+fields before trusting anything else in it — see ../README.md.
+{"rep":"rev-rep3","model":"gpt-6-astra","routeFilesCreated":16,"stall":false,"progressBeyondOneRoute":true,"visiblePass":20,"visibleTotal":20,"visibleComplete":true,"railViolationAttempts":0,"exitCode":0}
+=== rev-rep1 (gpt-6-astra) 05:26:34Z
+Running trial in /Users/parkerfawcett/sealed-runs/astra-2026-09/rev-rep1 with model gpt-6-astra (max 10800s) ...
+codex pid 89782 — polling heartbeat every 20s, hard cap 10800s ...
+codex exited with code 0 (124 = this script's own timeout, not codex's)
+Independently re-running tests/visible ...
+Independently re-running tests/held-out ...
+Done. Transcript: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/rev-rep1/transcript.log — mechanical metrics: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/rev-rep1/summary.json
+
+FIRST REAL RUN? Read /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/rev-rep1/summary.json's sampleRawStdin/hookErrors
+fields before trusting anything else in it — see ../README.md.
+{"rep":"rev-rep1","model":"gpt-6-astra","routeFilesCreated":16,"stall":false,"progressBeyondOneRoute":true,"visiblePass":20,"visibleTotal":20,"visibleComplete":true,"railViolationAttempts":0,"exitCode":0}
+=== orig-rep3 (gpt-6-astra) 05:30:16Z
+Running trial in /Users/parkerfawcett/sealed-runs/astra-2026-09/orig-rep3 with model gpt-6-astra (max 10800s) ...
+codex pid 91174 — polling heartbeat every 20s, hard cap 10800s ...
+codex exited with code 0 (124 = this script's own timeout, not codex's)
+Independently re-running tests/visible ...
+Independently re-running tests/held-out ...
+Done. Transcript: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/orig-rep3/transcript.log — mechanical metrics: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/orig-rep3/summary.json
+
+FIRST REAL RUN? Read /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/orig-rep3/summary.json's sampleRawStdin/hookErrors
+fields before trusting anything else in it — see ../README.md.
+{"rep":"orig-rep3","model":"gpt-6-astra","routeFilesCreated":1,"stall":true,"progressBeyondOneRoute":false,"visiblePass":1,"visibleTotal":1,"visibleComplete":true,"railViolationAttempts":0,"exitCode":0}
+=== rev-rep4 (gpt-6-astra) 05:31:19Z
+Running trial in /Users/parkerfawcett/sealed-runs/astra-2026-09/rev-rep4 with model gpt-6-astra (max 10800s) ...
+codex pid 91561 — polling heartbeat every 20s, hard cap 10800s ...
+codex exited with code 0 (124 = this script's own timeout, not codex's)
+Independently re-running tests/visible ...
+Independently re-running tests/held-out ...
+Done. Transcript: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/rev-rep4/transcript.log — mechanical metrics: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/rev-rep4/summary.json
+
+FIRST REAL RUN? Read /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/rev-rep4/summary.json's sampleRawStdin/hookErrors
+fields before trusting anything else in it — see ../README.md.
+{"rep":"rev-rep4","model":"gpt-6-astra","routeFilesCreated":16,"stall":false,"progressBeyondOneRoute":true,"visiblePass":20,"visibleTotal":20,"visibleComplete":true,"railViolationAttempts":0,"exitCode":0}
+=== ctrl-rep4 (gpt-6-astra) 05:35:01Z
+Running trial in /Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep4 with model gpt-6-astra (max 10800s) ...
+codex pid 92897 — polling heartbeat every 20s, hard cap 10800s ...
+codex exited with code 0 (124 = this script's own timeout, not codex's)
+Independently re-running tests/visible ...
+Independently re-running tests/held-out ...
+Done. Transcript: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/ctrl-rep4/transcript.log — mechanical metrics: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/ctrl-rep4/summary.json
+
+FIRST REAL RUN? Read /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/ctrl-rep4/summary.json's sampleRawStdin/hookErrors
+fields before trusting anything else in it — see ../README.md.
+{"rep":"ctrl-rep4","model":"gpt-6-astra","routeFilesCreated":1,"stall":true,"progressBeyondOneRoute":false,"visiblePass":1,"visibleTotal":1,"visibleComplete":true,"railViolationAttempts":0,"exitCode":0}
+=== orig-rep1 (gpt-6-astra) 05:36:04Z
+Running trial in /Users/parkerfawcett/sealed-runs/astra-2026-09/orig-rep1 with model gpt-6-astra (max 10800s) ...
+codex pid 93266 — polling heartbeat every 20s, hard cap 10800s ...
+codex exited with code 0 (124 = this script's own timeout, not codex's)
+Independently re-running tests/visible ...
+Independently re-running tests/held-out ...
+Done. Transcript: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/orig-rep1/transcript.log — mechanical metrics: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/orig-rep1/summary.json
+
+FIRST REAL RUN? Read /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/orig-rep1/summary.json's sampleRawStdin/hookErrors
+fields before trusting anything else in it — see ../README.md.
+{"rep":"orig-rep1","model":"gpt-6-astra","routeFilesCreated":1,"stall":true,"progressBeyondOneRoute":false,"visiblePass":1,"visibleTotal":1,"visibleComplete":true,"railViolationAttempts":0,"exitCode":0}
+=== ctrl-rep1 (gpt-6-astra) 05:37:06Z
+Running trial in /Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep1 with model gpt-6-astra (max 10800s) ...
+codex pid 93636 — polling heartbeat every 20s, hard cap 10800s ...
+codex exited with code 0 (124 = this script's own timeout, not codex's)
+Independently re-running tests/visible ...
+Independently re-running tests/held-out ...
+Done. Transcript: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/ctrl-rep1/transcript.log — mechanical metrics: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/ctrl-rep1/summary.json
+
+FIRST REAL RUN? Read /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/ctrl-rep1/summary.json's sampleRawStdin/hookErrors
+fields before trusting anything else in it — see ../README.md.
+{"rep":"ctrl-rep1","model":"gpt-6-astra","routeFilesCreated":1,"stall":true,"progressBeyondOneRoute":false,"visiblePass":1,"visibleTotal":1,"visibleComplete":true,"railViolationAttempts":0,"exitCode":0}
+=== g55orig-rep1 (gpt-5.5) 05:38:08Z
+Running trial in /Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep1 with model gpt-5.5 (max 10800s) ...
+codex pid 94015 — polling heartbeat every 20s, hard cap 10800s ...
+codex exited with code 0 (124 = this script's own timeout, not codex's)
+Independently re-running tests/visible ...
+Independently re-running tests/held-out ...
+Done. Transcript: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/g55orig-rep1/transcript.log — mechanical metrics: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/g55orig-rep1/summary.json
+
+FIRST REAL RUN? Read /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/g55orig-rep1/summary.json's sampleRawStdin/hookErrors
+fields before trusting anything else in it — see ../README.md.
+{"rep":"g55orig-rep1","model":"gpt-5.5","routeFilesCreated":16,"stall":false,"progressBeyondOneRoute":true,"visiblePass":20,"visibleTotal":20,"visibleComplete":true,"railViolationAttempts":0,"exitCode":0}
+=== g55orig-rep3 (gpt-5.5) 05:41:31Z
+Running trial in /Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep3 with model gpt-5.5 (max 10800s) ...
+codex pid 95170 — polling heartbeat every 20s, hard cap 10800s ...
+codex exited with code 1 (124 = this script's own timeout, not codex's)
+Independently re-running tests/visible ...
+Independently re-running tests/held-out ...
+Done. Transcript: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/g55orig-rep3/transcript.log — mechanical metrics: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/g55orig-rep3/summary.json
+
+FIRST REAL RUN? Read /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/g55orig-rep3/summary.json's sampleRawStdin/hookErrors
+fields before trusting anything else in it — see ../README.md.
+usage limit hit during g55orig-rep3; parked as failed-attempt-1 and stopped the batch
+{
+  "orig": {
+    "n": 5,
+    "stall": 5,
+    "progress": 0,
+    "visibleComplete": 5
+  },
+  "rev": {
+    "n": 5,
+    "stall": 0,
+    "progress": 5,
+    "visibleComplete": 5
+  },
+  "ctrl": {
+    "n": 5,
+    "stall": 5,
+    "progress": 0,
+    "visibleComplete": 5
+  },
+  "g55orig": {
+    "n": 1,
+    "stall": 0,
+    "progress": 1,
+    "visibleComplete": 1
+  },
+  "g55rev": {
+    "n": 0,
+    "stall": 0,
+    "progress": 0,
+    "visibleComplete": 0
+  },
+  "rows": [
+    {
+      "rep": "ctrl-rep1",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 1,
+      "stall": true,
+      "progressBeyondOneRoute": false,
+      "visiblePass": 1,
+      "visibleTotal": 1,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "ctrl-rep2",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 1,
+      "stall": true,
+      "progressBeyondOneRoute": false,
+      "visiblePass": 1,
+      "visibleTotal": 1,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "ctrl-rep3",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 1,
+      "stall": true,
+      "progressBeyondOneRoute": false,
+      "visiblePass": 1,
+      "visibleTotal": 1,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "ctrl-rep4",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 1,
+      "stall": true,
+      "progressBeyondOneRoute": false,
+      "visiblePass": 1,
+      "visibleTotal": 1,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "ctrl-rep5",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 1,
+      "stall": true,
+      "progressBeyondOneRoute": false,
+      "visiblePass": 1,
+      "visibleTotal": 1,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "g55orig-rep1",
+      "model": "gpt-5.5",
+      "routeFilesCreated": 16,
+      "stall": false,
+      "progressBeyondOneRoute": true,
+      "visiblePass": 20,
+      "visibleTotal": 20,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "orig-rep1",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 1,
+      "stall": true,
+      "progressBeyondOneRoute": false,
+      "visiblePass": 1,
+      "visibleTotal": 1,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "orig-rep2",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 1,
+      "stall": true,
+      "progressBeyondOneRoute": false,
+      "visiblePass": 1,
+      "visibleTotal": 1,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "orig-rep3",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 1,
+      "stall": true,
+      "progressBeyondOneRoute": false,
+      "visiblePass": 1,
+      "visibleTotal": 1,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "orig-rep4",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 1,
+      "stall": true,
+      "progressBeyondOneRoute": false,
+      "visiblePass": 1,
+      "visibleTotal": 1,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "orig-rep5",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 1,
+      "stall": true,
+      "progressBeyondOneRoute": false,
+      "visiblePass": 1,
+      "visibleTotal": 1,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "rev-rep1",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 16,
+      "stall": false,
+      "progressBeyondOneRoute": true,
+      "visiblePass": 20,
+      "visibleTotal": 20,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "rev-rep2",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 16,
+      "stall": false,
+      "progressBeyondOneRoute": true,
+      "visiblePass": 20,
+      "visibleTotal": 20,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "rev-rep3",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 16,
+      "stall": false,
+      "progressBeyondOneRoute": true,
+      "visiblePass": 20,
+      "visibleTotal": 20,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "rev-rep4",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 16,
+      "stall": false,
+      "progressBeyondOneRoute": true,
+      "visiblePass": 20,
+      "visibleTotal": 20,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "rev-rep5",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 16,
+      "stall": false,
+      "progressBeyondOneRoute": true,
+      "visiblePass": 20,
+      "visibleTotal": 20,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    }
+  ]
+}
+skip ctrl-rep5
+skip orig-rep2
+skip ctrl-rep3
+skip orig-rep5
+skip orig-rep4
+skip rev-rep5
+skip ctrl-rep2
+skip rev-rep2
+skip rev-rep3
+skip rev-rep1
+skip orig-rep3
+skip rev-rep4
+skip ctrl-rep4
+skip orig-rep1
+skip ctrl-rep1
+skip g55orig-rep1
+=== g55orig-rep3 (gpt-5.5) 12:58:27Z
+Running trial in /Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep3 with model gpt-5.5 (max 10800s) ...
+codex pid 6249 — polling heartbeat every 20s, hard cap 10800s ...
+codex exited with code 0 (124 = this script's own timeout, not codex's)
+Independently re-running tests/visible ...
+Independently re-running tests/held-out ...
+Done. Transcript: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/g55orig-rep3/transcript.log — mechanical metrics: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/g55orig-rep3/summary.json
+
+FIRST REAL RUN? Read /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/g55orig-rep3/summary.json's sampleRawStdin/hookErrors
+fields before trusting anything else in it — see ../README.md.
+{"rep":"g55orig-rep3","model":"gpt-5.5","routeFilesCreated":16,"stall":false,"progressBeyondOneRoute":true,"visiblePass":20,"visibleTotal":20,"visibleComplete":true,"railViolationAttempts":0,"exitCode":0}
+=== g55rev-rep3 (gpt-5.5) 13:03:50Z
+Running trial in /Users/parkerfawcett/sealed-runs/astra-2026-09/g55rev-rep3 with model gpt-5.5 (max 10800s) ...
+codex pid 8063 — polling heartbeat every 20s, hard cap 10800s ...
+codex exited with code 0 (124 = this script's own timeout, not codex's)
+Independently re-running tests/visible ...
+Independently re-running tests/held-out ...
+Done. Transcript: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/g55rev-rep3/transcript.log — mechanical metrics: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/g55rev-rep3/summary.json
+
+FIRST REAL RUN? Read /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/g55rev-rep3/summary.json's sampleRawStdin/hookErrors
+fields before trusting anything else in it — see ../README.md.
+{"rep":"g55rev-rep3","model":"gpt-5.5","routeFilesCreated":16,"stall":false,"progressBeyondOneRoute":true,"visiblePass":20,"visibleTotal":20,"visibleComplete":true,"railViolationAttempts":0,"exitCode":0}
+=== g55rev-rep2 (gpt-5.5) 13:06:33Z
+Running trial in /Users/parkerfawcett/sealed-runs/astra-2026-09/g55rev-rep2 with model gpt-5.5 (max 10800s) ...
+codex pid 9932 — polling heartbeat every 20s, hard cap 10800s ...
+codex exited with code 0 (124 = this script's own timeout, not codex's)
+Independently re-running tests/visible ...
+Independently re-running tests/held-out ...
+Done. Transcript: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/g55rev-rep2/transcript.log — mechanical metrics: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/g55rev-rep2/summary.json
+
+FIRST REAL RUN? Read /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/g55rev-rep2/summary.json's sampleRawStdin/hookErrors
+fields before trusting anything else in it — see ../README.md.
+{"rep":"g55rev-rep2","model":"gpt-5.5","routeFilesCreated":16,"stall":false,"progressBeyondOneRoute":true,"visiblePass":20,"visibleTotal":20,"visibleComplete":true,"railViolationAttempts":0,"exitCode":0}
+=== g55rev-rep1 (gpt-5.5) 13:10:16Z
+Running trial in /Users/parkerfawcett/sealed-runs/astra-2026-09/g55rev-rep1 with model gpt-5.5 (max 10800s) ...
+codex pid 12610 — polling heartbeat every 20s, hard cap 10800s ...
+codex exited with code 0 (124 = this script's own timeout, not codex's)
+Independently re-running tests/visible ...
+Independently re-running tests/held-out ...
+Done. Transcript: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/g55rev-rep1/transcript.log — mechanical metrics: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/g55rev-rep1/summary.json
+
+FIRST REAL RUN? Read /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/g55rev-rep1/summary.json's sampleRawStdin/hookErrors
+fields before trusting anything else in it — see ../README.md.
+{"rep":"g55rev-rep1","model":"gpt-5.5","routeFilesCreated":16,"stall":false,"progressBeyondOneRoute":true,"visiblePass":20,"visibleTotal":20,"visibleComplete":true,"railViolationAttempts":0,"exitCode":0}
+=== g55orig-rep2 (gpt-5.5) 13:12:38Z
+Running trial in /Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep2 with model gpt-5.5 (max 10800s) ...
+codex pid 14036 — polling heartbeat every 20s, hard cap 10800s ...
+codex exited with code 0 (124 = this script's own timeout, not codex's)
+Independently re-running tests/visible ...
+Independently re-running tests/held-out ...
+Done. Transcript: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/g55orig-rep2/transcript.log — mechanical metrics: /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/g55orig-rep2/summary.json
+
+FIRST REAL RUN? Read /Users/parkerfawcett/sealed-runs/astra-2026-09/.codex-plugin-state/g55orig-rep2/summary.json's sampleRawStdin/hookErrors
+fields before trusting anything else in it — see ../README.md.

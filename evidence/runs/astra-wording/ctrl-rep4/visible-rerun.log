@@ -1,0 +1,259 @@
+
+ RUN  v4.1.10 /Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep4
+
+ ❯ tests/visible/DELETE-api-portfolios-id-items-itemid.spec.ts (0 test)
+ ❯ tests/visible/GET-api-users-me.spec.ts (0 test)
+ ❯ tests/visible/DELETE-api-portfolios-id.spec.ts (0 test)
+ ❯ tests/visible/GET-api-pokedex.spec.ts (0 test)
+ ❯ tests/visible/DELETE-api-portfolios-id-items.spec.ts (0 test)
+ ❯ tests/visible/GET-api-portfolios-id-items.spec.ts (0 test)
+ ❯ tests/visible/GET-api-portfolios-id-items-itemid.spec.ts (0 test)
+ ❯ tests/visible/GET-api-portfolios-id-value.spec.ts (0 test)
+ ❯ tests/visible/GET-api-portfolios-id.spec.ts (0 test)
+ ❯ tests/visible/POST-api-auth.spec.ts (0 test)
+ ❯ tests/visible/POST-api-portfolios.spec.ts (0 test)
+ ❯ tests/visible/PUT-api-orders.spec.ts (0 test)
+ ❯ tests/visible/POST-api-orders.spec.ts (0 test)
+ ❯ tests/visible/POST-api-ebay.spec.ts (0 test)
+ ❯ tests/visible/GET-api-watchlist.spec.ts (0 test)
+ ❯ tests/visible/POST-api-pricing.spec.ts (0 test)
+ ❯ tests/visible/PUT-api-seller.spec.ts (0 test)
+ ❯ tests/visible/PUT-api-listings-id.spec.ts (0 test)
+ ❯ tests/visible/PUT-api-users-profile.spec.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 19 ⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/visible/DELETE-api-portfolios-id-items-itemid.spec.ts [ tests/visible/DELETE-api-portfolios-id-items-itemid.spec.ts ]
+Error: Cannot find module '../../src/app/api/portfolios/[id]/items/[itemId]/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep4/tests/visible/DELETE-api-portfolios-id-items-itemid.spec.ts
+ ❯ tests/visible/DELETE-api-portfolios-id-items-itemid.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { DELETE } from '../../src/app/api/portfolios/[id]/items/[itemI…
+       | ^
+      4|
+      5| describe("DELETE /api/portfolios/:id/items/:itemId", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/19]⎯
+
+ FAIL  tests/visible/DELETE-api-portfolios-id-items.spec.ts [ tests/visible/DELETE-api-portfolios-id-items.spec.ts ]
+Error: Cannot find module '../../src/app/api/portfolios/[id]/items/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep4/tests/visible/DELETE-api-portfolios-id-items.spec.ts
+ ❯ tests/visible/DELETE-api-portfolios-id-items.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { DELETE } from '../../src/app/api/portfolios/[id]/items/route.…
+       | ^
+      4|
+      5| describe("DELETE /api/portfolios/:id/items", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/19]⎯
+
+ FAIL  tests/visible/DELETE-api-portfolios-id.spec.ts [ tests/visible/DELETE-api-portfolios-id.spec.ts ]
+Error: Cannot find module '../../src/app/api/portfolios/[id]/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep4/tests/visible/DELETE-api-portfolios-id.spec.ts
+ ❯ tests/visible/DELETE-api-portfolios-id.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { DELETE } from '../../src/app/api/portfolios/[id]/route.js';
+       | ^
+      4|
+      5| describe("DELETE /api/portfolios/:id", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/19]⎯
+
+ FAIL  tests/visible/GET-api-pokedex.spec.ts [ tests/visible/GET-api-pokedex.spec.ts ]
+Error: Cannot find module '../../src/app/api/pokedex/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep4/tests/visible/GET-api-pokedex.spec.ts
+ ❯ tests/visible/GET-api-pokedex.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { GET } from '../../src/app/api/pokedex/route.js';
+       | ^
+      4|
+      5| describe("GET /api/pokedex", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/19]⎯
+
+ FAIL  tests/visible/GET-api-portfolios-id-items-itemid.spec.ts [ tests/visible/GET-api-portfolios-id-items-itemid.spec.ts ]
+Error: Cannot find module '../../src/app/api/portfolios/[id]/items/[itemId]/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep4/tests/visible/GET-api-portfolios-id-items-itemid.spec.ts
+ ❯ tests/visible/GET-api-portfolios-id-items-itemid.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { GET } from '../../src/app/api/portfolios/[id]/items/[itemId]/…
+       | ^
+      4|
+      5| describe("GET /api/portfolios/:id/items/:itemId", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/19]⎯
+
+ FAIL  tests/visible/GET-api-portfolios-id-items.spec.ts [ tests/visible/GET-api-portfolios-id-items.spec.ts ]
+Error: Cannot find module '../../src/app/api/portfolios/[id]/items/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep4/tests/visible/GET-api-portfolios-id-items.spec.ts
+ ❯ tests/visible/GET-api-portfolios-id-items.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { GET } from '../../src/app/api/portfolios/[id]/items/route.js';
+       | ^
+      4|
+      5| describe("GET /api/portfolios/:id/items", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/19]⎯
+
+ FAIL  tests/visible/GET-api-portfolios-id-value.spec.ts [ tests/visible/GET-api-portfolios-id-value.spec.ts ]
+Error: Cannot find module '../../src/app/api/portfolios/[id]/value/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep4/tests/visible/GET-api-portfolios-id-value.spec.ts
+ ❯ tests/visible/GET-api-portfolios-id-value.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { GET } from '../../src/app/api/portfolios/[id]/value/route.js';
+       | ^
+      4|
+      5| describe("GET /api/portfolios/:id/value", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/19]⎯
+
+ FAIL  tests/visible/GET-api-portfolios-id.spec.ts [ tests/visible/GET-api-portfolios-id.spec.ts ]
+Error: Cannot find module '../../src/app/api/portfolios/[id]/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep4/tests/visible/GET-api-portfolios-id.spec.ts
+ ❯ tests/visible/GET-api-portfolios-id.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { GET } from '../../src/app/api/portfolios/[id]/route.js';
+       | ^
+      4|
+      5| describe("GET /api/portfolios/:id", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/19]⎯
+
+ FAIL  tests/visible/GET-api-users-me.spec.ts [ tests/visible/GET-api-users-me.spec.ts ]
+Error: Cannot find module '../../src/app/api/users/me/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep4/tests/visible/GET-api-users-me.spec.ts
+ ❯ tests/visible/GET-api-users-me.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { GET } from '../../src/app/api/users/me/route.js';
+       | ^
+      4|
+      5| describe("GET /api/users/me", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/19]⎯
+
+ FAIL  tests/visible/GET-api-watchlist.spec.ts [ tests/visible/GET-api-watchlist.spec.ts ]
+Error: Cannot find module '../../src/app/api/watchlist/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep4/tests/visible/GET-api-watchlist.spec.ts
+ ❯ tests/visible/GET-api-watchlist.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { GET } from '../../src/app/api/watchlist/route.js';
+       | ^
+      4|
+      5| describe("GET /api/watchlist", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/19]⎯
+
+ FAIL  tests/visible/POST-api-auth.spec.ts [ tests/visible/POST-api-auth.spec.ts ]
+Error: Cannot find module '../../src/app/api/auth/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep4/tests/visible/POST-api-auth.spec.ts
+ ❯ tests/visible/POST-api-auth.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { POST } from '../../src/app/api/auth/route.js';
+       | ^
+      4|
+      5| describe("POST /api/auth", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/19]⎯
+
+ FAIL  tests/visible/POST-api-ebay.spec.ts [ tests/visible/POST-api-ebay.spec.ts ]
+Error: Cannot find module '../../src/app/api/ebay/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep4/tests/visible/POST-api-ebay.spec.ts
+ ❯ tests/visible/POST-api-ebay.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { POST } from '../../src/app/api/ebay/route.js';
+       | ^
+      4|
+      5| describe("POST /api/ebay", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/19]⎯
+
+ FAIL  tests/visible/POST-api-orders.spec.ts [ tests/visible/POST-api-orders.spec.ts ]
+Error: Cannot find module '../../src/app/api/orders/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep4/tests/visible/POST-api-orders.spec.ts
+ ❯ tests/visible/POST-api-orders.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { POST } from '../../src/app/api/orders/route.js';
+       | ^
+      4|
+      5| describe("POST /api/orders", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/19]⎯
+
+ FAIL  tests/visible/POST-api-portfolios.spec.ts [ tests/visible/POST-api-portfolios.spec.ts ]
+Error: Cannot find module '../../src/app/api/portfolios/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep4/tests/visible/POST-api-portfolios.spec.ts
+ ❯ tests/visible/POST-api-portfolios.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { POST } from '../../src/app/api/portfolios/route.js';
+       | ^
+      4|
+      5| describe("POST /api/portfolios", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/19]⎯
+
+ FAIL  tests/visible/POST-api-pricing.spec.ts [ tests/visible/POST-api-pricing.spec.ts ]
+Error: Cannot find module '../../src/app/api/pricing/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep4/tests/visible/POST-api-pricing.spec.ts
+ ❯ tests/visible/POST-api-pricing.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { POST } from '../../src/app/api/pricing/route.js';
+       | ^
+      4|
+      5| describe("POST /api/pricing", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/19]⎯
+
+ FAIL  tests/visible/PUT-api-listings-id.spec.ts [ tests/visible/PUT-api-listings-id.spec.ts ]
+Error: Cannot find module '../../src/app/api/listings/[id]/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep4/tests/visible/PUT-api-listings-id.spec.ts
+ ❯ tests/visible/PUT-api-listings-id.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { PUT } from '../../src/app/api/listings/[id]/route.js';
+       | ^
+      4|
+      5| describe("PUT /api/listings/:id", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/19]⎯
+
+ FAIL  tests/visible/PUT-api-orders.spec.ts [ tests/visible/PUT-api-orders.spec.ts ]
+Error: Cannot find module '../../src/app/api/orders/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep4/tests/visible/PUT-api-orders.spec.ts
+ ❯ tests/visible/PUT-api-orders.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { PUT } from '../../src/app/api/orders/route.js';
+       | ^
+      4|
+      5| describe("PUT /api/orders", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/19]⎯
+
+ FAIL  tests/visible/PUT-api-seller.spec.ts [ tests/visible/PUT-api-seller.spec.ts ]
+Error: Cannot find module '../../src/app/api/seller/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep4/tests/visible/PUT-api-seller.spec.ts
+ ❯ tests/visible/PUT-api-seller.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { PUT } from '../../src/app/api/seller/route.js';
+       | ^
+      4|
+      5| describe("PUT /api/seller", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/19]⎯
+
+ FAIL  tests/visible/PUT-api-users-profile.spec.ts [ tests/visible/PUT-api-users-profile.spec.ts ]
+Error: Cannot find module '../../src/app/api/users/profile/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep4/tests/visible/PUT-api-users-profile.spec.ts
+ ❯ tests/visible/PUT-api-users-profile.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { PUT } from '../../src/app/api/users/profile/route.js';
+       | ^
+      4|
+      5| describe("PUT /api/users/profile", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/19]⎯
+
+
+ Test Files  19 failed | 1 passed (20)
+      Tests  1 passed (1)
+   Start at  23:36:02
+   Duration  505ms (transform 255ms, setup 0ms, import 34ms, tests 4ms, environment 1ms)
+
