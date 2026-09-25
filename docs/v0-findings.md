@@ -6082,3 +6082,105 @@ Verified end to end (not just unit-tested) against a real FastAPI project with n
 `ingest_repo` now reports `unsupportedStackNote: "This looks like a Python project (found
 requirements.txt)..."`, and `generate_spec` refuses with the same text before writing anything.
 Suite 664/664 across 93 files (was 654/92).
+
+## First external operator on another team's production app (2026-09-24)
+
+**What this is:** the first run of the tool by someone who wrote neither the tool nor the target
+app, on a real production application. The operator is an engineer at a healthcare staffing company
+(the author's employer; not involved in the tool's development). The app is an internal analytics
+dashboard owned by a *different* team in that company. The operator had clearance to run it. At the
+operator's request, neither the operator, the company, nor the app is named here or in the paper.
+The operator followed `docs/validators.md` against the released npm package, pinned
+(`npx -y rebuild-dossier@0.2.14`). The report was drafted with Claude and edited by the operator. The
+author checked the claims below against the operator's logs and the generated spec, as noted.
+
+**The app:** an Express 4 (CommonJS) backend in a single ~5,800-line server file, with 29 API routes
+and a CRA/TypeScript frontend (not Next.js, so no page tests). Every route queries a cloud data
+warehouse through its REST API with a token the operator did not have. No existing tests.
+
+**An earlier first pass does not count, and is recorded here rather than dropped.** Earlier the same
+day, the operator's agent ran the pipeline without following the guide:
+- it batch-resolved all 23 cases as intentional on the word "deliberately";
+- `generate_spec` produced 0 tests because no app instance was exported;
+- the agent then only checked that the original boots and builds.
+
+Nothing was changed on the app's repository; I checked its branches and commits.
+
+**The run that counts:**
+1. **Export:** the operator added `module.exports = app` and put `app.listen` under a
+   `require.main` guard, in a copy, as `generate_spec`'s note says.
+2. **First `generate_spec`:** all 28 generated tests were unrunnable with the same error,
+   `process.exit unexpectedly called with "1"`. The server exits at import time when its warehouse
+   settings are unset. `unrunnableNote` names that cause (a missing environment variable), but
+   `apiTestNote`'s export advice doesn't mention it, so the export fix alone produces a 100%
+   unrunnable result on any app that hard-exits on missing config. The operator added obviously fake
+   placeholder values.
+3. **`ingest_repo`:** 29 routes, 0 tests, 44 signals, 23 open cases.
+   - The operator resolved all 23 cases personally, as intentional, spot-checking claims against
+     the code (cross-file comment agreement, a hierarchy array, cited numbers). None was a
+     mislabeled bug.
+   - **About half the cases were attributed to the wrong route.** In a single-file server, a
+     comment is filed under the nearest *preceding* route even when a long doc-comment block
+     describes the next one. This is a new comment-to-route defect, distinct from the one fixed in
+     0.2.12.
+4. **Second `generate_spec`:** under 2 minutes, `mutationsChecked: 1424`, `weakTests: []`.
+   - 7 visible and 1 held-out test.
+   - 21 unrunnable, filed under `tests/weak/`. Twenty fail on the unmodified original with
+     `expected 500 to be less than 500`, because without the warehouse the original itself returns
+     500. One fails with `expected 404 to be 200`.
+   - (Correcting my own earlier note on the spec: I called these 21 "weak". They are unrunnable.)
+5. **Rebuild:** a fresh `claude-sonnet-5` session (Claude Code 2.1.282), run headless (`claude -p
+   --permission-mode acceptEdits`) from the package directory with the original moved away. The
+   operator resumed it three times; two of those approved dependency installation, one of which
+   stubbed a private company package absent from the public registry. `bypassPermissions` was
+   refused by Claude Code's classifier. Cost about $0.76 and 269 s of API time.
+
+**Results, checked against the operator's raw output:**
+- **Heartbeat:** `{"count": 7, ...}` in the rebuild directory. The hooks ran.
+- **Visible:** `Test Files 7 passed (7)`, `Tests 8 passed (8)` (vitest 4.1.11).
+- **Held-out:** `Test Files 1 failed (1)`, `Tests 1 failed | 1 passed (2)`. The one held-out route
+  was never built (404 vs. the expected 200). **One of its two tests passed anyway, against a route
+  that does not exist**, a smoke assertion that a 404 satisfies.
+- **Guard:** `spec/untested-contracts.json` was `[]`. Every route lives in one file, and a file
+  leaves the list once any of its routes has a surviving test, so the guard had nothing to block.
+  This is the file-granularity limit already in the paper, now on production code.
+
+**Side by side (same placeholder settings on both):**
+1. **Two routes throw a `ReferenceError` on every request that passes input validation.** Their
+   visible tests send no query parameters, hit the 400 guard, and pass. The rebuild agent knew: it
+   left the helpers undefined and commented that no contract contained them. I traced two causes in
+   the generated contracts:
+   - **Helpers two calls deep are not captured.** One route's handler calls a SQL builder (captured
+     as a one-level callee), which calls the filter and date-window helpers (not captured).
+     Contracts capture exactly one level, by design (stated in `resolveExpressHandler.ts`'s header).
+   - **A comment apostrophe truncates definition scanning.** The other route's direct callee is
+     missing. `closing()` in `src/spec/resolveExpressHandler.ts` skips string literals but not
+     comments, so an apostrophe inside a `//` comment ("table's", "they're") opens a phantom string
+     and the scan never finds the closing bracket. **Verified causally:** in a copy of the server
+     with only the quote characters removed from `//` comment lines, all five previously unresolved
+     handlers and the missing callee resolve. The same defect left **5 of 29 contracts with no
+     Handler section at all.**
+2. **The chat endpoint validates in a different order.** For a malformed body to an unknown agent,
+   the original returns 400 (body shape checked first) and the rebuild returns 404 (agent lookup
+   first). Its contract has no handler section (defect above), and its only visible test asserts
+   `status < 500` while posting an inferred field name (`getReader`, which isn't a request field),
+   so no test distinguishes the two.
+3. **The streaming reply matches.** The chat endpoint's contract says nothing about the original's
+   streamed (SSE) response, but the rebuild streams too. The contract gap is real, but it did not
+   produce a behavior difference here.
+4. **Two routes were never built** (no visible test), so the rebuild returns Express's default 404.
+5. **Four checks that run without the warehouse matched exactly:** the health endpoint (shape
+   identical apart from the timestamp) and three input-validation errors.
+
+**What it shows:** every visible test passed on a rebuild in which two routes cannot answer a single
+valid request. That is the paper's central claim, observed by an outside operator on a production
+app. One operator, one run: it shows the failure occurs in the field, not how often. Added to the
+SEIP paper as its own Findings subsection. The Threats sentence "no team beyond the author has run
+this tool" was removed, and the deployment and reconciliation scope sentences were updated to match.
+
+**Open tool fixes from this run (not yet made):**
+- `closing()` should skip `//` and `/* */` comments (and ideally regex literals).
+- Callee capture should go past one level, within a budget.
+- Comment-to-route attribution in single-file servers.
+- `apiTestNote` should mention the import-time exit / placeholder-env case.
+- POST body-field inference produced `getReader`.
