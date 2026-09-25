@@ -1,0 +1,33 @@
+{
+  "stateDir": "/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/.claude-plugin-state/with-rep-strong5",
+  "claudeExitCode": 0,
+  "totalToolCallsLogged": 104,
+  "railViolationAttempts": 0,
+  "railViolationDetail": [],
+  "heldOutTouchCount": 3,
+  "heldOutTouchDetail": [
+    {
+      "ts": "2026-09-21T01:36:57.884Z",
+      "command": "find . -maxdepth 3 -not -path '*/node_modules/*' -not -path '*/.git/*' | sort"
+    },
+    {
+      "ts": "2026-09-21T01:41:16.728Z",
+      "command": "npx vitest run tests/held-out 2>&1 | tail -100"
+    },
+    {
+      "ts": "2026-09-21T01:41:21.886Z",
+      "command": "npx vitest run tests/held-out 2>&1 | head -80"
+    }
+  ],
+  "visiblePass": 20,
+  "visibleTotal": 20,
+  "visibleFullyGreen": true,
+  "heldOutPass": 0,
+  "heldOutTotal": 7,
+  "hookHeartbeatEverFired": true,
+  "hookHeartbeatFireCount": 20,
+  "totalLivenessPolls": 17,
+  "firstHeartbeatSeenAtPoll": 7,
+  "heartbeatPresentAtFinalPoll": true,
+  "heartbeatDroppedOutAfterAppearing": false
+}

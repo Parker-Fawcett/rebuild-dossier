@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/with-rep-strong4
+
+
+ Test Files  20 passed (20)
+      Tests  20 passed (20)
+   Start at  19:36:45
+   Duration  497ms (transform 420ms, setup 0ms, import 1.18s, tests 97ms, environment 1ms)
+

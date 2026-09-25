@@ -86,6 +86,74 @@ describe('resolveExpressHandler', () => {
     expect(h!.callees.map((c) => c.name)).toEqual(['saveUserData']);
   });
 
+  // Minimal reproducer for the production case (paper §V-C): the bracket
+  // matcher skipped string literals but not comments, so a lone apostrophe in
+  // "they're" opened a phantom string that ran past the handler's closing
+  // paren, and the contract got no handler source at all.
+  it("resolves a handler whose body has an apostrophe in a // comment", () => {
+    project({
+      'server.js': [
+        "app.get('/api/kpis', async (req, res) => {",
+        "  // Goals are deliberately absent: they're tracked elsewhere.",
+        '  const filters = readFilters(req);',
+        '  res.json(await loadKpis(filters));',
+        '});',
+        'function readFilters(req) {',
+        '  return { division: req.query.division };',
+        '}',
+        'async function loadKpis(filters) {',
+        '  return { filters };',
+        '}'
+      ].join('\n')
+    });
+    const h = resolveExpressHandler(dir, route({ path: '/api/kpis', file: 'server.js', startLine: 1 }));
+    expect(h).not.toBeNull();
+    expect(h!.source).toContain('loadKpis(filters)');
+    expect(h!.callees.map((c) => c.name)).toEqual(['readFilters', 'loadKpis']);
+  });
+
+  it("keeps a direct helper whose definition has a lone quote in a line or block comment", () => {
+    project({
+      'server.js': [
+        "app.get('/api/trend', async (req, res) => {",
+        "  if (!req.query.channel) return res.status(400).json({ error: 'channel is required' });",
+        '  res.json(await loadTrend(req.query.channel));',
+        '});',
+        'async function loadTrend(channel) {',
+        "  // keyed the same way the table's own rows are",
+        '  /* sized for 5" panels */',
+        '  return { channel };',
+        '}'
+      ].join('\n')
+    });
+    const h = resolveExpressHandler(dir, route({ path: '/api/trend', file: 'server.js', startLine: 1 }));
+    expect(h!.callees.map((c) => c.name)).toEqual(['loadTrend']);
+    expect(h!.callees[0]!.source).toContain('return { channel }');
+  });
+
+  // Documents a scope limit, not a bug: callees are captured one level deep,
+  // so a helper that only a callee calls is left out. This is the other half
+  // of the production case, where the rebuild left such a helper undefined
+  // and its visible test, stopping at the input guard, still passed.
+  it('captures helpers one level deep, not the helpers they call', () => {
+    project({
+      'server.js': [
+        "app.get('/api/parts', async (req, res) => {",
+        "  if (!req.query.channel) return res.status(400).json({ error: 'A channel is required.' });",
+        '  res.json(partsSql(req.query.channel));',
+        '});',
+        'function partsSql(channel) {',
+        '  return { sql: `select * where ${divisionFilter(channel)}` };',
+        '}',
+        'function divisionFilter(channel) {',
+        '  return `channel = ${channel}`;',
+        '}'
+      ].join('\n')
+    });
+    const h = resolveExpressHandler(dir, route({ path: '/api/parts', file: 'server.js', startLine: 1 }));
+    expect(h!.callees.map((c) => c.name)).toEqual(['partsSql']);
+  });
+
   it('returns null rather than guessing when the handler comes from a package', () => {
     project({ 'routes.js': "const { handler } = require('some-package');\nrouter.get('/x', handler);\n" });
     expect(resolveExpressHandler(dir, route({ file: 'routes.js', startLine: 2 }))).toBeNull();

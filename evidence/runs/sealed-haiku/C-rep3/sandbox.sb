@@ -1,0 +1,49 @@
+(version 1)
+;; Read-seal for one sealed rep (review-2026-09). Later rules override earlier
+;; ones (confirmed 2026-09-22 with plain `cat` against a canary file), so this
+;; denies all of $HOME and then re-allows only what the agent needs to run.
+;; Every copy of the original app, every other rep, every earlier session
+;; transcript, and the sealed held-out suite stay unreadable.
+;; Placeholders are filled in by run-sealed-trial.sh.
+(allow default)
+(deny file-read* (subpath "/Users/parkerfawcett"))
+;; Claude Code's own per-project temp dirs: other projects' (including the
+;; session that built this harness) stay unreadable; the parent is
+;; stat-able so the CLI can create the rep's own dir, which is re-allowed.
+(deny file-read* (subpath "/private/tmp/claude-502"))
+(allow file-read-metadata (subpath "/private/tmp/claude-502"))
+(allow file-read* (literal "/private/tmp/claude-502"))
+(allow file-read* (subpath "/private/tmp/claude-502/-Users-parkerfawcett-sealed-runs-review-2026-09-C-rep3"))
+
+;; the rep itself, and its own hook state dir (hooks run as children of the agent)
+(allow file-read* (subpath "/Users/parkerfawcett/sealed-runs/review-2026-09/C-rep3"))
+(allow file-read* (subpath "/Users/parkerfawcett/sealed-runs/review-2026-09/.claude-plugin-state/C-rep3"))
+
+;; path traversal to reach the rep (directory metadata only)
+(allow file-read-metadata (subpath "/Users/parkerfawcett"))
+
+;; agent runtime: CLI + node, npm cache, config, auth
+(allow file-read* (subpath "/Users/parkerfawcett/.local"))
+(allow file-read* (subpath "/Users/parkerfawcett/.npm"))
+(allow file-read* (subpath "/Users/parkerfawcett/.config"))
+(allow file-read* (subpath "/Users/parkerfawcett/Library/Keychains"))
+(allow file-read* (subpath "/Users/parkerfawcett/Library/Preferences"))
+(allow file-read* (subpath "/Users/parkerfawcett/.claude"))
+(allow file-read* (literal "/Users/parkerfawcett/.claude.json"))
+(allow file-read* (literal "/Users/parkerfawcett/.claude.json.backup"))
+
+;; ...but not earlier sessions' content, which includes other reps' code and
+;; held-out expected strings. The rep's own project dir is re-allowed.
+(deny file-read* (subpath "/Users/parkerfawcett/.claude/projects"))
+(deny file-read* (subpath "/Users/parkerfawcett/.claude/file-history"))
+(deny file-read* (subpath "/Users/parkerfawcett/.claude/sessions"))
+(deny file-read* (subpath "/Users/parkerfawcett/.claude/tasks"))
+(deny file-read* (subpath "/Users/parkerfawcett/.claude/plans"))
+(deny file-read* (subpath "/Users/parkerfawcett/.claude/shell-snapshots"))
+(deny file-read* (subpath "/Users/parkerfawcett/.claude/backups"))
+(deny file-read* (subpath "/Users/parkerfawcett/.claude/debug"))
+(deny file-read* (literal "/Users/parkerfawcett/.claude/history.jsonl"))
+(allow file-read* (subpath "/Users/parkerfawcett/.claude/projects/-Users-parkerfawcett-sealed-runs-review-2026-09-C-rep3"))
+
+;; the sealed suite, stated last so nothing above can re-open it
+(deny file-read* (subpath "/Users/parkerfawcett/sealed-runs/review-2026-09/.sealed"))

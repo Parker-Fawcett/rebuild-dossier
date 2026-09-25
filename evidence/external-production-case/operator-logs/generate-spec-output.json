@@ -1,0 +1,71 @@
+{
+  "outputDir": "/Users/[operator]/rd-validation/[app]-rebuild",
+  "mutationsChecked": 1424,
+  "weakTests": [],
+  "unrunnableTests": [
+    "[U1].spec.ts",
+    "[U2].spec.ts",
+    "[U3].spec.ts",
+    "[U4].spec.ts",
+    "[U5].spec.ts",
+    "[U6].spec.ts",
+    "[R7].spec.ts",
+    "[U7].spec.ts",
+    "[U8].spec.ts",
+    "[U9].spec.ts",
+    "[U10].spec.ts",
+    "[U11].spec.ts",
+    "[U12].spec.ts",
+    "[U13].spec.ts",
+    "[U14].spec.ts",
+    "[U15].spec.ts",
+    "[U16].spec.ts",
+    "[U17].spec.ts",
+    "[U18].spec.ts",
+    "[U19].spec.ts",
+    "[R4].spec.ts"
+  ],
+  "capturedPages": 0,
+  "skippedPages": [],
+  "visionClassificationEnabled": false,
+  "unrunnableReasons": {
+    "[U1].spec.ts": "AssertionError: expected 500 to be less than 500",
+    "[U2].spec.ts": "AssertionError: expected 500 to be less than 500",
+    "[U3].spec.ts": "AssertionError: expected 500 to be less than 500",
+    "[U4].spec.ts": "AssertionError: expected 500 to be less than 500",
+    "[U5].spec.ts": "AssertionError: expected 500 to be less than 500",
+    "[U6].spec.ts": "AssertionError: expected 500 to be less than 500",
+    "[R7].spec.ts": "AssertionError: expected 500 to be less than 500",
+    "[U7].spec.ts": "AssertionError: expected 500 to be less than 500",
+    "[U8].spec.ts": "AssertionError: expected 500 to be less than 500",
+    "[U9].spec.ts": "AssertionError: expected 500 to be less than 500",
+    "[U10].spec.ts": "AssertionError: expected 500 to be less than 500",
+    "[U11].spec.ts": "AssertionError: expected 500 to be less than 500",
+    "[U12].spec.ts": "AssertionError: expected 500 to be less than 500",
+    "[U13].spec.ts": "AssertionError: expected 500 to be less than 500",
+    "[U14].spec.ts": "AssertionError: expected 500 to be less than 500",
+    "[U15].spec.ts": "AssertionError: expected 500 to be less than 500",
+    "[U16].spec.ts": "AssertionError: expected 500 to be less than 500",
+    "[U17].spec.ts": "AssertionError: expected 500 to be less than 500",
+    "[U18].spec.ts": "AssertionError: expected 500 to be less than 500",
+    "[U19].spec.ts": "AssertionError: expected 500 to be less than 500",
+    "[R4].spec.ts": "AssertionError: expected 404 to be 200 // Object.is equality"
+  },
+  "unrunnableNote": "Each unrunnable test failed against your unmodified app, so it was set aside, not trusted (see unrunnableReasons for the first error from each). When most or all fail with the same error, the app usually cannot even be imported in a scratch copy: a missing environment variable its .env normally supplies, a service it connects to at startup, or a Node version its dependencies do not support. Fix that in your copy, delete or move aside the <repo>-rebuild/ directory this run wrote, and re-run generate_spec.",
+  "_operatorAnnotation (not tool output)": {
+    "note": "This is the SECOND generate_spec call, after adding placeholder (non-functional) warehouse env vars at the repo root. The FIRST call (before that fix) returned all 28 routes as unrunnableTests with the identical reason 'process.exit unexpectedly called with \"1\"', because the server calls process.exit(1) at import time when warehouse env vars are missing entirely.",
+    "ingest_repo_result": {
+      "routes": 29,
+      "existingTests": 0,
+      "signals": 44,
+      "buildConfig": [],
+      "openCases": 23
+    },
+    "final_test_distribution": {
+      "visible": 7,
+      "held_out": 1,
+      "weak": 21,
+      "note": "The 21 unrunnableTests listed above ended up filed under tests/weak/ in the package; tests/visible/ (7 files) and tests/held-out/ (1 file, [R5].spec.ts) are disjoint from that list."
+    }
+  }
+}

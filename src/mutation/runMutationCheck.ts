@@ -48,7 +48,11 @@ function getVitestEntry(): string {
   vitestEntry ??= resolveVitestEntry(() => resolveOwnPackageDir('vitest'));
   return vitestEntry;
 }
-const OWN_CONFIG_FILENAMES = ['vitest.config.ts', 'vitest.config.js', 'vitest.config.mts', 'vite.config.ts', 'vite.config.js', 'vite.config.mts'];
+// The dedicated config this mutation check always writes and always passes via
+// `--config` (see runVitestOnce below), so a target's own copied config — of
+// any of these filenames — can never shadow it. A distinctive name, chosen
+// so it can never collide with a real target's own file.
+const OWN_CONFIG_FILENAME = 'rebuild-dossier.vitest.config.mjs';
 
 // playwright is never a real target app's own dependency — it's only ever
 // needed by the gate tests THIS tool generates. Once a target has its own
@@ -146,21 +150,49 @@ function escapeForRegex(text: string): string {
 // below for why that's dangerous). Only handles the overwhelmingly common
 // single-wildcard shape ("@/*": ["./src/*"]) — a deliberately narrow, real
 // fix, not a general tsconfig-paths resolver.
-function writeAliasConfigIfNeeded(originalRepoPath: string, scratchDir: string): void {
-  if (OWN_CONFIG_FILENAMES.some((f) => existsSync(join(scratchDir, f)))) return;
+//
+// Real, live-triggered bug this always-write replaces: this used to bail out
+// entirely whenever the target already shipped its own vitest.config.*/
+// vite.config.* (copied verbatim into the scratch dir by prepareScratchCopy),
+// on the assumption that an existing config meant nothing extra was needed.
+// But a real app's own config commonly narrows `test.include` to its own
+// hand-written suite (e.g. `server/__tests__/**/*.test.js`) — vitest then
+// auto-discovers that copied config from the scratch dir, and every
+// generated test in tests/visible|held-out/, living outside that include
+// pattern, silently reports "No test files found" for every single mutation
+// site and baseline check, all misreported as bare "vitest exited with code
+// 1" with no other diagnosis (found live: a real app with 35 generated API
+// tests, all unrunnable, before this fix). This config is now always written
+// and always passed explicitly via `--config` (see runVitestOnce), so it can
+// never be shadowed by whatever the target's own build tooling needs — its
+// `test.include` covers only the fixed paths generated tests are ever
+// written to, never the target's own real suite.
+function writeOwnVitestConfig(originalRepoPath: string, scratchDir: string): void {
+  const aliasEntries = computeAliasEntries(originalRepoPath, scratchDir);
+  // Deliberately a plain object export, not `defineConfig` from 'vitest/config'
+  // — a real target repo's own node_modules (linked into the scratch copy)
+  // essentially never has vitest as one of ITS dependencies (that's an
+  // artifact of the tests THIS tool generates, not the target app's own
+  // tooling), so that import would fail to resolve there. `defineConfig` is
+  // purely a TS-typing helper with no runtime behavior beyond identity.
+  writeOwnVitestConfigFile(scratchDir, aliasEntries);
+}
 
+// Empty when the target has no tsconfig, an unparseable one, or no path
+// aliases — never a reason to skip writing the config itself (see above).
+function computeAliasEntries(originalRepoPath: string, scratchDir: string): string[] {
   const tsconfigPath = join(originalRepoPath, 'tsconfig.json');
-  if (!existsSync(tsconfigPath)) return;
+  if (!existsSync(tsconfigPath)) return [];
 
   let tsconfig: { compilerOptions?: { paths?: Record<string, string[]> } };
   try {
     tsconfig = JSON.parse(readFileSync(tsconfigPath, 'utf-8'));
   } catch {
-    return;
+    return [];
   }
 
   const paths = tsconfig.compilerOptions?.paths;
-  if (!paths || typeof paths !== 'object') return;
+  if (!paths || typeof paths !== 'object') return [];
 
   const aliasEntries: string[] = [];
   for (const [key, targets] of Object.entries(paths)) {
@@ -172,17 +204,16 @@ function writeAliasConfigIfNeeded(originalRepoPath: string, scratchDir: string):
     const replacement = join(scratchDir, targetMatch[1]!).replace(/\\/g, '/') + '/';
     aliasEntries.push(`{ find: new RegExp(${JSON.stringify(findPattern)}), replacement: ${JSON.stringify(replacement)} }`);
   }
-  if (aliasEntries.length === 0) return;
+  return aliasEntries;
+}
 
-  // Deliberately a plain object export, not `defineConfig` from 'vitest/config'
-  // — a real target repo's own node_modules (linked into the scratch copy)
-  // essentially never has vitest as one of ITS dependencies (that's an
-  // artifact of the tests THIS tool generates, not the target app's own
-  // tooling), so that import would fail to resolve there. `defineConfig` is
-  // purely a TS-typing helper with no runtime behavior beyond identity.
+// Split out so the fixed include/environment below always gets written even
+// when there are no aliases to resolve (aliasEntries.length === 0 is a valid,
+// common case — most real apps have no tsconfig path aliases at all).
+function writeOwnVitestConfigFile(scratchDir: string, aliasEntries: string[]): void {
   writeFileSync(
-    join(scratchDir, 'vitest.config.ts'),
-    `export default {\n  resolve: { alias: [${aliasEntries.join(', ')}] }\n};\n`
+    join(scratchDir, OWN_CONFIG_FILENAME),
+    `export default {\n  test: { include: ['tests/visible/**', 'tests/held-out/**'] },\n  resolve: { alias: [${aliasEntries.join(', ')}] }\n};\n`
   );
 }
 
@@ -213,7 +244,7 @@ export function prepareScratchCopy(originalRepoPath: string, authStorageStatePat
     filter: (src) => !IGNORED_DIRS.has(src.split(/[\\/]/).pop() ?? '')
   });
   linkNodeModules(originalRepoPath, scratchDir);
-  writeAliasConfigIfNeeded(originalRepoPath, scratchDir);
+  writeOwnVitestConfig(originalRepoPath, scratchDir);
   writeAuthFixtureIfNeeded(scratchDir, authStorageStatePath);
   return scratchDir;
 }
@@ -313,7 +344,14 @@ function runVitestDetailed(scratchDir: string, testFilePath: string): VitestRun 
   // execFileSync's `timeout`, which was observed not to fire at all (a ~97-min
   // run that exited on its own, signal: null) and which never killed
   // grandchildren. A timed-out run counts as not succeeding.
-  const run = runWithWatchdog('node', [getVitestEntry(), 'run', relativeTestFilePath, '--root', scratchDir, '--reporter=json', '--no-color'], {
+  // `--config` explicitly, not left to auto-discovery: vitest otherwise finds
+  // whatever vitest.config.*/vite.config.* the target itself ships (copied
+  // verbatim into scratchDir) ahead of ours, and a real target's own config
+  // narrowing `test.include` to its own suite silently excludes every
+  // generated test — see writeOwnVitestConfig's own comment for the live bug
+  // this fixes.
+  const ownConfigPath = join(scratchDir, OWN_CONFIG_FILENAME);
+  const run = runWithWatchdog('node', [getVitestEntry(), 'run', relativeTestFilePath, '--root', scratchDir, '--config', ownConfigPath, '--reporter=json', '--no-color'], {
     cwd: scratchDir,
     timeoutMs: vitestRunTimeoutMs()
   });

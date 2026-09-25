@@ -1,0 +1,164 @@
+
+ RUN  v4.1.10 /Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/without-rep2
+
+ ❯ tests/held-out/GET-api-health.spec.ts (0 test)
+ ❯ tests/held-out/GET-api-users-check-username.spec.ts (0 test)
+ ❯ tests/held-out/GET-api-slabs.spec.ts (0 test)
+ ❯ tests/held-out/GET-api-orders.spec.ts (1 test | 1 failed) 4ms
+     × responds without crashing (from-repo contract) 3ms
+ ❯ tests/held-out/POST-api-portfolios-id-items.spec.ts (1 test | 1 failed) 5ms
+     × responds without crashing (from-repo contract) 4ms
+ ❯ tests/held-out/GET-api-portfolios.spec.ts (1 test | 1 failed) 4ms
+     × responds without crashing (from-repo contract) 3ms
+ ❯ tests/held-out/PUT-api-portfolios-id.spec.ts (1 test | 1 failed) 5ms
+     × responds without crashing (from-repo contract) 4ms
+ ❯ tests/held-out/PUT-api-portfolios-id-items-itemid.spec.ts (1 test | 1 failed) 4ms
+     × responds without crashing (from-repo contract) 3ms
+ ❯ tests/held-out/DELETE-api-listings-id.spec.ts (1 test | 1 failed) 6ms
+     × responds without crashing (from-repo contract) 4ms
+ ❯ tests/held-out/GET-api-users.spec.ts (0 test)
+ ❯ tests/held-out/POST-api-scan.spec.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/held-out/GET-api-health.spec.ts [ tests/held-out/GET-api-health.spec.ts ]
+Error: Cannot find module '../../src/app/api/health/route.js' imported from /Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/without-rep2/tests/held-out/GET-api-health.spec.ts
+ ❯ tests/held-out/GET-api-health.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { GET } from '../../src/app/api/health/route.js';
+       | ^
+      4|
+      5| describe("GET /api/health", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯
+
+ FAIL  tests/held-out/GET-api-slabs.spec.ts [ tests/held-out/GET-api-slabs.spec.ts ]
+Error: Cannot find module '../../src/app/api/slabs/route.js' imported from /Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/without-rep2/tests/held-out/GET-api-slabs.spec.ts
+ ❯ tests/held-out/GET-api-slabs.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { GET } from '../../src/app/api/slabs/route.js';
+       | ^
+      4|
+      5| describe("GET /api/slabs", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/11]⎯
+
+ FAIL  tests/held-out/GET-api-users-check-username.spec.ts [ tests/held-out/GET-api-users-check-username.spec.ts ]
+Error: Cannot find module '../../src/app/api/users/check-username/route.js' imported from /Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/without-rep2/tests/held-out/GET-api-users-check-username.spec.ts
+ ❯ tests/held-out/GET-api-users-check-username.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { GET } from '../../src/app/api/users/check-username/route.js';
+       | ^
+      4|
+      5| describe("GET /api/users/check-username", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/11]⎯
+
+ FAIL  tests/held-out/GET-api-users.spec.ts [ tests/held-out/GET-api-users.spec.ts ]
+Error: Cannot find module '../../src/app/api/users/route.js' imported from /Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/without-rep2/tests/held-out/GET-api-users.spec.ts
+ ❯ tests/held-out/GET-api-users.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { GET } from '../../src/app/api/users/route.js';
+       | ^
+      4|
+      5| describe("GET /api/users", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/11]⎯
+
+ FAIL  tests/held-out/POST-api-scan.spec.ts [ tests/held-out/POST-api-scan.spec.ts ]
+Error: Cannot find module '../../src/app/api/scan/route.js' imported from /Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/without-rep2/tests/held-out/POST-api-scan.spec.ts
+ ❯ tests/held-out/POST-api-scan.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { POST } from '../../src/app/api/scan/route.js';
+       | ^
+      4|
+      5| describe("POST /api/scan", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/11]⎯
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/held-out/DELETE-api-listings-id.spec.ts > DELETE /api/listings/:id > responds without crashing (from-repo contract)
+TypeError: DELETE is not a function
+ ❯ tests/held-out/DELETE-api-listings-id.spec.ts:8:23
+      6|   it('responds without crashing (from-repo contract)', async () => {
+      7|     const request = new NextRequest('http://localhost:3000/api/listing…
+      8|     const res = await DELETE(request, { params: { id: 'test-value-123'…
+       |                       ^
+      9|     expect(res.status).toBeLessThan(500);
+     10|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/11]⎯
+
+ FAIL  tests/held-out/GET-api-orders.spec.ts > GET /api/orders > responds without crashing (from-repo contract)
+TypeError: GET is not a function
+ ❯ tests/held-out/GET-api-orders.spec.ts:8:23
+      6|   it('responds without crashing (from-repo contract)', async () => {
+      7|     const request = new NextRequest('http://localhost:3000/api/orders'…
+      8|     const res = await GET(request, { params: {} });
+       |                       ^
+      9|     expect(res.status).toBeLessThan(500);
+     10|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/11]⎯
+
+ FAIL  tests/held-out/GET-api-portfolios.spec.ts > GET /api/portfolios > responds without crashing (from-repo contract)
+TypeError: GET is not a function
+ ❯ tests/held-out/GET-api-portfolios.spec.ts:8:23
+      6|   it('responds without crashing (from-repo contract)', async () => {
+      7|     const request = new NextRequest('http://localhost:3000/api/portfol…
+      8|     const res = await GET(request, { params: {} });
+       |                       ^
+      9|     expect(res.status).toBeLessThan(500);
+     10|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/11]⎯
+
+ FAIL  tests/held-out/POST-api-portfolios-id-items.spec.ts > POST /api/portfolios/:id/items > responds without crashing (from-repo contract)
+TypeError: POST is not a function
+ ❯ tests/held-out/POST-api-portfolios-id-items.spec.ts:8:23
+      6|   it('responds without crashing (from-repo contract)', async () => {
+      7|     const request = new NextRequest('http://localhost:3000/api/portfol…
+      8|     const res = await POST(request, { params: { id: 'test-value-123' }…
+       |                       ^
+      9|     expect(res.status).toBeLessThan(500);
+     10|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/11]⎯
+
+ FAIL  tests/held-out/PUT-api-portfolios-id-items-itemid.spec.ts > PUT /api/portfolios/:id/items/:itemId > responds without crashing (from-repo contract)
+TypeError: PUT is not a function
+ ❯ tests/held-out/PUT-api-portfolios-id-items-itemid.spec.ts:8:23
+      6|   it('responds without crashing (from-repo contract)', async () => {
+      7|     const request = new NextRequest('http://localhost:3000/api/portfol…
+      8|     const res = await PUT(request, { params: { id: 'test-value-123', i…
+       |                       ^
+      9|     expect(res.status).toBeLessThan(500);
+     10|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/11]⎯
+
+ FAIL  tests/held-out/PUT-api-portfolios-id.spec.ts > PUT /api/portfolios/:id > responds without crashing (from-repo contract)
+TypeError: PUT is not a function
+ ❯ tests/held-out/PUT-api-portfolios-id.spec.ts:8:23
+      6|   it('responds without crashing (from-repo contract)', async () => {
+      7|     const request = new NextRequest('http://localhost:3000/api/portfol…
+      8|     const res = await PUT(request, { params: { id: 'test-value-123' } …
+       |                       ^
+      9|     expect(res.status).toBeLessThan(500);
+     10|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/11]⎯
+
+
+ Test Files  11 failed | 1 passed (12)
+      Tests  6 failed | 1 passed (7)
+   Start at  16:21:12
+   Duration  308ms (transform 286ms, setup 0ms, import 474ms, tests 32ms, environment 1ms)
+

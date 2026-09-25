@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/without-rep1
+
+
+ Test Files  20 passed (20)
+      Tests  20 passed (20)
+   Start at  15:39:23
+   Duration  531ms (transform 425ms, setup 0ms, import 1.22s, tests 95ms, environment 1ms)
+

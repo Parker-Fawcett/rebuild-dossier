@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /Users/parkerfawcett/sealed-runs/astra-2026-09/rev-rep3
+
+
+ Test Files  20 passed (20)
+      Tests  20 passed (20)
+   Start at  23:26:32
+   Duration  513ms (transform 377ms, setup 0ms, import 1.23s, tests 106ms, environment 1ms)
+

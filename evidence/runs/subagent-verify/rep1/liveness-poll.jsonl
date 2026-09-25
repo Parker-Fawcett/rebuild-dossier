@@ -1,0 +1,15 @@
+{"polledAt":"2026-09-15T21:21:57.516Z","heartbeat":null}
+{"polledAt":"2026-09-15T21:22:17.564Z","heartbeat":null}
+{"polledAt":"2026-09-15T21:22:37.627Z","heartbeat":null}
+{"polledAt":"2026-09-15T21:22:57.683Z","heartbeat":null}
+{"polledAt":"2026-09-15T21:23:17.735Z","heartbeat":null}
+{"polledAt":"2026-09-15T21:23:37.794Z","heartbeat":{"lastFiredAt":"2026-09-15T21:23:31.606Z","cwd":"/Users/parkerfawcett/ablation-runs/subagent-verify-web-rebuild/rep1","count":2}}
+{"polledAt":"2026-09-15T21:23:57.845Z","heartbeat":{"lastFiredAt":"2026-09-15T21:23:55.461Z","cwd":"/Users/parkerfawcett/ablation-runs/subagent-verify-web-rebuild/rep1","count":6}}
+{"polledAt":"2026-09-15T21:24:17.899Z","heartbeat":{"lastFiredAt":"2026-09-15T21:24:13.771Z","cwd":"/Users/parkerfawcett/ablation-runs/subagent-verify-web-rebuild/rep1","count":9}}
+{"polledAt":"2026-09-15T21:24:37.950Z","heartbeat":{"lastFiredAt":"2026-09-15T21:24:35.047Z","cwd":"/Users/parkerfawcett/ablation-runs/subagent-verify-web-rebuild/rep1","count":13}}
+{"polledAt":"2026-09-15T21:24:57.988Z","heartbeat":{"lastFiredAt":"2026-09-15T21:24:55.914Z","cwd":"/Users/parkerfawcett/ablation-runs/subagent-verify-web-rebuild/rep1","count":17}}
+{"polledAt":"2026-09-15T21:25:18.052Z","heartbeat":{"lastFiredAt":"2026-09-15T21:25:00.641Z","cwd":"/Users/parkerfawcett/ablation-runs/subagent-verify-web-rebuild/rep1","count":18}}
+{"polledAt":"2026-09-15T21:25:38.119Z","heartbeat":{"lastFiredAt":"2026-09-15T21:25:00.641Z","cwd":"/Users/parkerfawcett/ablation-runs/subagent-verify-web-rebuild/rep1","count":18}}
+{"polledAt":"2026-09-15T21:25:58.181Z","heartbeat":{"lastFiredAt":"2026-09-15T21:25:00.641Z","cwd":"/Users/parkerfawcett/ablation-runs/subagent-verify-web-rebuild/rep1","count":18}}
+{"polledAt":"2026-09-15T21:26:18.233Z","heartbeat":{"lastFiredAt":"2026-09-15T21:25:00.641Z","cwd":"/Users/parkerfawcett/ablation-runs/subagent-verify-web-rebuild/rep1","count":18}}
+{"polledAt":"2026-09-15T21:26:38.291Z","heartbeat":{"lastFiredAt":"2026-09-15T21:25:00.641Z","cwd":"/Users/parkerfawcett/ablation-runs/subagent-verify-web-rebuild/rep1","count":18}}

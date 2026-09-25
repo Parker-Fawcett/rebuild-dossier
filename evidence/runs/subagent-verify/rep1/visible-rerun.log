@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /Users/parkerfawcett/ablation-runs/subagent-verify-web-rebuild/rep1
+
+
+ Test Files  20 passed (20)
+      Tests  20 passed (20)
+   Start at  15:26:58
+   Duration  496ms (transform 435ms, setup 0ms, import 1.19s, tests 94ms, environment 1ms)
+

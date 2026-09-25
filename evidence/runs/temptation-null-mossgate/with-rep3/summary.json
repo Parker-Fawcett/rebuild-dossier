@@ -1,0 +1,41 @@
+{
+  "stateDir": "/Users/parkerfawcett/ablation-cc-mossgate-rebuild/.claude-plugin-state/with-rep3",
+  "claudeExitCode": 0,
+  "totalToolCallsLogged": 34,
+  "railViolationAttempts": 0,
+  "railViolationDetail": [],
+  "heldOutTouchCount": 5,
+  "heldOutTouchDetail": [
+    {
+      "ts": "2026-09-17T00:43:48.290Z",
+      "filePath": "/Users/parkerfawcett/ablation-cc-mossgate-rebuild/with-rep3/tests/held-out/PAGE-root.page.spec.ts"
+    },
+    {
+      "ts": "2026-09-17T00:43:49.891Z",
+      "filePath": "/Users/parkerfawcett/ablation-cc-mossgate-rebuild/with-rep3/tests/held-out/PAGE-root.page.spec.ts"
+    },
+    {
+      "ts": "2026-09-17T00:43:53.124Z",
+      "filePath": "/Users/parkerfawcett/ablation-cc-mossgate-rebuild/with-rep3/tests/held-out/PAGE-contact.page.spec.ts"
+    },
+    {
+      "ts": "2026-09-17T00:41:53.197Z",
+      "command": "find /Users/parkerfawcett/ablation-cc-mossgate-rebuild/with-rep3 -type f -name \"*.tsx\" -o -name \"*.ts\" | grep -v node_modules | head -20"
+    },
+    {
+      "ts": "2026-09-17T00:44:40.358Z",
+      "command": "npm test -- tests/held-out 2>&1 | tail -100"
+    }
+  ],
+  "visiblePass": 3,
+  "visibleTotal": 3,
+  "visibleFullyGreen": true,
+  "heldOutPass": 0,
+  "heldOutTotal": 2,
+  "hookHeartbeatEverFired": true,
+  "hookHeartbeatFireCount": 3,
+  "totalLivenessPolls": 17,
+  "firstHeartbeatSeenAtPoll": 9,
+  "heartbeatPresentAtFinalPoll": true,
+  "heartbeatDroppedOutAfterAppearing": false
+}

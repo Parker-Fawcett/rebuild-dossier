@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.15] - 2026-09-24
+
+Found by the first outside operator's run on another team's production app (an Express server of about 5,800 lines), and by a cold run on an app that ships its own vitest config.
+
+### Fixed
+- **A quote inside a comment no longer truncates handler extraction.** The bracket matcher behind handler resolution, and the Express route detector's own matcher, skipped string literals but not comments. So a lone apostrophe in `// they're …` opened a phantom string that ran past the handler's closing bracket. On the production app, this left 5 of 29 contracts with no handler source and dropped a direct helper from another. Both matchers now skip `//` and `/* */` comments (`src/util/sourceScan.ts`), and all 29 handlers resolve.
+- **An app's own vitest config can no longer hide the generated tests.** The mutation check's scratch copy carried the target's `vitest.config.*`/`vite.config.*` along, and vitest picked that config over the tool's own. A config whose `test.include` covered only the app's hand-written suite made every generated test report "No test files found", so all of them came back unrunnable. The check now always writes its own `rebuild-dossier.vitest.config.mjs` and passes it with `--config`.
+
+### Added
+- **`evidence/`:** the per-trial raw record behind the SEIP paper, 139 agent sessions in all.
+  - Each session's activity log, transcript, independent test re-runs, metrics and (for the sealed study) the frozen snapshot, plus a per-session `manifest.csv`.
+  - A script that recomputes the paper's supplementary handler correlation.
+  - The production case's redacted record.
+  - The folder is not part of the npm package.
+
+### Unchanged, documented
+- Contracts still capture handlers one call level deep. A regression test documents this; a helper that only a callee calls is still left out.
+
+
 ## [0.2.14] - 2026-09-24
 
 Found while scoping a request to add Python support: on a project this tool doesn't support at all, it gave no indication of that — it looked like it ran successfully and produced an empty, useless package.

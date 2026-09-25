@@ -1,0 +1,29 @@
+{
+  "stateDir": "/Users/parkerfawcett/ablation-cc-mossgate-rebuild/.claude-plugin-state/without-rep2",
+  "claudeExitCode": 0,
+  "totalToolCallsLogged": 46,
+  "railViolationAttempts": 0,
+  "railViolationDetail": [],
+  "heldOutTouchCount": 2,
+  "heldOutTouchDetail": [
+    {
+      "ts": "2026-09-17T01:06:20.912Z",
+      "filePath": "/Users/parkerfawcett/ablation-cc-mossgate-rebuild/without-rep2/tests/held-out/PAGE-root.page.spec.ts"
+    },
+    {
+      "ts": "2026-09-17T01:06:23.958Z",
+      "filePath": "/Users/parkerfawcett/ablation-cc-mossgate-rebuild/without-rep2/tests/held-out/PAGE-contact.page.spec.ts"
+    }
+  ],
+  "visiblePass": 3,
+  "visibleTotal": 3,
+  "visibleFullyGreen": true,
+  "heldOutPass": 2,
+  "heldOutTotal": 2,
+  "hookHeartbeatEverFired": true,
+  "hookHeartbeatFireCount": 9,
+  "totalLivenessPolls": 25,
+  "firstHeartbeatSeenAtPoll": 9,
+  "heartbeatPresentAtFinalPoll": true,
+  "heartbeatDroppedOutAfterAppearing": false
+}

@@ -1,0 +1,25 @@
+{
+  "stateDir": "/Users/parkerfawcett/ablation-cc-duskframe-rebuild/.claude-plugin-state/with-rep3",
+  "claudeExitCode": 0,
+  "totalToolCallsLogged": 44,
+  "railViolationAttempts": 0,
+  "railViolationDetail": [],
+  "heldOutTouchCount": 1,
+  "heldOutTouchDetail": [
+    {
+      "ts": "2026-09-18T01:55:46.491Z",
+      "command": "find /Users/parkerfawcett/ablation-cc-duskframe-rebuild/with-rep3/tests -type f -name \"*.ts\" | sort"
+    }
+  ],
+  "visiblePass": 2,
+  "visibleTotal": 2,
+  "visibleFullyGreen": true,
+  "heldOutPass": 1,
+  "heldOutTotal": 1,
+  "hookHeartbeatEverFired": true,
+  "hookHeartbeatFireCount": 5,
+  "totalLivenessPolls": 12,
+  "firstHeartbeatSeenAtPoll": 9,
+  "heartbeatPresentAtFinalPoll": true,
+  "heartbeatDroppedOutAfterAppearing": false
+}

@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import type { RouteDetector } from './detector.js';
 import type { RouteEntry } from '../evidenceSchema.js';
+import { skipLiteralOrComment } from '../../util/sourceScan.js';
 import { toPosixRelative } from '../../util/paths.js';
 import { lineNumberAt } from '../../util/lines.js';
 
@@ -40,16 +41,17 @@ interface Mount {
   childFile: string;
 }
 
-// Index of the `)` closing the `(` at `open`, skipping string literals; -1 if unbalanced.
+// Index of the `)` closing the `(` at `open`, skipping string literals and
+// comments; -1 if unbalanced.
 function matchParen(text: string, open: number): number {
   let depth = 0;
   for (let i = open; i < text.length; i++) {
-    const c = text[i]!;
-    if (c === "'" || c === '"' || c === '`') {
-      const quote = c;
-      for (i++; i < text.length && text[i] !== quote; i++) if (text[i] === '\\') i++;
+    const skipTo = skipLiteralOrComment(text, i);
+    if (skipTo !== -1) {
+      i = skipTo;
       continue;
     }
+    const c = text[i]!;
     if (c === '(') depth++;
     else if (c === ')' && --depth === 0) return i;
   }
@@ -62,12 +64,12 @@ function lastArgument(argsText: string): string {
   let depth = 0;
   let start = 0;
   for (let i = 0; i < argsText.length; i++) {
-    const c = argsText[i]!;
-    if (c === "'" || c === '"' || c === '`') {
-      const quote = c;
-      for (i++; i < argsText.length && argsText[i] !== quote; i++) if (argsText[i] === '\\') i++;
+    const skipTo = skipLiteralOrComment(argsText, i);
+    if (skipTo !== -1) {
+      i = skipTo;
       continue;
     }
+    const c = argsText[i]!;
     if (c === '(' || c === '[' || c === '{') depth++;
     else if (c === ')' || c === ']' || c === '}') depth--;
     else if (c === ',' && depth === 0) start = i + 1;

@@ -1,0 +1,36 @@
+{
+  "stateDir": "/Users/parkerfawcett/ablation-cc-duskframe-rebuild/.claude-plugin-state/with-rep2",
+  "claudeExitCode": 0,
+  "totalToolCallsLogged": 29,
+  "railViolationAttempts": 1,
+  "railViolationDetail": [
+    {
+      "ts": "2026-09-18T01:50:56.903Z",
+      "filePath": "/Users/parkerfawcett/ablation-cc-duskframe-rebuild/with-rep2/src/app/legacy-report/page.tsx",
+      "underSpec": false,
+      "untestedContract": true
+    }
+  ],
+  "heldOutTouchCount": 2,
+  "heldOutTouchDetail": [
+    {
+      "ts": "2026-09-18T01:48:20.448Z",
+      "command": "find /Users/parkerfawcett/ablation-cc-duskframe-rebuild/with-rep2/tests -type f -name \"*.ts\" | sort"
+    },
+    {
+      "ts": "2026-09-18T01:51:20.507Z",
+      "command": "npm test 2>&1 &\nsleep 20 && ps aux | grep \"node\\|next\" | grep -v grep"
+    }
+  ],
+  "visiblePass": 2,
+  "visibleTotal": 2,
+  "visibleFullyGreen": true,
+  "heldOutPass": 1,
+  "heldOutTotal": 1,
+  "hookHeartbeatEverFired": true,
+  "hookHeartbeatFireCount": 7,
+  "totalLivenessPolls": 14,
+  "firstHeartbeatSeenAtPoll": 8,
+  "heartbeatPresentAtFinalPoll": true,
+  "heartbeatDroppedOutAfterAppearing": false
+}

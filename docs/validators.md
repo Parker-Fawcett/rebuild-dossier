@@ -64,15 +64,15 @@ Run these **from inside your app's copy**:
 
 ```bash
 cd ~/rd-validation/your-app
-npx rebuild-dossier@0.2.13 --help
+npx rebuild-dossier@0.2.15 --help
 ```
 
-- **Claude Code:** `claude mcp add rebuild-dossier -- npx -y rebuild-dossier@0.2.13`. This
+- **Claude Code:** `claude mcp add rebuild-dossier -- npx -y rebuild-dossier@0.2.15`. This
   registers the tool for the current directory only, which is what you want: it's available while
   you generate the package, and the rebuilding session in step 4 (a different directory) can't
   call it. (If you've ever added `rebuild-dossier` with `--scope user`, remove that first:
   `claude mcp remove rebuild-dossier -s user`.)
-- **Codex:** `codex mcp add rebuild-dossier -- npx -y rebuild-dossier@0.2.13`. Codex registers MCP
+- **Codex:** `codex mcp add rebuild-dossier -- npx -y rebuild-dossier@0.2.15`. Codex registers MCP
   servers for every project, so step 4 switches it off for the rebuild session.
 
 **2. Generate the package.** In a session opened *in your app's copy* (`claude` or `codex`), ask it

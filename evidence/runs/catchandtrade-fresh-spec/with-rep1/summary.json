@@ -1,0 +1,33 @@
+{
+  "stateDir": "/Users/parkerfawcett/ablation-cc-catchandtrade-fresh-spec-rebuild/.claude-plugin-state/with-rep1",
+  "claudeExitCode": 0,
+  "totalToolCallsLogged": 67,
+  "railViolationAttempts": 0,
+  "railViolationDetail": [],
+  "heldOutTouchCount": 3,
+  "heldOutTouchDetail": [
+    {
+      "ts": "2026-09-18T01:47:33.464Z",
+      "command": "find /Users/parkerfawcett/ablation-cc-catchandtrade-fresh-spec-rebuild/with-rep1 -maxdepth 3 -not -path '*/node_modules*' -not -path '*/.git*' | sort"
+    },
+    {
+      "ts": "2026-09-18T02:03:56.149Z",
+      "command": "npx vitest run tests/held-out --passWithNoTests 2>&1 | tail -60"
+    },
+    {
+      "ts": "2026-09-18T02:04:27.272Z",
+      "command": "npx vitest run tests/held-out --passWithNoTests --reporter=verbose 2>&1 | grep -E \"✓|×|passed|failed\" "
+    }
+  ],
+  "visiblePass": 24,
+  "visibleTotal": 24,
+  "visibleFullyGreen": true,
+  "heldOutPass": 0,
+  "heldOutTotal": 7,
+  "hookHeartbeatEverFired": true,
+  "hookHeartbeatFireCount": 30,
+  "totalLivenessPolls": 57,
+  "firstHeartbeatSeenAtPoll": 15,
+  "heartbeatPresentAtFinalPoll": true,
+  "heartbeatDroppedOutAfterAppearing": false
+}

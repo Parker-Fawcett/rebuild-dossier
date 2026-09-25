@@ -1,0 +1,226 @@
+{
+  "orig": {
+    "n": 5,
+    "stall": 5,
+    "progress": 0,
+    "visibleComplete": 5
+  },
+  "rev": {
+    "n": 5,
+    "stall": 0,
+    "progress": 5,
+    "visibleComplete": 5
+  },
+  "ctrl": {
+    "n": 5,
+    "stall": 5,
+    "progress": 0,
+    "visibleComplete": 5
+  },
+  "g55orig": {
+    "n": 1,
+    "stall": 0,
+    "progress": 1,
+    "visibleComplete": 1
+  },
+  "g55rev": {
+    "n": 0,
+    "stall": 0,
+    "progress": 0,
+    "visibleComplete": 0
+  },
+  "rows": [
+    {
+      "rep": "ctrl-rep1",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 1,
+      "stall": true,
+      "progressBeyondOneRoute": false,
+      "visiblePass": 1,
+      "visibleTotal": 1,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "ctrl-rep2",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 1,
+      "stall": true,
+      "progressBeyondOneRoute": false,
+      "visiblePass": 1,
+      "visibleTotal": 1,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "ctrl-rep3",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 1,
+      "stall": true,
+      "progressBeyondOneRoute": false,
+      "visiblePass": 1,
+      "visibleTotal": 1,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "ctrl-rep4",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 1,
+      "stall": true,
+      "progressBeyondOneRoute": false,
+      "visiblePass": 1,
+      "visibleTotal": 1,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "ctrl-rep5",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 1,
+      "stall": true,
+      "progressBeyondOneRoute": false,
+      "visiblePass": 1,
+      "visibleTotal": 1,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "g55orig-rep1",
+      "model": "gpt-5.5",
+      "routeFilesCreated": 16,
+      "stall": false,
+      "progressBeyondOneRoute": true,
+      "visiblePass": 20,
+      "visibleTotal": 20,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "orig-rep1",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 1,
+      "stall": true,
+      "progressBeyondOneRoute": false,
+      "visiblePass": 1,
+      "visibleTotal": 1,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "orig-rep2",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 1,
+      "stall": true,
+      "progressBeyondOneRoute": false,
+      "visiblePass": 1,
+      "visibleTotal": 1,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "orig-rep3",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 1,
+      "stall": true,
+      "progressBeyondOneRoute": false,
+      "visiblePass": 1,
+      "visibleTotal": 1,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "orig-rep4",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 1,
+      "stall": true,
+      "progressBeyondOneRoute": false,
+      "visiblePass": 1,
+      "visibleTotal": 1,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "orig-rep5",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 1,
+      "stall": true,
+      "progressBeyondOneRoute": false,
+      "visiblePass": 1,
+      "visibleTotal": 1,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "rev-rep1",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 16,
+      "stall": false,
+      "progressBeyondOneRoute": true,
+      "visiblePass": 20,
+      "visibleTotal": 20,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "rev-rep2",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 16,
+      "stall": false,
+      "progressBeyondOneRoute": true,
+      "visiblePass": 20,
+      "visibleTotal": 20,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "rev-rep3",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 16,
+      "stall": false,
+      "progressBeyondOneRoute": true,
+      "visiblePass": 20,
+      "visibleTotal": 20,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "rev-rep4",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 16,
+      "stall": false,
+      "progressBeyondOneRoute": true,
+      "visiblePass": 20,
+      "visibleTotal": 20,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    },
+    {
+      "rep": "rev-rep5",
+      "model": "gpt-6-astra",
+      "routeFilesCreated": 16,
+      "stall": false,
+      "progressBeyondOneRoute": true,
+      "visiblePass": 20,
+      "visibleTotal": 20,
+      "visibleComplete": true,
+      "railViolationAttempts": 0,
+      "exitCode": 0
+    }
+  ]
+}

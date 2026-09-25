@@ -1,0 +1,10 @@
+{"polledAt":"2026-09-20T19:51:54.774Z","heartbeat":null}
+{"polledAt":"2026-09-20T19:52:14.814Z","heartbeat":null}
+{"polledAt":"2026-09-20T19:52:34.864Z","heartbeat":null}
+{"polledAt":"2026-09-20T19:52:54.934Z","heartbeat":{"lastFiredAt":"2026-09-20T19:52:53.104Z","cwd":"/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/with-rep5","count":2}}
+{"polledAt":"2026-09-20T19:53:14.995Z","heartbeat":{"lastFiredAt":"2026-09-20T19:53:14.563Z","cwd":"/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/with-rep5","count":10}}
+{"polledAt":"2026-09-20T19:53:35.058Z","heartbeat":{"lastFiredAt":"2026-09-20T19:53:29.913Z","cwd":"/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/with-rep5","count":17}}
+{"polledAt":"2026-09-20T19:53:55.108Z","heartbeat":{"lastFiredAt":"2026-09-20T19:53:44.690Z","cwd":"/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/with-rep5","count":18}}
+{"polledAt":"2026-09-20T19:54:15.164Z","heartbeat":{"lastFiredAt":"2026-09-20T19:54:14.267Z","cwd":"/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/with-rep5","count":19}}
+{"polledAt":"2026-09-20T19:54:35.229Z","heartbeat":{"lastFiredAt":"2026-09-20T19:54:21.609Z","cwd":"/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/with-rep5","count":22}}
+{"polledAt":"2026-09-20T19:54:55.291Z","heartbeat":{"lastFiredAt":"2026-09-20T19:54:21.609Z","cwd":"/Users/parkerfawcett/ablation-runs/ablation-cc-web-rebuild/with-rep5","count":22}}

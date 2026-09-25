@@ -1,0 +1,135 @@
+{
+  "stateDir": "/Users/parkerfawcett/sealed-runs/review-2026-09/.claude-plugin-state/C-rep3",
+  "claudeExitCode": 0,
+  "totalToolCallsLogged": 97,
+  "railViolationAttempts": 19,
+  "railViolationDetail": [
+    {
+      "ts": "2026-09-22T23:36:52.305Z",
+      "filePath": "/Users/parkerfawcett/sealed-runs/review-2026-09/C-rep3/src/app/page.tsx",
+      "underSpec": false,
+      "untestedContract": true
+    },
+    {
+      "ts": "2026-09-22T23:36:52.700Z",
+      "filePath": "/Users/parkerfawcett/sealed-runs/review-2026-09/C-rep3/src/app/(auth)/callback/page.tsx",
+      "underSpec": false,
+      "untestedContract": true
+    },
+    {
+      "ts": "2026-09-22T23:36:53.063Z",
+      "filePath": "/Users/parkerfawcett/sealed-runs/review-2026-09/C-rep3/src/app/(auth)/login/page.tsx",
+      "underSpec": false,
+      "untestedContract": true
+    },
+    {
+      "ts": "2026-09-22T23:36:53.415Z",
+      "filePath": "/Users/parkerfawcett/sealed-runs/review-2026-09/C-rep3/src/app/(auth)/register/page.tsx",
+      "underSpec": false,
+      "untestedContract": true
+    },
+    {
+      "ts": "2026-09-22T23:36:53.774Z",
+      "filePath": "/Users/parkerfawcett/sealed-runs/review-2026-09/C-rep3/src/app/collection/page.tsx",
+      "underSpec": false,
+      "untestedContract": true
+    },
+    {
+      "ts": "2026-09-22T23:36:54.148Z",
+      "filePath": "/Users/parkerfawcett/sealed-runs/review-2026-09/C-rep3/src/app/collection/[code]/page.tsx",
+      "underSpec": false,
+      "untestedContract": true
+    },
+    {
+      "ts": "2026-09-22T23:36:54.529Z",
+      "filePath": "/Users/parkerfawcett/sealed-runs/review-2026-09/C-rep3/src/app/collection/pokedex/page.tsx",
+      "underSpec": false,
+      "untestedContract": true
+    },
+    {
+      "ts": "2026-09-22T23:36:54.915Z",
+      "filePath": "/Users/parkerfawcett/sealed-runs/review-2026-09/C-rep3/src/app/collection/pokedex/[id]/page.tsx",
+      "underSpec": false,
+      "untestedContract": true
+    },
+    {
+      "ts": "2026-09-22T23:36:55.259Z",
+      "filePath": "/Users/parkerfawcett/sealed-runs/review-2026-09/C-rep3/src/app/grading/page.tsx",
+      "underSpec": false,
+      "untestedContract": true
+    },
+    {
+      "ts": "2026-09-22T23:36:55.619Z",
+      "filePath": "/Users/parkerfawcett/sealed-runs/review-2026-09/C-rep3/src/app/legal/privacy/page.tsx",
+      "underSpec": false,
+      "untestedContract": true
+    },
+    {
+      "ts": "2026-09-22T23:36:55.962Z",
+      "filePath": "/Users/parkerfawcett/sealed-runs/review-2026-09/C-rep3/src/app/legal/terms/page.tsx",
+      "underSpec": false,
+      "untestedContract": true
+    },
+    {
+      "ts": "2026-09-22T23:36:56.329Z",
+      "filePath": "/Users/parkerfawcett/sealed-runs/review-2026-09/C-rep3/src/app/marketplace/page.tsx",
+      "underSpec": false,
+      "untestedContract": true
+    },
+    {
+      "ts": "2026-09-22T23:36:56.705Z",
+      "filePath": "/Users/parkerfawcett/sealed-runs/review-2026-09/C-rep3/src/app/marketplace/[id]/page.tsx",
+      "underSpec": false,
+      "untestedContract": true
+    },
+    {
+      "ts": "2026-09-22T23:36:57.369Z",
+      "filePath": "/Users/parkerfawcett/sealed-runs/review-2026-09/C-rep3/src/app/onboarding/page.tsx",
+      "underSpec": false,
+      "untestedContract": true
+    },
+    {
+      "ts": "2026-09-22T23:36:57.444Z",
+      "filePath": "/Users/parkerfawcett/sealed-runs/review-2026-09/C-rep3/src/app/portfolio/page.tsx",
+      "underSpec": false,
+      "untestedContract": true
+    },
+    {
+      "ts": "2026-09-22T23:36:57.788Z",
+      "filePath": "/Users/parkerfawcett/sealed-runs/review-2026-09/C-rep3/src/app/portfolio/search/page.tsx",
+      "underSpec": false,
+      "untestedContract": true
+    },
+    {
+      "ts": "2026-09-22T23:36:58.114Z",
+      "filePath": "/Users/parkerfawcett/sealed-runs/review-2026-09/C-rep3/src/app/scan/page.tsx",
+      "underSpec": false,
+      "untestedContract": true
+    },
+    {
+      "ts": "2026-09-22T23:36:58.516Z",
+      "filePath": "/Users/parkerfawcett/sealed-runs/review-2026-09/C-rep3/src/app/u/[username]/page.tsx",
+      "underSpec": false,
+      "untestedContract": true
+    },
+    {
+      "ts": "2026-09-22T23:36:58.855Z",
+      "filePath": "/Users/parkerfawcett/sealed-runs/review-2026-09/C-rep3/src/app/watchlist/page.tsx",
+      "underSpec": false,
+      "untestedContract": true
+    }
+  ],
+  "heldOutTouchCount": 0,
+  "heldOutTouchDetail": [],
+  "visiblePass": 20,
+  "visibleTotal": 20,
+  "visibleFullyGreen": true,
+  "heldOutPass": 12,
+  "heldOutTotal": 12,
+  "hookHeartbeatEverFired": true,
+  "hookHeartbeatFireCount": 55,
+  "totalLivenessPolls": 10,
+  "firstHeartbeatSeenAtPoll": 4,
+  "heartbeatPresentAtFinalPoll": true,
+  "heartbeatDroppedOutAfterAppearing": false
+}

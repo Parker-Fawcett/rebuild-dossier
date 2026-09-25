@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep3
+
+
+ Test Files  20 passed (20)
+      Tests  20 passed (20)
+   Start at  07:03:49
+   Duration  506ms (transform 524ms, setup 0ms, import 1.26s, tests 96ms, environment 1ms)
+

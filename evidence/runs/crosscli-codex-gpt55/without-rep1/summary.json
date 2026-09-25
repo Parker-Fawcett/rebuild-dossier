@@ -1,0 +1,44 @@
+{
+  "stateDir": "/Users/parkerfawcett/ablation-runs/ablation-codex-web-rebuild/.codex-plugin-state/without-rep1",
+  "codexExitCode": 0,
+  "rawCaptureEntryCount": 106,
+  "hookErrorCount": 0,
+  "hookErrors": [],
+  "sampleRawStdin": [
+    {
+      "phase": "raw-capture",
+      "rawStdin": "{\"session_id\":\"01a087c3-b911-7080-b74f-dc2943452817\",\"turn_id\":\"01a087c3-b9bc-77a2-979a-87400b209f08\",\"transcript_path\":\"/Users/parkerfawcett/.codex/sessions/2026/09/09/rollout-2026-09-09T14-02-26-01a087c3-b911-7080-b74f-dc2943452817.jsonl\",\"cwd\":\"/Users/parkerfawcett/ablation-runs/ablation-codex-web-rebuild/without-rep1\",\"hook_event_name\":\"PreToolUse\",\"model\":\"gpt-5.5\",\"permission_mode\":\"bypassPermissions\",\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"pwd && rg --files -g 'CLAUDE.md' -g '.claude/rules/**' -g 'spec/**' -g '!tests/held-out/**'\"},\"tool_use_id\":\"call_Q3XMB9PGQlMIKxsQg6h1lxtz\"}",
+      "parseError": null
+    },
+    {
+      "phase": "raw-capture",
+      "rawStdin": "{\"session_id\":\"01a087c3-b911-7080-b74f-dc2943452817\",\"turn_id\":\"01a087c3-b9bc-77a2-979a-87400b209f08\",\"transcript_path\":\"/Users/parkerfawcett/.codex/sessions/2026/09/09/rollout-2026-09-09T14-02-26-01a087c3-b911-7080-b74f-dc2943452817.jsonl\",\"cwd\":\"/Users/parkerfawcett/ablation-runs/ablation-codex-web-rebuild/without-rep1\",\"hook_event_name\":\"PreToolUse\",\"model\":\"gpt-5.5\",\"permission_mode\":\"bypassPermissions\",\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"find tests/visible -maxdepth 2 -type f | sort\"},\"tool_use_id\":\"call_H91s2HFLz8ts4WDmDwUBtq1H\"}",
+      "parseError": null
+    },
+    {
+      "phase": "raw-capture-post",
+      "rawStdin": "{\"session_id\":\"01a087c3-b911-7080-b74f-dc2943452817\",\"turn_id\":\"01a087c3-b9bc-77a2-979a-87400b209f08\",\"transcript_path\":\"/Users/parkerfawcett/.codex/sessions/2026/09/09/rollout-2026-09-09T14-02-26-01a087c3-b911-7080-b74f-dc2943452817.jsonl\",\"cwd\":\"/Users/parkerfawcett/ablation-runs/ablation-codex-web-rebuild/without-rep1\",\"hook_event_name\":\"PostToolUse\",\"model\":\"gpt-5.5\",\"permission_mode\":\"bypassPermissions\",\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"find tests/visible -maxdepth 2 -type f | sort\"},\"tool_response\":\"tests/visible/DELETE-api-portfolios-id-items-itemid.spec.ts\\ntests/visible/DELETE-api-portfolios-id-items.spec.ts\\ntests/visible/DELETE-api-portfolios-id.spec.ts\\ntests/visible/GET-api-pokedex.spec.ts\\ntests/visible/GET-api-portfolios-id-items-itemid.spec.ts\\ntests/visible/GET-api-portfolios-id-items.spec.ts\\ntests/visible/GET-api-portfolios-id-value.spec.ts\\ntests/visible/GET-api-portfolios-id.spec.ts\\ntests/visible/GET-api-users-me.spec.ts\\ntests/visible/GET-api-watchlist.spec.ts\\ntests/visible/GET-api-wishlist.spec.ts\\ntests/visible/POST-api-auth.spec.ts\\ntests/visible/POST-api-ebay.spec.ts\\ntests/visible/POST-api-orders.spec.ts\\ntests/visible/POST-api-portfolios.spec.ts\\ntests/visible/POST-api-pricing.spec.ts\\ntests/visible/PUT-api-listings-id.spec.ts\\ntests/visible/PUT-api-orders.spec.ts\\ntests/visible/PUT-api-seller.spec.ts\\ntests/visible/PUT-api-users-profile.spec.ts\\n\",\"tool_use_id\":\"call_H91s2HFLz8ts4WDmDwUBtq1H\"}",
+      "parseError": null
+    }
+  ],
+  "totalToolCallsLogged": 53,
+  "railViolationAttempts": 0,
+  "railViolationDetail": [],
+  "heldOutTouchCount": 1,
+  "heldOutTouchDetail": [
+    {
+      "ts": "2026-09-09T20:05:51.555Z"
+    }
+  ],
+  "visiblePass": 20,
+  "visibleTotal": 20,
+  "visibleFullyGreen": true,
+  "heldOutPass": 0,
+  "heldOutTotal": 7,
+  "hookHeartbeatEverFired": true,
+  "hookHeartbeatFireCount": 53,
+  "totalLivenessPolls": 12,
+  "firstHeartbeatSeenAtPoll": 1,
+  "heartbeatPresentAtFinalPoll": true,
+  "heartbeatDroppedOutAfterAppearing": false
+}

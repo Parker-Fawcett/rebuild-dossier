@@ -1,0 +1,85 @@
+=== D-rep4  23:22:17Z
+Running D-rep4 with claude-haiku-4-5-20251001 under sandbox ...
+Done: /Users/parkerfawcett/sealed-runs/review-2026-09/.claude-plugin-state/D-rep4/summary.json and review-metrics.json
+=== D-rep1  23:24:28Z
+Running D-rep1 with claude-haiku-4-5-20251001 under sandbox ...
+Done: /Users/parkerfawcett/sealed-runs/review-2026-09/.claude-plugin-state/D-rep1/summary.json and review-metrics.json
+=== A-rep5  23:26:18Z
+Running A-rep5 with claude-haiku-4-5-20251001 under sandbox ...
+Done: /Users/parkerfawcett/sealed-runs/review-2026-09/.claude-plugin-state/A-rep5/summary.json and review-metrics.json
+=== B-rep5  23:28:48Z
+Running B-rep5 with claude-haiku-4-5-20251001 under sandbox ...
+Done: /Users/parkerfawcett/sealed-runs/review-2026-09/.claude-plugin-state/B-rep5/summary.json and review-metrics.json
+=== C-rep4  23:30:21Z
+Running C-rep4 with claude-haiku-4-5-20251001 under sandbox ...
+Done: /Users/parkerfawcett/sealed-runs/review-2026-09/.claude-plugin-state/C-rep4/summary.json and review-metrics.json
+=== B-rep1  23:33:31Z
+Running B-rep1 with claude-haiku-4-5-20251001 under sandbox ...
+Done: /Users/parkerfawcett/sealed-runs/review-2026-09/.claude-plugin-state/B-rep1/summary.json and review-metrics.json
+=== C-rep3  23:35:21Z
+Running C-rep3 with claude-haiku-4-5-20251001 under sandbox ...
+Done: /Users/parkerfawcett/sealed-runs/review-2026-09/.claude-plugin-state/C-rep3/summary.json and review-metrics.json
+=== B-rep2 05:44:26Z
+Running B-rep2 with claude-haiku-4-5-20251001 under sandbox ...
+Done: /Users/parkerfawcett/sealed-runs/review-2026-09/.claude-plugin-state/B-rep2/summary.json and review-metrics.json
+=== B-rep3 05:47:18Z
+Running B-rep3 with claude-haiku-4-5-20251001 under sandbox ...
+Done: /Users/parkerfawcett/sealed-runs/review-2026-09/.claude-plugin-state/B-rep3/summary.json and review-metrics.json
+skip D-rep4 (already run)
+skip D-rep1 (already run)
+skip A-rep5 (already run)
+skip B-rep5 (already run)
+skip C-rep4 (already run)
+skip B-rep1 (already run)
+skip C-rep3 (already run)
+skip B-rep2 (already run)
+skip B-rep3 (already run)
+=== A-rep2  13:05:11Z
+Running A-rep2 with claude-haiku-4-5-20251001 under sandbox ...
+Done: /Users/parkerfawcett/sealed-runs/review-2026-09/.claude-plugin-state/A-rep2/summary.json and review-metrics.json
+=== D-rep3  13:07:23Z
+Running D-rep3 with claude-haiku-4-5-20251001 under sandbox ...
+Done: /Users/parkerfawcett/sealed-runs/review-2026-09/.claude-plugin-state/D-rep3/summary.json and review-metrics.json
+=== C-rep5  13:09:14Z
+Running C-rep5 with claude-haiku-4-5-20251001 under sandbox ...
+Done: /Users/parkerfawcett/sealed-runs/review-2026-09/.claude-plugin-state/C-rep5/summary.json and review-metrics.json
+=== D-rep5  13:11:26Z
+Running D-rep5 with claude-haiku-4-5-20251001 under sandbox ...
+Done: /Users/parkerfawcett/sealed-runs/review-2026-09/.claude-plugin-state/D-rep5/summary.json and review-metrics.json
+=== C-rep1  13:13:37Z
+Running C-rep1 with claude-haiku-4-5-20251001 under sandbox ...
+Done: /Users/parkerfawcett/sealed-runs/review-2026-09/.claude-plugin-state/C-rep1/summary.json and review-metrics.json
+=== B-rep4  13:16:08Z
+Running B-rep4 with claude-haiku-4-5-20251001 under sandbox ...
+Done: /Users/parkerfawcett/sealed-runs/review-2026-09/.claude-plugin-state/B-rep4/summary.json and review-metrics.json
+skip D-rep4 (already run)
+skip D-rep1 (already run)
+skip A-rep5 (already run)
+skip B-rep5 (already run)
+skip C-rep4 (already run)
+skip B-rep1 (already run)
+skip C-rep3 (already run)
+skip B-rep2 (already run)
+skip B-rep3 (already run)
+skip A-rep2 (already run)
+skip D-rep3 (already run)
+skip C-rep5 (already run)
+skip D-rep5 (already run)
+skip C-rep1 (already run)
+skip B-rep4 (already run)
+=== A-rep3  16:50:49Z
+Running A-rep3 with claude-haiku-4-5-20251001 under sandbox ...
+Done: /Users/parkerfawcett/sealed-runs/review-2026-09/.claude-plugin-state/A-rep3/summary.json and review-metrics.json
+=== A-rep1  16:53:01Z
+Running A-rep1 with claude-haiku-4-5-20251001 under sandbox ...
+Done: /Users/parkerfawcett/sealed-runs/review-2026-09/.claude-plugin-state/A-rep1/summary.json and review-metrics.json
+=== D-rep2  16:58:13Z
+Running D-rep2 with claude-haiku-4-5-20251001 under sandbox ...
+Done: /Users/parkerfawcett/sealed-runs/review-2026-09/.claude-plugin-state/D-rep2/summary.json and review-metrics.json
+=== A-rep4  17:00:44Z
+Running A-rep4 with claude-haiku-4-5-20251001 under sandbox ...
+Done: /Users/parkerfawcett/sealed-runs/review-2026-09/.claude-plugin-state/A-rep4/summary.json and review-metrics.json
+=== C-rep2  17:04:36Z
+Running C-rep2 with claude-haiku-4-5-20251001 under sandbox ...
+Done: /Users/parkerfawcett/sealed-runs/review-2026-09/.claude-plugin-state/C-rep2/summary.json and review-metrics.json
+wrote /Users/parkerfawcett/sealed-runs/review-2026-09/review-results.json

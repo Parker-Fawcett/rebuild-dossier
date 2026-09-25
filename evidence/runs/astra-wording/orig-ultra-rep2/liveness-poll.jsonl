@@ -1,0 +1,10 @@
+{"polledAt":"2026-09-23T18:08:08.385Z","elapsedSeconds":0,"heartbeat":null}
+{"polledAt":"2026-09-23T18:08:28.454Z","elapsedSeconds":20,"heartbeat":{"lastFiredAt":"2026-09-23T18:08:22.345Z","cwd":"/Users/parkerfawcett/sealed-runs/astra-2026-09/orig-ultra-rep2","count":2}}
+{"polledAt":"2026-09-23T18:08:48.520Z","elapsedSeconds":40,"heartbeat":{"lastFiredAt":"2026-09-23T18:08:45.894Z","cwd":"/Users/parkerfawcett/sealed-runs/astra-2026-09/orig-ultra-rep2","count":6}}
+{"polledAt":"2026-09-23T18:09:08.592Z","elapsedSeconds":60,"heartbeat":{"lastFiredAt":"2026-09-23T18:09:05.280Z","cwd":"/Users/parkerfawcett/sealed-runs/astra-2026-09/orig-ultra-rep2","count":13}}
+{"polledAt":"2026-09-23T18:09:28.658Z","elapsedSeconds":80,"heartbeat":{"lastFiredAt":"2026-09-23T18:09:24.670Z","cwd":"/Users/parkerfawcett/sealed-runs/astra-2026-09/orig-ultra-rep2","count":22}}
+{"polledAt":"2026-09-23T18:09:48.729Z","elapsedSeconds":100,"heartbeat":{"lastFiredAt":"2026-09-23T18:09:35.494Z","cwd":"/Users/parkerfawcett/sealed-runs/astra-2026-09/orig-ultra-rep2","count":26}}
+{"polledAt":"2026-09-23T18:10:08.802Z","elapsedSeconds":120,"heartbeat":{"lastFiredAt":"2026-09-23T18:09:35.494Z","cwd":"/Users/parkerfawcett/sealed-runs/astra-2026-09/orig-ultra-rep2","count":26}}
+{"polledAt":"2026-09-23T18:10:28.875Z","elapsedSeconds":140,"heartbeat":{"lastFiredAt":"2026-09-23T18:09:35.494Z","cwd":"/Users/parkerfawcett/sealed-runs/astra-2026-09/orig-ultra-rep2","count":26}}
+{"polledAt":"2026-09-23T18:10:48.932Z","elapsedSeconds":160,"heartbeat":{"lastFiredAt":"2026-09-23T18:09:35.494Z","cwd":"/Users/parkerfawcett/sealed-runs/astra-2026-09/orig-ultra-rep2","count":26}}
+{"polledAt":"2026-09-23T18:11:09.003Z","elapsedSeconds":180,"heartbeat":{"lastFiredAt":"2026-09-23T18:10:51.886Z","cwd":"/Users/parkerfawcett/sealed-runs/astra-2026-09/orig-ultra-rep2","count":27}}

@@ -1,0 +1,3 @@
+{"polledAt":"2026-09-23T05:37:06.610Z","elapsedSeconds":0,"heartbeat":null}
+{"polledAt":"2026-09-23T05:37:26.655Z","elapsedSeconds":20,"heartbeat":{"lastFiredAt":"2026-09-23T05:37:19.869Z","cwd":"/Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep1","count":2}}
+{"polledAt":"2026-09-23T05:37:46.714Z","elapsedSeconds":40,"heartbeat":{"lastFiredAt":"2026-09-23T05:37:44.564Z","cwd":"/Users/parkerfawcett/sealed-runs/astra-2026-09/ctrl-rep1","count":8}}

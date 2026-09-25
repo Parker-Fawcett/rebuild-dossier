@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /Users/parkerfawcett/sealed-runs/astra-2026-09/rev-xhigh-rep2
+
+
+ Test Files  20 passed (20)
+      Tests  20 passed (20)
+   Start at  12:08:06
+   Duration  487ms (transform 382ms, setup 0ms, import 1.17s, tests 100ms, environment 1ms)
+

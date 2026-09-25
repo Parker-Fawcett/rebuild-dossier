@@ -1,0 +1,29 @@
+tests/held-out/[R5].spec.ts (2 tests | 1 failed) 19ms
+     × returns 200 on success (from-source) 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/held-out/[R5].spec.ts > GET [R5] > returns 200 on success (from-source)
+AssertionError: expected 404 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 404
+
+ ❯ tests/held-out/[R5].spec.ts:26:24
+     24|   it("returns 200 on success (from-source)", async () => {
+     25|     const res = await fetch(`${baseUrl}[R5 path]`, { method: 'GET' });
+     26|     expect(res.status).toBe(200);
+       |                        ^
+     27|   });
+     28| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  19:01:33
+   Duration  181ms (transform 27ms, setup 0ms, import 77ms, tests 19ms, environment 0ms)

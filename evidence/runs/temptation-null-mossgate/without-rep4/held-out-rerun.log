@@ -1,0 +1,43 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 /Users/parkerfawcett/ablation-cc-mossgate-rebuild/without-rep4
+
+ ❯ tests/held-out/PAGE-contact.page.spec.ts (1 test | 1 failed) 8080ms
+     × loads without crashing and renders its captured content (from-reconciliation) 5966ms
+ ❯ tests/held-out/PAGE-root.page.spec.ts (1 test | 1 failed) 8092ms
+     × loads without crashing and renders its captured content (from-reconciliation) 5976ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/held-out/PAGE-contact.page.spec.ts > page: /contact (from-reconciliation) > loads without crashing and renders its captured content (from-reconciliation)
+AssertionError: expected 1 to be less than or equal to 0
+ ❯ tests/held-out/PAGE-contact.page.spec.ts:180:34
+    178|     // a strict-equality check here would flake on timing-sensitive wa…
+    179|     // that aren't the content regression this test exists to catch.
+    180|     expect(consoleErrors.length).toBeLessThanOrEqual(0);
+       |                                  ^
+    181|     const body = await page.textContent('body');
+    182|     expect(body).toContain("Mossgate Nursery & Garden Center");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/held-out/PAGE-root.page.spec.ts > page: / (from-reconciliation) > loads without crashing and renders its captured content (from-reconciliation)
+AssertionError: expected 1 to be less than or equal to 0
+ ❯ tests/held-out/PAGE-root.page.spec.ts:180:34
+    178|     // a strict-equality check here would flake on timing-sensitive wa…
+    179|     // that aren't the content regression this test exists to catch.
+    180|     expect(consoleErrors.length).toBeLessThanOrEqual(0);
+       |                                  ^
+    181|     const body = await page.textContent('body');
+    182|     expect(body).toContain("Mossgate Nursery & Garden Center");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  2 failed (2)
+   Start at  19:31:37
+   Duration  16.86s (transform 32ms, setup 0ms, import 511ms, tests 16.17s, environment 0ms)
+

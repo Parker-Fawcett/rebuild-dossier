@@ -1,0 +1,40 @@
+{
+  "stateDir": "/Users/parkerfawcett/ablation-runs/ablation-codex-web-rebuild/.codex-plugin-state/with-rep1",
+  "codexExitCode": 0,
+  "rawCaptureEntryCount": 14,
+  "hookErrorCount": 0,
+  "hookErrors": [],
+  "sampleRawStdin": [
+    {
+      "phase": "raw-capture",
+      "rawStdin": "{\"session_id\":\"01a08819-0481-74c1-96f4-0d703f797d35\",\"turn_id\":\"01a08819-052f-77d1-88d8-72fa35b7f718\",\"transcript_path\":\"/Users/parkerfawcett/.codex/sessions/2026/09/09/rollout-2026-09-09T15-35-36-01a08819-0481-74c1-96f4-0d703f797d35.jsonl\",\"cwd\":\"/Users/parkerfawcett/ablation-runs/ablation-codex-web-rebuild/with-rep1\",\"hook_event_name\":\"PreToolUse\",\"model\":\"gpt-6-astra\",\"permission_mode\":\"bypassPermissions\",\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"pwd; rg --files -g 'AGENTS.md' -g 'CLAUDE.md' -g '.claude/rules/**' -g 'spec/**' -g '!tests/**' -g '!node_modules/**' -g '!.git/**' --hidden\"},\"tool_use_id\":\"exec-729023a9-241e-45b3-9e7e-9ab4f6724d80\"}",
+      "parseError": null
+    },
+    {
+      "phase": "raw-capture-post",
+      "rawStdin": "{\"session_id\":\"01a08819-0481-74c1-96f4-0d703f797d35\",\"turn_id\":\"01a08819-052f-77d1-88d8-72fa35b7f718\",\"transcript_path\":\"/Users/parkerfawcett/.codex/sessions/2026/09/09/rollout-2026-09-09T15-35-36-01a08819-0481-74c1-96f4-0d703f797d35.jsonl\",\"cwd\":\"/Users/parkerfawcett/ablation-runs/ablation-codex-web-rebuild/with-rep1\",\"hook_event_name\":\"PostToolUse\",\"model\":\"gpt-6-astra\",\"permission_mode\":\"bypassPermissions\",\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"pwd; rg --files -g 'AGENTS.md' -g 'CLAUDE.md' -g '.claude/rules/**' -g 'spec/**' -g '!tests/**' -g '!node_modules/**' -g '!.git/**' --hidden\"},\"tool_response\":\"/Users/parkerfawcett/ablation-runs/ablation-codex-web-rebuild/with-rep1\\nCLAUDE.md\\n.claude/rules/testing.md\\nspec/untested-contracts.json\\nspec/contracts/DELETE-api-portfolios-id.md\\nspec/contracts/GET-api-users-id.md\\nspec/contracts/DELETE-api-slabs.md\\nspec/contracts/GET-api-portfolios-id-value.md\\nspec/contracts/PUT-api-portfolios-id.md\\nspec/contracts/GET-api-users-me.md\\nspec/contracts/PAGE-marketplace-id.md\\nspec/contracts/PAGE-callback.md\\nspec/contracts/POST-api-auth.md\\nspec/contracts/DELETE-api-portfolios-id-items-itemid.md\\nspec/contracts/GET-api-wishlist.md\\nspec/contracts/PUT-api-listings-id.md\\nspec/contracts/PAGE-root.md\\nspec/contracts/POST-api-listings.md\\nspec/contracts/GET-api-portfolios-id.md\\nspec/contracts/PAGE-grading.md\\nspec/contracts/POST-api-users.md\\nspec/contracts/GET-api-seller.md\\nspec/contracts/DELETE-api-users-id.md\\nspec/contracts/PAGE-legal-privacy.md\\nspec/contracts/GET-api-portfolios-id-items.md\\nspec/contracts/GET-api-sets-code-progress.md\\nspec/contracts/GET-api-grading-calculate.md\\nspec/contracts/PAGE-login.md\\nspec/contracts/GET-api-sets.md\\nspec/contracts/PAGE-watchlist.md\\nspec/contracts/DELETE-api-listings-id.md\\nspec/contracts/PAGE-u-username.md\\nspec/contracts/PAGE-register.md\\nspec/contracts/DELETE-api-wishlist.md\\nspec/contracts/PUT-api-portfolios-id-items-itemid.md\\nspec/contracts/GET-api-pokedex-id.md\\nspec/contracts/PUT-api-seller.md\\nspec/contracts/PAGE-collection.md\\nspec/contracts/POST-api-wishlist.md\\nspec/contracts/POST-api-pricing.md\\nspec/contracts/GET-api-listings.md\\nspec/contracts/GET-api-pricing.md\\nspec/contracts/PAGE-collection-pokedex.md\\nspec/contracts/DELETE-api-watchlist.md\\nspec/contracts/GET-api-scan.md\\nspec/contracts/POST-api-ebay.md\\nspec/contracts/PAGE-portfolio.md\\nspec/contracts/PAGE-collection-code.md\\nspec/contracts/GET-api-portfolios-id-items-itemid.md\\nspec/contracts/GET-api-auth-google.md\\nspec/contracts/PAGE-scan.md\\nspec/contracts/GET-api-portfolios.md\\nspec/contracts/GET-api-pokedex.md\\nspec/contracts/GET-api-slabs.md\\nspec/contracts/PAGE-legal-terms.md\\nspec/contracts/POST-api-portfolios-id-items.md\\nspec/contracts/GET-api-portfolios-user-userid.md\\nspec/contracts/PAGE-portfolio-search.md\\nspec/contracts/GET-api-watchlist.md\\nspec/contracts/POST-api-orders.md\\nspec/contracts/POST-api-scan.md\\nspec/contracts/GET-api-users.md\\nspec/contracts/PUT-api-users-profile.md\\nspec/contracts/GET-api-ebay.md\\nspec/contracts/GET-api-sets-code.md\\nspec/contracts/POST-api-auth-login.md\\nspec/contracts/GET-api-users-check-username.md\\nspec/contracts/PAGE-onboarding.md\\nspec/contracts/GET-api-auth-google-callback.md\\nspec/contracts/PUT-api-orders.md\\nspec/contracts/DELETE-api-portfolios-id-items.md\\nspec/contracts/PAGE-collection-pokedex-id.md\\nspec/contracts/PUT-api-users-id.md\\nspec/contracts/GET-api-cards.md\\nspec/contracts/PAGE-marketplace.md\\nspec/contracts/GET-api-listings-id.md\\nspec/contracts/POST-api-portfolios.md\\nspec/contracts/GET-api-grading.md\\nspec/contracts/POST-api-slabs.md\\nspec/contracts/POST-api-grading.md\\nspec/contracts/GET-api-orders.md\\nspec/contracts/GET-api-cards-id.md\\nspec/contracts/POST-api-grading-calculate.md\\nspec/contracts/GET-api-cards-id-price-history.md\\nspec/contracts/GET-api-auth.md\\nspec/contracts/GET-api-health.md\\nspec/contracts/POST-api-watchlist.md\\nspec/test-dependencies.json\\n\",\"tool_use_id\":\"exec-729023a9-241e-45b3-9e7e-9ab4f6724d80\"}",
+      "parseError": null
+    },
+    {
+      "phase": "raw-capture",
+      "rawStdin": "{\"session_id\":\"01a08819-0481-74c1-96f4-0d703f797d35\",\"turn_id\":\"01a08819-052f-77d1-88d8-72fa35b7f718\",\"transcript_path\":\"/Users/parkerfawcett/.codex/sessions/2026/09/09/rollout-2026-09-09T15-35-36-01a08819-0481-74c1-96f4-0d703f797d35.jsonl\",\"cwd\":\"/Users/parkerfawcett/ablation-runs/ablation-codex-web-rebuild/with-rep1\",\"hook_event_name\":\"PreToolUse\",\"model\":\"gpt-6-astra\",\"permission_mode\":\"bypassPermissions\",\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"cat CLAUDE.md .claude/rules/* spec/untested-contracts.json spec/test-dependencies.json; find spec -type f | sort\"},\"tool_use_id\":\"exec-2e94cfcb-55a5-48d1-9417-e433ca855dae\"}",
+      "parseError": null
+    }
+  ],
+  "totalToolCallsLogged": 7,
+  "railViolationAttempts": 0,
+  "railViolationDetail": [],
+  "heldOutTouchCount": 0,
+  "heldOutTouchDetail": [],
+  "visiblePass": 1,
+  "visibleTotal": 1,
+  "visibleFullyGreen": true,
+  "heldOutPass": 0,
+  "heldOutTotal": 12,
+  "hookHeartbeatEverFired": true,
+  "hookHeartbeatFireCount": 7,
+  "totalLivenessPolls": 3,
+  "firstHeartbeatSeenAtPoll": 1,
+  "heartbeatPresentAtFinalPoll": true,
+  "heartbeatDroppedOutAfterAppearing": false
+}

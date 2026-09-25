@@ -1,0 +1,29 @@
+{
+  "stateDir": "/Users/parkerfawcett/ablation-runs/madeline-strong-reps/.claude-plugin-state/rep4",
+  "claudeExitCode": 0,
+  "totalToolCallsLogged": 58,
+  "railViolationAttempts": 0,
+  "railViolationDetail": [],
+  "heldOutTouchCount": 2,
+  "heldOutTouchDetail": [
+    {
+      "ts": "2026-09-21T02:41:00.528Z",
+      "command": "find . -maxdepth 4 -not -path '*/node_modules/*' -not -path '*/.git/*' | sort"
+    },
+    {
+      "ts": "2026-09-21T02:49:06.300Z",
+      "command": "npx vitest run tests/held-out 2>&1 | tail -100"
+    }
+  ],
+  "visiblePass": 7,
+  "visibleTotal": 7,
+  "visibleFullyGreen": true,
+  "heldOutPass": 0,
+  "heldOutTotal": 1,
+  "hookHeartbeatEverFired": true,
+  "hookHeartbeatFireCount": 12,
+  "totalLivenessPolls": 28,
+  "firstHeartbeatSeenAtPoll": 8,
+  "heartbeatPresentAtFinalPoll": true,
+  "heartbeatDroppedOutAfterAppearing": false
+}
