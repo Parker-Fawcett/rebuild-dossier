@@ -6276,3 +6276,30 @@ Suite 669/669 across 94 files (was 664/93).
   That batch's numbers survive only in this log's contemporaneous entry.
 - **Build detail:** `*.log` was gitignored repo-wide. An exception for `evidence/**/*.log` was
   needed, or the test re-run logs would have been silently left out of the commit.
+
+## The MCP Registry publish was a silent no-op since 0.2.6 (found 2026-09-25, publishing 0.2.15)
+
+- **Symptom:** the Official MCP Registry lists only `com.parkerfawcett/rebuild-dossier` 0.2.5 and
+  0.2.6, although the "Publish to Official MCP Registry" workflow reported success for every
+  release since. The earlier entries in this log that say 0.2.10–0.2.14 were "published to the MCP
+  Registry" were wrong. They were read off the green workflow, never checked against the
+  registry itself.
+- **Cause:** `publish-registry.yml` installed `@modelcontextprotocol/publisher` (which doesn't
+  exist) `|| mcp-publisher` from npm. That npm name belongs to an unrelated third-party package, a
+  browser auto-publishing MCP server by another maintainer, with no install scripts. Its binary
+  started a stdio server and exited 0 on each step, so validate, login and publish all "passed".
+  The `MCP_DNS_PRIVATE_KEY` secret is also empty, so a real login could not have worked in CI
+  either.
+- **Exposure:** the repo's default workflow token is read-only, the package declares no install
+  scripts, and the only secret passed was empty. Third-party code still ran in the release job
+  with checkout credentials persisted.
+- **Fix (PR #52):**
+  - the official `mcp-publisher` v1.8.1 binary, pinned and checked against the release's
+    checksums file;
+  - `persist-credentials: false` and `contents: read`;
+  - a hard error when the secret is missing;
+  - a post-publish check that the registry actually lists the version.
+- **0.2.15** is published on npm and GitHub Packages (both verified). A cold `npx` install ships
+  the fix. The registry publish still needs a fresh `mcp-publisher login dns`, because the local
+  token has expired.
+- **Lesson:** a green workflow isn't evidence of a publish. Check the destination.
