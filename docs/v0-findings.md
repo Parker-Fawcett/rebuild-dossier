@@ -6303,3 +6303,23 @@ Suite 669/669 across 94 files (was 664/93).
   the fix. The registry publish still needs a fresh `mcp-publisher login dns`, because the local
   token has expired.
 - **Lesson:** a green workflow isn't evidence of a publish. Check the destination.
+
+## Paper pin: `v0.2.16-paper` (2026-09-25)
+
+- **Tag:** `v0.2.16-paper` on commit `ee3f39a`, the code of npm 0.2.15 plus the registry-workflow fix
+  (#52). CI was green before tagging.
+- **Zenodo:** version DOI **10.5281/zenodo.22954067**, verified as the only record for this tag.
+  The concept DOI 10.5281/zenodo.22036800 lists all versions. It supersedes `v0.2.15-paper`
+  (10.5281/zenodo.22931584), which stays as a historical version. The npm 0.2.15 code release got
+  10.5281/zenodo.22953910. Zenodo took about 80 minutes after each release.
+- **SEIP tex:**
+  - the artifact block (tag, commit, DOI, pointer to `evidence/`) and ref [13] are updated;
+  - 669/94 tests in both places;
+  - the abstract's archive clause now reads "per-trial logs for 139 agent sessions";
+  - §V-C notes the comment defect is fixed in npm 0.2.15.
+- **Pre-registered E4a (lock vs. writable spec, A vs. D) is now reported in §V-A.** It had been
+  omitted: 0 spec-edit attempts in both arms, so the lock never engaged. The intro's "untested" was
+  changed to "unobserved".
+- **E3:** §V-A now quotes the pre-registered reading, scoped to the policy bundle.
+- **Frozen PDF:** `seip-submission/rebuild-dossier-seip-v0.2.16-paper.pdf` (sha256
+  `72ac6876…eb14`): 10 pages plus references, 0 errors, 0 undefined references.
