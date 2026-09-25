@@ -6235,3 +6235,44 @@ Compensating cuts were redundancy only. Still 10 pages plus references.
 - the 20-row handler/pass table plus the correlation script;
 - the redacted external-case record;
 - a minimal reproducer for the comment-apostrophe and two-level-helper defects.
+
+## 0.2.15: comment-aware handler extraction, own vitest config, and the per-trial evidence bundle (2026-09-24)
+
+**Two fixes, both found on real apps:**
+1. **Comment quotes truncated handler extraction** (from the production case above). The bracket
+   matchers behind handler resolution (`resolveExpressHandler.ts`) and route detection
+   (`expressRouter.ts`) skipped string literals but not comments.
+   - A lone apostrophe in a `//` comment opened a phantom string that ran past the handler's closing
+     bracket. An even number of quotes happens to pair up harmlessly, which is why this hid for so
+     long. My first reproducers used two apostrophes and passed on the buggy code.
+   - Both matchers now use `skipLiteralOrComment` (`src/util/sourceScan.ts`), which skips `//` and
+     `/* */` comments.
+   - The minimal reproducers in `resolveExpressHandler.spec.ts` fail on 0.2.14 and pass on 0.2.15.
+   - On the production server file (unmodified), 29/29 handlers now resolve, against 24/29 before,
+     and the dropped direct helper is back.
+   - One-level callee capture is unchanged and now documented by a test.
+2. **A target's own vitest config hid every generated test** (from a cold run on Keepsake).
+   - The scratch copy carried `vitest.config.js` along, and its `test.include` covered only the
+     app's own suite. Vitest preferred it, so every generated test reported "No test files found":
+     35 of 35 unrunnable.
+   - The mutation check now always writes `rebuild-dossier.vitest.config.mjs` and passes `--config`.
+   - The new test fails without the fix and passes with it.
+
+Suite 669/669 across 94 files (was 664/93).
+
+**Evidence bundle (`evidence/`), for the second review's archive objection:**
+- **Coverage:** raw records for 139 agent sessions across 24 study folders, packaged unedited from
+  the local run directories.
+  - Large files are gzipped deterministically. The sha256 of every original file is recorded.
+  - A secret and e-mail scan came back clean.
+- **Manifest and statistics:**
+  - `manifest.csv` has one row per session.
+  - `compute-handler-correlation.mjs` reproduces ρ = 0.9959393320 from the per-run
+    `review-metrics.json` files.
+  - The sealed held-out suite is byte-identical across all 20 sealed runs.
+- **The production case:** the redacted record, with the operator's report, route IDs, raw logs
+  and the author's verification table, is in `evidence/external-production-case/`.
+- **Disclosed gap:** the first duskframe leakage batch's raw state was overwritten by its re-run.
+  That batch's numbers survive only in this log's contemporaneous entry.
+- **Build detail:** `*.log` was gitignored repo-wide. An exception for `evidence/**/*.log` was
+  needed, or the test re-run logs would have been silently left out of the commit.
