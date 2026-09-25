@@ -6184,3 +6184,54 @@ this tool" was removed, and the deployment and reconciliation scope sentences we
 - Comment-to-route attribution in single-file servers.
 - `apiTestNote` should mention the import-time exit / placeholder-env case.
 - POST body-field inference produced `getReader`.
+
+## Second adversarial review (Borderline 3/5): triage and text corrections (2026-09-24)
+
+A second simulated review of the Sep 24 PDF raised the score from Reject 2/5 to Borderline 3/5. I
+checked its factual claims against the raw records before changing anything. All of them held.
+- **Arm scores:** the sealed Haiku per-arm held-out scores match
+  `ablation/review-2026-09/results/haiku-sealed-results.json` exactly: A 0,5,0,0,0; B 0,7,8,3,0;
+  C 0,0,12,12,0; D 0,2,7,7,0.
+  - **Both 12/12 runs are in arm C**, whose kickoff *and* `CLAUDE.md` permit batching and building
+    contracts with no visible test. The old abstract's "reward the agents that broke the
+    one-test-at-a-time rule" was wrong for them: they followed their own instructions.
+  - The scope-violation population is the **7 of 15 discipline-arm reps** that built past visible
+    demand and scored 2–8/12.
+- **Scope is not sequencing:** the registered file-creation proxy flags a batch interval in 14 of
+  the 15 discipline reps (A 4, B 5, D 5), including reps that built exactly to demand. So
+  "followed the one-test-at-a-time rule and scored worst" overclaimed. The same goes for Sonnet:
+  two of the ten reps had 3-file intervals, although none built past demand.
+- **The ρ = 0.996 handler count is supplementary.** It was added after seven reps
+  (PREREGISTRATION.md §9, 2026-09-23 ~00:15Z), not a primary endpoint.
+- **C vs. B compares policy bundles.** The arms differ in permitted scope, testing cadence and
+  stopping rule, so a causal cost of sequencing isn't identified. The sealed study also changed
+  other protocol details, so the four-cell 2/5-vs-0/5 not recurring can't be attributed to sealing
+  alone.
+- **The archive overclaims.** The cited tag `v0.2.15-paper` is npm 0.2.11 and contains no
+  per-trial raw logs; the abstract said "every per-trial log is archived". The raw runs exist
+  locally (`~/sealed-runs`, ~39 GB, mostly `node_modules`).
+- **Production case:** the stubbed private package is never imported by the server (0 references
+  in the server file), so the reported `ReferenceError`s cannot come from the stub.
+
+**Changed in the SEIP tex:**
+- abstract and intro reversal sentences;
+- §V-A arm structure, the supplementary label, policy bundles, scope-vs-sequencing, the seal
+  scope and a deviations pointer;
+- bounded Astra wording;
+- "clean" redefined (no held-out file read; run frequency reported separately);
+- the stale §V-J opening; "same-agent"/"first" dropped from the Madeline claim;
+- held-out completion described as "one component of completeness";
+- the second contribution retitled "Contract content, locking, and runtime blocking need separate
+  evaluation";
+- §V-C boundary: production-path equivalence not evaluated, and the stub is not imported;
+- the planned two validators (on 0.2.11) vs. one reported (on 0.2.14);
+- interim availability wording.
+
+Compensating cuts were redundancy only. Still 10 pages plus references.
+
+**Still open (for the new archive and re-pin):**
+- a version-to-experiment manifest;
+- per-run metrics, activity logs, held-out output and snapshot hashes;
+- the 20-row handler/pass table plus the correlation script;
+- the redacted external-case record;
+- a minimal reproducer for the comment-apostrophe and two-level-helper defects.
