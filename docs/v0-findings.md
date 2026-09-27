@@ -6371,3 +6371,13 @@ Appendix C now describe the whole change.
   the guard").
 
 The new pin follows these changes.
+
+## Paper pin: `v0.2.17-paper` (2026-09-27)
+
+- **Tag:** `v0.2.17-paper` on `4850757` (PR #55's merge). Code: npm 0.2.15, unchanged since
+  `v0.2.16-paper`. The evidence metadata and CI config differ.
+- **DOI:** version DOI **10.5281/zenodo.23003458**, the only record for this tag. It supersedes
+  `v0.2.16-paper` (10.5281/zenodo.22954067), which stays as a historical version.
+- **Frozen PDF:** `seip-submission/rebuild-dossier-seip-v0.2.17-paper.pdf` (sha256
+  `8716c27c…1850`). The main text ends on page 10 and the references start on page 10.
+  0 undefined references. The paper carries the third review's corrections (see the entry above).
