@@ -11,7 +11,7 @@ so each can be checked against the original.
 
 | Path | What it is |
 |---|---|
-| `manifest.csv` | One row per agent session (139 rows): study, paper section, trial ID, arm, CLI and version, model, effort, start/end time, kickoff-prompt sha256, condition markers, visible and held-out results, exported handlers, batch-interval proxy, untested-contract attempts, out-of-tree access, stall, heartbeat count, snapshot sha256. Blank cells mean the study's harness did not record that field. |
+| `manifest.csv` | One row per archived run record (139 rows; **not** 139 unique sessions, see "Duplicate and partial records" below): `canonical_id`, `duplicate_of`, `record_status`, study, paper section, trial ID, arm, CLI and version, model, effort, start/end time, kickoff-prompt sha256, condition markers, visible and held-out results, exported handlers, batch-interval proxy, untested-contract attempts, out-of-tree access, stall, heartbeat count, snapshot sha256. Blank cells mean the study's harness did not record that field. |
 | `runs/<study>/<trial>/` | That session's raw files: `activity-log.jsonl.gz` (every tool call the hooks saw), `transcript.log.gz`, `visible-rerun.log` / `held-out-rerun.log` (the harness's own re-runs), `summary.json`, `run-meta.txt`, `liveness-poll.jsonl`, `.hook-heartbeat.json`; sealed study only: `review-metrics.json`, `held-out-sealed.json`, `visible.json`, `sandbox.sb`, `snapshot.tar.gz` plus `snapshot.sha256`. |
 | `study-level/` | The run order (seeded), aggregate results, and full run logs for the sealed and wording studies; the package manifest the sealed study was frozen on; the evaluator-side sealed held-out suite (one copy, with a check that all 20 copies are byte-identical). |
 | `compute-handler-correlation.mjs` | Recomputes §V-A's supplementary correlation from `runs/sealed-haiku/*/review-metrics.json` and writes `handler-table.csv` (the 20 rows). `node evidence/compute-handler-correlation.mjs` prints ρ = 0.9959393320. |
@@ -48,6 +48,25 @@ The sealed arms are defined in `ablation/review-2026-09/PREREGISTRATION.md` §2:
 | §V-C production case | `external-production-case/` | its `README.md` |
 
 Other folders (`madeline-*`, `subagent-verify`) back findings-log entries that are not paper claims.
+
+**Wording experiment: use the rescored file.** For the randomized wording test and its effort follow-up, the authoritative scores are `study-level/astra-results-rescored.json`, which uses the fixed 20-file visible denominator. The early per-run `astra-metrics.json` files are kept unedited as original records. They used vitest's *collected-case* count, so a stalled one-route run can read `visiblePass: 1, visibleTotal: 1, visibleComplete: true`, which is wrong. The rescoring correction and its timing are documented in the pre-registration's deviations section (`ablation/review-2026-09/PREREGISTRATION.md` §9) and in `rescore-astra.mjs`.
+
+## Duplicate and partial records
+
+The Codex cross-CLI and Astra diagnostic harness ran every trial in one working folder, then copied that folder's state into a per-condition archive folder. When the archive for one condition was made, the working folder still held an earlier trial, which was copied along with it. Four rows are therefore byte-identical copies of a run recorded elsewhere: identical activity log, transcript and summary. `duplicate_of` names the canonical record, which is the copy in its own condition's folder.
+
+| Duplicate row | Canonical record |
+|---|---|
+| `crosscli-codex-sol-without/with-rep1` | `crosscli-codex-sol-with/with-rep1` |
+| `crosscli-codex-web/with-rep1` | `crosscli-codex-sol-with/with-rep1` |
+| `crosscli-codex-web/without-rep1` | `crosscli-codex-sol-without/without-rep1` |
+| `astra-diagnostic-without/with-rep1` | `astra-diagnostic-with/with-rep1` |
+
+`record_status` also marks:
+- **partial records:** rows with an activity log or a transcript but not both, mostly older Codex harness layouts;
+- **no session record:** rows whose folder holds only condition markers or a summary, not a trial that ran.
+
+Count unique sessions by `canonical_id` where `duplicate_of` is empty and `record_status` is not "no session record". None of this touches the sealed Haiku (20), sealed Sonnet (10) or wording/effort (27) records, which have no duplicates.
 
 ## Not in this bundle, and why
 

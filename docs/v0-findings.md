@@ -6303,3 +6303,52 @@ Suite 669/669 across 94 files (was 664/93).
   the fix. The registry publish still needs a fresh `mcp-publisher login dns`, because the local
   token has expired.
 - **Lesson:** a green workflow isn't evidence of a publish. Check the destination.
+
+## Third adversarial review (Accept 4/5): four corrections, all verified first (2026-09-27)
+
+A third simulated review of the `v0.2.16-paper` PDF scored it **Accept 4/5**. The reviewer
+independently verified the archive:
+- all 1,185 original-file hashes;
+- all 30 sealed snapshots;
+- the handler counts;
+- ρ = 0.9959393320;
+- the 27 Astra records.
+
+It raised four corrections. I checked each before changing anything, and each held.
+1. **The operator disclosure was inaccurate in the paper.** §V-C said the operator ran the tool
+   "from the validator guide alone". In fact the operator also received my step-by-step setup
+   message, which pinned 0.2.14 and explained the export change. The paper also never said the
+   operator and the author work at the same company, although `evidence/external-production-case/`
+   said both. §V-C now opens with the relationship and the assistance, and "outside engineer"
+   became "non-author operator" throughout.
+2. **"139 agent sessions" overcounted.** Verified by hashing activity log + transcript + summary:
+   there are 3 duplicate groups and 4 extra copies. The Codex cross-CLI and Astra diagnostic
+   harness ran in one working folder and copied its state into per-condition folders, which
+   carried a stale earlier trial along.
+   - `manifest.csv` now has `canonical_id`, `duplicate_of` and `record_status`.
+   - Four more rows hold no session record.
+   - That leaves 131 unique sessions with a record.
+   - The sealed (20 + 10) and wording (27) records are unaffected.
+   - The paper no longer gives a session count.
+3. **Stale Astra per-run metrics.** The early `astra-metrics.json` files still use collected-case
+   counts (1/1, `visibleComplete: true` for a stalled run). They are kept unedited, and
+   `evidence/README.md` now points to `study-level/astra-results-rescored.json` as authoritative.
+4. **The practitioner box was `\scriptsize` (~7 pt)**, against the CFP's 10-point rule. It is now
+   body size.
+
+**Also found while fixing:** the paper called the Astra revision "one-line", but the revised step
+also adds a parenthetical ("tests you haven't reached yet are expected to still be red"). §V-B and
+Appendix C now describe the whole change.
+
+**Also adopted:**
+- the compact four-arm table (Table `tab:sealed`);
+- the design-guidance rewording ("cheap insurance" is gone);
+- the abstract's archive clause.
+
+**Space came from:**
+- compressing the historical §V-A narration, the four-cell paragraph, the Madeline gap paragraph,
+  §VI-B and Appendices B–C;
+- adding one lesson from the production case ("a test that stops at the input guard proves only
+  the guard").
+
+The new pin follows these changes.
