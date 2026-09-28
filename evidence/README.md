@@ -51,6 +51,11 @@ Other folders (`madeline-*`, `subagent-verify`) back findings-log entries that a
 
 **Wording experiment: use the rescored file.** For the randomized wording test and its effort follow-up, the authoritative scores are `study-level/astra-results-rescored.json`, which uses the fixed 20-file visible denominator. The early per-run `astra-metrics.json` files are kept unedited as original records. They used vitest's *collected-case* count, so a stalled one-route run can read `visiblePass: 1, visibleTotal: 1, visibleComplete: true`, which is wrong. The rescoring correction and its timing are documented in the pre-registration's deviations section (`ablation/review-2026-09/PREREGISTRATION.md` §9) and in `rescore-astra.mjs`.
 
+**Failed infrastructure attempts.** The pre-registration (§3.1) keeps each failed infrastructure attempt under `<state>/failed-attempt-N/`. All five that exist are in the wording study:
+- `astra-wording/{g55orig-rep3, rev-rep1, rev-rep3, rev-ultra-rep1, rev-xhigh-rep2}/failed-attempt-1/`
+
+Each was a Codex usage-limit stop (the phrase "usage limit" appears in its records) and was re-run once in place, as §3.1 requires. `manifest.csv`'s `failed_attempts_archived` column counts them per run. The sealed Haiku and Sonnet studies had none.
+
 ## Duplicate and partial records
 
 The Codex cross-CLI and Astra diagnostic harness ran every trial in one working folder, then copied that folder's state into a per-condition archive folder. When the archive for one condition was made, the working folder still held an earlier trial, which was copied along with it. Four rows are therefore byte-identical copies of a run recorded elsewhere: identical activity log, transcript and summary. `duplicate_of` names the canonical record, which is the copy in its own condition's folder.
