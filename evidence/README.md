@@ -16,6 +16,7 @@ so each can be checked against the original.
 | `study-level/` | The run order (seeded), aggregate results, and full run logs for the sealed and wording studies; the package manifest the sealed study was frozen on; the evaluator-side sealed held-out suite (one copy, with a check that all 20 copies are byte-identical). |
 | `compute-handler-correlation.mjs` | Recomputes §V-A's supplementary correlation from `runs/sealed-haiku/*/review-metrics.json` and writes `handler-table.csv` (the 20 rows). `node evidence/compute-handler-correlation.mjs` prints ρ = 0.9959393320. |
 | `handler-table.csv` | The 20 sealed Haiku runs: arm, exported handlers, held-out obligations passed, visible, batch intervals. |
+| `fidelity-oracle/` | The requirements oracle (§V-A), with its protocol (`PROTOCOL.md`), battery (`fidelity.spec.ts`, `routes.json`), and golden answers from the original at `54d7e65`, all committed before any snapshot was scored (commit `4da1e97`). Also the per-run results for all 30 sealed snapshots, `score.mjs`, `fidelity-scores.csv`, and `score-output.txt`. Author-written; pre-database behavior only. |
 | `external-production-case/` | The outside operator's run (§V-C): redacted report, route IDs, redacted raw logs, the author's verification record, and what is withheld and why. |
 
 **Condition markers:**
@@ -50,6 +51,11 @@ The sealed arms are defined in `ablation/review-2026-09/PREREGISTRATION.md` §2:
 Other folders (`madeline-*`, `subagent-verify`) back findings-log entries that are not paper claims.
 
 **Wording experiment: use the rescored file.** For the randomized wording test and its effort follow-up, the authoritative scores are `study-level/astra-results-rescored.json`, which uses the fixed 20-file visible denominator. The early per-run `astra-metrics.json` files are kept unedited as original records. They used vitest's *collected-case* count, so a stalled one-route run can read `visiblePass: 1, visibleTotal: 1, visibleComplete: true`, which is wrong. The rescoring correction and its timing are documented in the pre-registration's deviations section (`ablation/review-2026-09/PREREGISTRATION.md` §9) and in `rescore-astra.mjs`.
+
+**Failed infrastructure attempts.** The pre-registration (§3.1) keeps each failed infrastructure attempt under `<state>/failed-attempt-N/`. All five that exist are in the wording study:
+- `astra-wording/{g55orig-rep3, rev-rep1, rev-rep3, rev-ultra-rep1, rev-xhigh-rep2}/failed-attempt-1/`
+
+Each was a Codex usage-limit stop (the phrase "usage limit" appears in its records) and was re-run once in place, as §3.1 requires. `manifest.csv`'s `failed_attempts_archived` column counts them per run. The sealed Haiku and Sonnet studies had none.
 
 ## Duplicate and partial records
 

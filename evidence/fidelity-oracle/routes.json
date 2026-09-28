@@ -1,0 +1,285 @@
+[
+ {
+  "suite": "visible",
+  "test": "DELETE-api-portfolios-id-items-itemid.spec.ts",
+  "method": "DELETE",
+  "file": "src/app/api/portfolios/[id]/items/[itemId]/route.ts",
+  "url": "http://localhost:3000/api/portfolios/test-value-123/items/test-value-123",
+  "params": {
+   "id": "test-value-123",
+   "itemId": "test-value-123"
+  }
+ },
+ {
+  "suite": "visible",
+  "test": "DELETE-api-portfolios-id-items.spec.ts",
+  "method": "DELETE",
+  "file": "src/app/api/portfolios/[id]/items/route.ts",
+  "url": "http://localhost:3000/api/portfolios/test-value-123/items",
+  "params": {
+   "id": "test-value-123"
+  }
+ },
+ {
+  "suite": "visible",
+  "test": "DELETE-api-portfolios-id.spec.ts",
+  "method": "DELETE",
+  "file": "src/app/api/portfolios/[id]/route.ts",
+  "url": "http://localhost:3000/api/portfolios/test-value-123",
+  "params": {
+   "id": "test-value-123"
+  }
+ },
+ {
+  "suite": "visible",
+  "test": "GET-api-pokedex.spec.ts",
+  "method": "GET",
+  "file": "src/app/api/pokedex/route.ts",
+  "url": "http://localhost:3000/api/pokedex",
+  "params": {}
+ },
+ {
+  "suite": "visible",
+  "test": "GET-api-portfolios-id-items-itemid.spec.ts",
+  "method": "GET",
+  "file": "src/app/api/portfolios/[id]/items/[itemId]/route.ts",
+  "url": "http://localhost:3000/api/portfolios/test-value-123/items/test-value-123",
+  "params": {
+   "id": "test-value-123",
+   "itemId": "test-value-123"
+  }
+ },
+ {
+  "suite": "visible",
+  "test": "GET-api-portfolios-id-items.spec.ts",
+  "method": "GET",
+  "file": "src/app/api/portfolios/[id]/items/route.ts",
+  "url": "http://localhost:3000/api/portfolios/test-value-123/items",
+  "params": {
+   "id": "test-value-123"
+  }
+ },
+ {
+  "suite": "visible",
+  "test": "GET-api-portfolios-id-value.spec.ts",
+  "method": "GET",
+  "file": "src/app/api/portfolios/[id]/value/route.ts",
+  "url": "http://localhost:3000/api/portfolios/test-value-123/value",
+  "params": {
+   "id": "test-value-123"
+  }
+ },
+ {
+  "suite": "visible",
+  "test": "GET-api-portfolios-id.spec.ts",
+  "method": "GET",
+  "file": "src/app/api/portfolios/[id]/route.ts",
+  "url": "http://localhost:3000/api/portfolios/test-value-123",
+  "params": {
+   "id": "test-value-123"
+  }
+ },
+ {
+  "suite": "visible",
+  "test": "GET-api-users-me.spec.ts",
+  "method": "GET",
+  "file": "src/app/api/users/me/route.ts",
+  "url": "http://localhost:3000/api/users/me",
+  "params": {}
+ },
+ {
+  "suite": "visible",
+  "test": "GET-api-watchlist.spec.ts",
+  "method": "GET",
+  "file": "src/app/api/watchlist/route.ts",
+  "url": "http://localhost:3000/api/watchlist",
+  "params": {}
+ },
+ {
+  "suite": "visible",
+  "test": "GET-api-wishlist.spec.ts",
+  "method": "GET",
+  "file": "src/app/api/wishlist/route.ts",
+  "url": "http://localhost:3000/api/wishlist",
+  "params": {}
+ },
+ {
+  "suite": "visible",
+  "test": "POST-api-auth.spec.ts",
+  "method": "POST",
+  "file": "src/app/api/auth/route.ts",
+  "url": "http://localhost:3000/api/auth",
+  "params": {}
+ },
+ {
+  "suite": "visible",
+  "test": "POST-api-ebay.spec.ts",
+  "method": "POST",
+  "file": "src/app/api/ebay/route.ts",
+  "url": "http://localhost:3000/api/ebay",
+  "params": {}
+ },
+ {
+  "suite": "visible",
+  "test": "POST-api-orders.spec.ts",
+  "method": "POST",
+  "file": "src/app/api/orders/route.ts",
+  "url": "http://localhost:3000/api/orders",
+  "params": {}
+ },
+ {
+  "suite": "visible",
+  "test": "POST-api-portfolios.spec.ts",
+  "method": "POST",
+  "file": "src/app/api/portfolios/route.ts",
+  "url": "http://localhost:3000/api/portfolios",
+  "params": {}
+ },
+ {
+  "suite": "visible",
+  "test": "POST-api-pricing.spec.ts",
+  "method": "POST",
+  "file": "src/app/api/pricing/route.ts",
+  "url": "http://localhost:3000/api/pricing",
+  "params": {}
+ },
+ {
+  "suite": "visible",
+  "test": "PUT-api-listings-id.spec.ts",
+  "method": "PUT",
+  "file": "src/app/api/listings/[id]/route.ts",
+  "url": "http://localhost:3000/api/listings/test-value-123",
+  "params": {
+   "id": "test-value-123"
+  }
+ },
+ {
+  "suite": "visible",
+  "test": "PUT-api-orders.spec.ts",
+  "method": "PUT",
+  "file": "src/app/api/orders/route.ts",
+  "url": "http://localhost:3000/api/orders",
+  "params": {}
+ },
+ {
+  "suite": "visible",
+  "test": "PUT-api-seller.spec.ts",
+  "method": "PUT",
+  "file": "src/app/api/seller/route.ts",
+  "url": "http://localhost:3000/api/seller",
+  "params": {}
+ },
+ {
+  "suite": "visible",
+  "test": "PUT-api-users-profile.spec.ts",
+  "method": "PUT",
+  "file": "src/app/api/users/profile/route.ts",
+  "url": "http://localhost:3000/api/users/profile",
+  "params": {}
+ },
+ {
+  "suite": "held-out",
+  "test": "DELETE-api-listings-id.spec.ts",
+  "method": "DELETE",
+  "file": "src/app/api/listings/[id]/route.ts",
+  "url": "http://localhost:3000/api/listings/test-value-123",
+  "params": {
+   "id": "test-value-123"
+  }
+ },
+ {
+  "suite": "held-out",
+  "test": "GET-api-health.spec.ts",
+  "method": "GET",
+  "file": "src/app/api/health/route.ts",
+  "url": "http://localhost:3000/api/health",
+  "params": {}
+ },
+ {
+  "suite": "held-out",
+  "test": "GET-api-orders.spec.ts",
+  "method": "GET",
+  "file": "src/app/api/orders/route.ts",
+  "url": "http://localhost:3000/api/orders",
+  "params": {}
+ },
+ {
+  "suite": "held-out",
+  "test": "GET-api-portfolios.spec.ts",
+  "method": "GET",
+  "file": "src/app/api/portfolios/route.ts",
+  "url": "http://localhost:3000/api/portfolios",
+  "params": {}
+ },
+ {
+  "suite": "held-out",
+  "test": "GET-api-slabs.spec.ts",
+  "method": "GET",
+  "file": "src/app/api/slabs/route.ts",
+  "url": "http://localhost:3000/api/slabs",
+  "params": {}
+ },
+ {
+  "suite": "held-out",
+  "test": "GET-api-users-check-username.spec.ts",
+  "method": "GET",
+  "file": "src/app/api/users/check-username/route.ts",
+  "url": "http://localhost:3000/api/users/check-username",
+  "params": {}
+ },
+ {
+  "suite": "held-out",
+  "test": "GET-api-users.spec.ts",
+  "method": "GET",
+  "file": "src/app/api/users/route.ts",
+  "url": "http://localhost:3000/api/users",
+  "params": {}
+ },
+ {
+  "suite": "held-out",
+  "test": "POST-api-portfolios-id-items.spec.ts",
+  "method": "POST",
+  "file": "src/app/api/portfolios/[id]/items/route.ts",
+  "url": "http://localhost:3000/api/portfolios/test-value-123/items",
+  "params": {
+   "id": "test-value-123"
+  }
+ },
+ {
+  "suite": "held-out",
+  "test": "POST-api-scan.spec.ts",
+  "method": "POST",
+  "file": "src/app/api/scan/route.ts",
+  "url": "http://localhost:3000/api/scan",
+  "params": {}
+ },
+ {
+  "suite": "held-out",
+  "test": "POST-api-watchlist.spec.ts",
+  "method": "POST",
+  "file": "src/app/api/watchlist/route.ts",
+  "url": "http://localhost:3000/api/watchlist",
+  "params": {}
+ },
+ {
+  "suite": "held-out",
+  "test": "PUT-api-portfolios-id-items-itemid.spec.ts",
+  "method": "PUT",
+  "file": "src/app/api/portfolios/[id]/items/[itemId]/route.ts",
+  "url": "http://localhost:3000/api/portfolios/test-value-123/items/test-value-123",
+  "params": {
+   "id": "test-value-123",
+   "itemId": "test-value-123"
+  }
+ },
+ {
+  "suite": "held-out",
+  "test": "PUT-api-portfolios-id.spec.ts",
+  "method": "PUT",
+  "file": "src/app/api/portfolios/[id]/route.ts",
+  "url": "http://localhost:3000/api/portfolios/test-value-123",
+  "params": {
+   "id": "test-value-123"
+  }
+ }
+]

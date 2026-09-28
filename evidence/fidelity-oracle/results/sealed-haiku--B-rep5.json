@@ -1,0 +1,1130 @@
+[
+ {
+  "route": "DELETE src/app/api/portfolios/[id]/items/[itemId]/route.ts",
+  "suite": "visible",
+  "variant": "A",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "success"
+  ]
+ },
+ {
+  "route": "DELETE src/app/api/portfolios/[id]/items/[itemId]/route.ts",
+  "suite": "visible",
+  "variant": "B",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "success"
+  ]
+ },
+ {
+  "route": "DELETE src/app/api/portfolios/[id]/items/[itemId]/route.ts",
+  "suite": "visible",
+  "variant": "C",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "success"
+  ]
+ },
+ {
+  "route": "DELETE src/app/api/portfolios/[id]/items/[itemId]/route.ts",
+  "suite": "visible",
+  "variant": "D",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "success"
+  ]
+ },
+ {
+  "route": "DELETE src/app/api/portfolios/[id]/items/[itemId]/route.ts",
+  "suite": "visible",
+  "variant": "E",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "success"
+  ]
+ },
+ {
+  "route": "DELETE src/app/api/portfolios/[id]/items/route.ts",
+  "suite": "visible",
+  "variant": "A",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "success"
+  ]
+ },
+ {
+  "route": "DELETE src/app/api/portfolios/[id]/items/route.ts",
+  "suite": "visible",
+  "variant": "B",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "success"
+  ]
+ },
+ {
+  "route": "DELETE src/app/api/portfolios/[id]/items/route.ts",
+  "suite": "visible",
+  "variant": "C",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "success"
+  ]
+ },
+ {
+  "route": "DELETE src/app/api/portfolios/[id]/items/route.ts",
+  "suite": "visible",
+  "variant": "D",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "success"
+  ]
+ },
+ {
+  "route": "DELETE src/app/api/portfolios/[id]/items/route.ts",
+  "suite": "visible",
+  "variant": "E",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "success"
+  ]
+ },
+ {
+  "route": "DELETE src/app/api/portfolios/[id]/route.ts",
+  "suite": "visible",
+  "variant": "A",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "success"
+  ]
+ },
+ {
+  "route": "DELETE src/app/api/portfolios/[id]/route.ts",
+  "suite": "visible",
+  "variant": "B",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "success"
+  ]
+ },
+ {
+  "route": "DELETE src/app/api/portfolios/[id]/route.ts",
+  "suite": "visible",
+  "variant": "C",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "success"
+  ]
+ },
+ {
+  "route": "DELETE src/app/api/portfolios/[id]/route.ts",
+  "suite": "visible",
+  "variant": "D",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "success"
+  ]
+ },
+ {
+  "route": "DELETE src/app/api/portfolios/[id]/route.ts",
+  "suite": "visible",
+  "variant": "E",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "success"
+  ]
+ },
+ {
+  "route": "GET src/app/api/pokedex/route.ts",
+  "suite": "visible",
+  "variant": "A",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "pokedex"
+  ]
+ },
+ {
+  "route": "GET src/app/api/pokedex/route.ts",
+  "suite": "visible",
+  "variant": "B",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "pokedex"
+  ]
+ },
+ {
+  "route": "GET src/app/api/pokedex/route.ts",
+  "suite": "visible",
+  "variant": "C",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "pokedex"
+  ]
+ },
+ {
+  "route": "GET src/app/api/portfolios/[id]/items/[itemId]/route.ts",
+  "suite": "visible",
+  "variant": "A",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "item"
+  ]
+ },
+ {
+  "route": "GET src/app/api/portfolios/[id]/items/[itemId]/route.ts",
+  "suite": "visible",
+  "variant": "B",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "item"
+  ]
+ },
+ {
+  "route": "GET src/app/api/portfolios/[id]/items/[itemId]/route.ts",
+  "suite": "visible",
+  "variant": "C",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "item"
+  ]
+ },
+ {
+  "route": "GET src/app/api/portfolios/[id]/items/route.ts",
+  "suite": "visible",
+  "variant": "A",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "items"
+  ]
+ },
+ {
+  "route": "GET src/app/api/portfolios/[id]/items/route.ts",
+  "suite": "visible",
+  "variant": "B",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "items"
+  ]
+ },
+ {
+  "route": "GET src/app/api/portfolios/[id]/items/route.ts",
+  "suite": "visible",
+  "variant": "C",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "items"
+  ]
+ },
+ {
+  "route": "GET src/app/api/portfolios/[id]/value/route.ts",
+  "suite": "visible",
+  "variant": "A",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "value"
+  ]
+ },
+ {
+  "route": "GET src/app/api/portfolios/[id]/value/route.ts",
+  "suite": "visible",
+  "variant": "B",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "value"
+  ]
+ },
+ {
+  "route": "GET src/app/api/portfolios/[id]/value/route.ts",
+  "suite": "visible",
+  "variant": "C",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "value"
+  ]
+ },
+ {
+  "route": "GET src/app/api/portfolios/[id]/route.ts",
+  "suite": "visible",
+  "variant": "A",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "portfolio"
+  ]
+ },
+ {
+  "route": "GET src/app/api/portfolios/[id]/route.ts",
+  "suite": "visible",
+  "variant": "B",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "portfolio"
+  ]
+ },
+ {
+  "route": "GET src/app/api/portfolios/[id]/route.ts",
+  "suite": "visible",
+  "variant": "C",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "portfolio"
+  ]
+ },
+ {
+  "route": "GET src/app/api/users/me/route.ts",
+  "suite": "visible",
+  "variant": "A",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "user"
+  ]
+ },
+ {
+  "route": "GET src/app/api/users/me/route.ts",
+  "suite": "visible",
+  "variant": "B",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "user"
+  ]
+ },
+ {
+  "route": "GET src/app/api/users/me/route.ts",
+  "suite": "visible",
+  "variant": "C",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "user"
+  ]
+ },
+ {
+  "route": "GET src/app/api/watchlist/route.ts",
+  "suite": "visible",
+  "variant": "A",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "watchlist"
+  ]
+ },
+ {
+  "route": "GET src/app/api/watchlist/route.ts",
+  "suite": "visible",
+  "variant": "B",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "watchlist"
+  ]
+ },
+ {
+  "route": "GET src/app/api/watchlist/route.ts",
+  "suite": "visible",
+  "variant": "C",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "watchlist"
+  ]
+ },
+ {
+  "route": "GET src/app/api/wishlist/route.ts",
+  "suite": "visible",
+  "variant": "A",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "wishlist"
+  ]
+ },
+ {
+  "route": "GET src/app/api/wishlist/route.ts",
+  "suite": "visible",
+  "variant": "B",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "wishlist"
+  ]
+ },
+ {
+  "route": "GET src/app/api/wishlist/route.ts",
+  "suite": "visible",
+  "variant": "C",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "wishlist"
+  ]
+ },
+ {
+  "route": "POST src/app/api/auth/route.ts",
+  "suite": "visible",
+  "variant": "A",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "auth"
+  ]
+ },
+ {
+  "route": "POST src/app/api/auth/route.ts",
+  "suite": "visible",
+  "variant": "B",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "auth"
+  ]
+ },
+ {
+  "route": "POST src/app/api/auth/route.ts",
+  "suite": "visible",
+  "variant": "C",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "auth"
+  ]
+ },
+ {
+  "route": "POST src/app/api/auth/route.ts",
+  "suite": "visible",
+  "variant": "D",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "auth"
+  ]
+ },
+ {
+  "route": "POST src/app/api/auth/route.ts",
+  "suite": "visible",
+  "variant": "E",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "auth"
+  ]
+ },
+ {
+  "route": "POST src/app/api/ebay/route.ts",
+  "suite": "visible",
+  "variant": "A",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "listings"
+  ]
+ },
+ {
+  "route": "POST src/app/api/ebay/route.ts",
+  "suite": "visible",
+  "variant": "B",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "listings"
+  ]
+ },
+ {
+  "route": "POST src/app/api/ebay/route.ts",
+  "suite": "visible",
+  "variant": "C",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "listings"
+  ]
+ },
+ {
+  "route": "POST src/app/api/ebay/route.ts",
+  "suite": "visible",
+  "variant": "D",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "listings"
+  ]
+ },
+ {
+  "route": "POST src/app/api/ebay/route.ts",
+  "suite": "visible",
+  "variant": "E",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "listings"
+  ]
+ },
+ {
+  "route": "POST src/app/api/orders/route.ts",
+  "suite": "visible",
+  "variant": "A",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "order"
+  ]
+ },
+ {
+  "route": "POST src/app/api/orders/route.ts",
+  "suite": "visible",
+  "variant": "B",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "order"
+  ]
+ },
+ {
+  "route": "POST src/app/api/orders/route.ts",
+  "suite": "visible",
+  "variant": "C",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "order"
+  ]
+ },
+ {
+  "route": "POST src/app/api/orders/route.ts",
+  "suite": "visible",
+  "variant": "D",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "order"
+  ]
+ },
+ {
+  "route": "POST src/app/api/orders/route.ts",
+  "suite": "visible",
+  "variant": "E",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "order"
+  ]
+ },
+ {
+  "route": "POST src/app/api/portfolios/route.ts",
+  "suite": "visible",
+  "variant": "A",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "portfolio"
+  ]
+ },
+ {
+  "route": "POST src/app/api/portfolios/route.ts",
+  "suite": "visible",
+  "variant": "B",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "portfolio"
+  ]
+ },
+ {
+  "route": "POST src/app/api/portfolios/route.ts",
+  "suite": "visible",
+  "variant": "C",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "portfolio"
+  ]
+ },
+ {
+  "route": "POST src/app/api/portfolios/route.ts",
+  "suite": "visible",
+  "variant": "D",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "portfolio"
+  ]
+ },
+ {
+  "route": "POST src/app/api/portfolios/route.ts",
+  "suite": "visible",
+  "variant": "E",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "portfolio"
+  ]
+ },
+ {
+  "route": "POST src/app/api/pricing/route.ts",
+  "suite": "visible",
+  "variant": "A",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "pricing"
+  ]
+ },
+ {
+  "route": "POST src/app/api/pricing/route.ts",
+  "suite": "visible",
+  "variant": "B",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "pricing"
+  ]
+ },
+ {
+  "route": "POST src/app/api/pricing/route.ts",
+  "suite": "visible",
+  "variant": "C",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "pricing"
+  ]
+ },
+ {
+  "route": "POST src/app/api/pricing/route.ts",
+  "suite": "visible",
+  "variant": "D",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "pricing"
+  ]
+ },
+ {
+  "route": "POST src/app/api/pricing/route.ts",
+  "suite": "visible",
+  "variant": "E",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "pricing"
+  ]
+ },
+ {
+  "route": "PUT src/app/api/listings/[id]/route.ts",
+  "suite": "visible",
+  "variant": "A",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "listing"
+  ]
+ },
+ {
+  "route": "PUT src/app/api/listings/[id]/route.ts",
+  "suite": "visible",
+  "variant": "B",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "listing"
+  ]
+ },
+ {
+  "route": "PUT src/app/api/listings/[id]/route.ts",
+  "suite": "visible",
+  "variant": "C",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "listing"
+  ]
+ },
+ {
+  "route": "PUT src/app/api/listings/[id]/route.ts",
+  "suite": "visible",
+  "variant": "D",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "listing"
+  ]
+ },
+ {
+  "route": "PUT src/app/api/listings/[id]/route.ts",
+  "suite": "visible",
+  "variant": "E",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "listing"
+  ]
+ },
+ {
+  "route": "PUT src/app/api/orders/route.ts",
+  "suite": "visible",
+  "variant": "A",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "order"
+  ]
+ },
+ {
+  "route": "PUT src/app/api/orders/route.ts",
+  "suite": "visible",
+  "variant": "B",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "order"
+  ]
+ },
+ {
+  "route": "PUT src/app/api/orders/route.ts",
+  "suite": "visible",
+  "variant": "C",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "order"
+  ]
+ },
+ {
+  "route": "PUT src/app/api/orders/route.ts",
+  "suite": "visible",
+  "variant": "D",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "order"
+  ]
+ },
+ {
+  "route": "PUT src/app/api/orders/route.ts",
+  "suite": "visible",
+  "variant": "E",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "order"
+  ]
+ },
+ {
+  "route": "PUT src/app/api/seller/route.ts",
+  "suite": "visible",
+  "variant": "A",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "seller"
+  ]
+ },
+ {
+  "route": "PUT src/app/api/seller/route.ts",
+  "suite": "visible",
+  "variant": "B",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "seller"
+  ]
+ },
+ {
+  "route": "PUT src/app/api/seller/route.ts",
+  "suite": "visible",
+  "variant": "C",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "seller"
+  ]
+ },
+ {
+  "route": "PUT src/app/api/seller/route.ts",
+  "suite": "visible",
+  "variant": "D",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "seller"
+  ]
+ },
+ {
+  "route": "PUT src/app/api/seller/route.ts",
+  "suite": "visible",
+  "variant": "E",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "seller"
+  ]
+ },
+ {
+  "route": "PUT src/app/api/users/profile/route.ts",
+  "suite": "visible",
+  "variant": "A",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "user"
+  ]
+ },
+ {
+  "route": "PUT src/app/api/users/profile/route.ts",
+  "suite": "visible",
+  "variant": "B",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "user"
+  ]
+ },
+ {
+  "route": "PUT src/app/api/users/profile/route.ts",
+  "suite": "visible",
+  "variant": "C",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "user"
+  ]
+ },
+ {
+  "route": "PUT src/app/api/users/profile/route.ts",
+  "suite": "visible",
+  "variant": "D",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "user"
+  ]
+ },
+ {
+  "route": "PUT src/app/api/users/profile/route.ts",
+  "suite": "visible",
+  "variant": "E",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "user"
+  ]
+ },
+ {
+  "route": "DELETE src/app/api/listings/[id]/route.ts",
+  "suite": "held-out",
+  "variant": "A",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "DELETE src/app/api/listings/[id]/route.ts",
+  "suite": "held-out",
+  "variant": "B",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "DELETE src/app/api/listings/[id]/route.ts",
+  "suite": "held-out",
+  "variant": "C",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "DELETE src/app/api/listings/[id]/route.ts",
+  "suite": "held-out",
+  "variant": "D",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "DELETE src/app/api/listings/[id]/route.ts",
+  "suite": "held-out",
+  "variant": "E",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "GET src/app/api/health/route.ts",
+  "suite": "held-out",
+  "variant": "A",
+  "outcome": "not-built"
+ },
+ {
+  "route": "GET src/app/api/health/route.ts",
+  "suite": "held-out",
+  "variant": "B",
+  "outcome": "not-built"
+ },
+ {
+  "route": "GET src/app/api/health/route.ts",
+  "suite": "held-out",
+  "variant": "C",
+  "outcome": "not-built"
+ },
+ {
+  "route": "GET src/app/api/orders/route.ts",
+  "suite": "held-out",
+  "variant": "A",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "GET src/app/api/orders/route.ts",
+  "suite": "held-out",
+  "variant": "B",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "GET src/app/api/orders/route.ts",
+  "suite": "held-out",
+  "variant": "C",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "GET src/app/api/portfolios/route.ts",
+  "suite": "held-out",
+  "variant": "A",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "GET src/app/api/portfolios/route.ts",
+  "suite": "held-out",
+  "variant": "B",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "GET src/app/api/portfolios/route.ts",
+  "suite": "held-out",
+  "variant": "C",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "GET src/app/api/slabs/route.ts",
+  "suite": "held-out",
+  "variant": "A",
+  "outcome": "not-built"
+ },
+ {
+  "route": "GET src/app/api/slabs/route.ts",
+  "suite": "held-out",
+  "variant": "B",
+  "outcome": "not-built"
+ },
+ {
+  "route": "GET src/app/api/slabs/route.ts",
+  "suite": "held-out",
+  "variant": "C",
+  "outcome": "not-built"
+ },
+ {
+  "route": "GET src/app/api/users/check-username/route.ts",
+  "suite": "held-out",
+  "variant": "A",
+  "outcome": "not-built"
+ },
+ {
+  "route": "GET src/app/api/users/check-username/route.ts",
+  "suite": "held-out",
+  "variant": "B",
+  "outcome": "not-built"
+ },
+ {
+  "route": "GET src/app/api/users/check-username/route.ts",
+  "suite": "held-out",
+  "variant": "C",
+  "outcome": "not-built"
+ },
+ {
+  "route": "GET src/app/api/users/route.ts",
+  "suite": "held-out",
+  "variant": "A",
+  "outcome": "not-built"
+ },
+ {
+  "route": "GET src/app/api/users/route.ts",
+  "suite": "held-out",
+  "variant": "B",
+  "outcome": "not-built"
+ },
+ {
+  "route": "GET src/app/api/users/route.ts",
+  "suite": "held-out",
+  "variant": "C",
+  "outcome": "not-built"
+ },
+ {
+  "route": "POST src/app/api/portfolios/[id]/items/route.ts",
+  "suite": "held-out",
+  "variant": "A",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "POST src/app/api/portfolios/[id]/items/route.ts",
+  "suite": "held-out",
+  "variant": "B",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "POST src/app/api/portfolios/[id]/items/route.ts",
+  "suite": "held-out",
+  "variant": "C",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "POST src/app/api/portfolios/[id]/items/route.ts",
+  "suite": "held-out",
+  "variant": "D",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "POST src/app/api/portfolios/[id]/items/route.ts",
+  "suite": "held-out",
+  "variant": "E",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "POST src/app/api/scan/route.ts",
+  "suite": "held-out",
+  "variant": "A",
+  "outcome": "not-built"
+ },
+ {
+  "route": "POST src/app/api/scan/route.ts",
+  "suite": "held-out",
+  "variant": "B",
+  "outcome": "not-built"
+ },
+ {
+  "route": "POST src/app/api/scan/route.ts",
+  "suite": "held-out",
+  "variant": "C",
+  "outcome": "not-built"
+ },
+ {
+  "route": "POST src/app/api/scan/route.ts",
+  "suite": "held-out",
+  "variant": "D",
+  "outcome": "not-built"
+ },
+ {
+  "route": "POST src/app/api/scan/route.ts",
+  "suite": "held-out",
+  "variant": "E",
+  "outcome": "not-built"
+ },
+ {
+  "route": "POST src/app/api/watchlist/route.ts",
+  "suite": "held-out",
+  "variant": "A",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "POST src/app/api/watchlist/route.ts",
+  "suite": "held-out",
+  "variant": "B",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "POST src/app/api/watchlist/route.ts",
+  "suite": "held-out",
+  "variant": "C",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "POST src/app/api/watchlist/route.ts",
+  "suite": "held-out",
+  "variant": "D",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "POST src/app/api/watchlist/route.ts",
+  "suite": "held-out",
+  "variant": "E",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "PUT src/app/api/portfolios/[id]/items/[itemId]/route.ts",
+  "suite": "held-out",
+  "variant": "A",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "PUT src/app/api/portfolios/[id]/items/[itemId]/route.ts",
+  "suite": "held-out",
+  "variant": "B",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "PUT src/app/api/portfolios/[id]/items/[itemId]/route.ts",
+  "suite": "held-out",
+  "variant": "C",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "PUT src/app/api/portfolios/[id]/items/[itemId]/route.ts",
+  "suite": "held-out",
+  "variant": "D",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "PUT src/app/api/portfolios/[id]/items/[itemId]/route.ts",
+  "suite": "held-out",
+  "variant": "E",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "PUT src/app/api/portfolios/[id]/route.ts",
+  "suite": "held-out",
+  "variant": "A",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "PUT src/app/api/portfolios/[id]/route.ts",
+  "suite": "held-out",
+  "variant": "B",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "PUT src/app/api/portfolios/[id]/route.ts",
+  "suite": "held-out",
+  "variant": "C",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "PUT src/app/api/portfolios/[id]/route.ts",
+  "suite": "held-out",
+  "variant": "D",
+  "outcome": "method-missing"
+ },
+ {
+  "route": "PUT src/app/api/portfolios/[id]/route.ts",
+  "suite": "held-out",
+  "variant": "E",
+  "outcome": "method-missing"
+ }
+]
