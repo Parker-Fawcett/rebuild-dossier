@@ -6323,6 +6323,7 @@ Suite 669/669 across 94 files (was 664/93).
 - **E3:** §V-A now quotes the pre-registered reading, scoped to the policy bundle.
 - **Frozen PDF:** `seip-submission/rebuild-dossier-seip-v0.2.16-paper.pdf` (sha256
   `72ac6876…eb14`): 10 pages plus references, 0 errors, 0 undefined references.
+
 ## Third adversarial review (Accept 4/5): four corrections, all verified first (2026-09-27)
 
 A third simulated review of the `v0.2.16-paper` PDF scored it **Accept 4/5**. The reviewer
@@ -6381,3 +6382,73 @@ The new pin follows these changes.
 - **Frozen PDF:** `seip-submission/rebuild-dossier-seip-v0.2.17-paper.pdf` (sha256
   `8716c27c…1850`). The main text ends on page 10 and the references start on page 10.
   0 undefined references. The paper carries the third review's corrections (see the entry above).
+
+## Fourth review (independent, Reject 2/5) and a requirements oracle on the 30 sealed snapshots (2026-09-27)
+
+**The review.** A fourth simulated review, written without seeing the earlier ones, re-derived the
+central numbers:
+- the 1,564 archived files and 1,185 hashes;
+- all 30 snapshot handler counts;
+- ρ = 0.9959393320 and Fisher p = 0.444;
+- 131 unique sessions;
+- all 27 wording records;
+- the 669/669 tool suite.
+
+It found no integrity or format flaw, and rejected the paper on *significance*: the sealed result
+shows a conflict built into the policy, not which policy is better, and the industrial evidence is
+one assisted run.
+
+**Its factual points, each verified before acting:**
+1. **The `PostToolUse` disclosure was lost (my error).** The experiment harness's hook wrote the
+   heartbeat but did not run the suite, while the package's `CLAUDE.md` said a hook would. The
+   pre-registration discloses this. The paper did too, until I cut that sentence while compressing
+   the four-cell paragraph on 2026-09-24. It is restored for both the four-cell and sealed studies,
+   and Figure 1's caption now says so.
+2. **Five `failed-attempt-1` folders existed on disk but were not archived (my error).** The
+   packaging copied only top-level files. They are now in
+   `evidence/runs/astra-wording/*/failed-attempt-1/`. All five were Codex usage-limit stops.
+3. **The discipline prompt keeps the full-suite-green step** that the wording study shows to be
+   inconsistent. Now stated next to Table II.
+4. **E7 deviations (version, author assistance, app ownership, the earlier attempt) were never
+   logged.** Now appended to the pre-registration, dated 2026-09-27 and marked as recorded after the
+   fact.
+5. **§V-E's denominator sentence was wrong.** The log reads `Test Files 12 failed (12)`, so the 7
+   is collected cases, not a smaller file total.
+6. **The cost pair's units:** 24 cases in 23 visible files; 7 collected cases in 11 held-out files.
+7. **Overstatements, corrected:**
+   - "most rigorous";
+   - "matched every correctly working behavior", now enumerated;
+   - the abstract's "recurs on six more models" (the mechanism recurs on two Meta models);
+   - the thesis's "violation it exists to catch".
+
+**The oracle (new evidence, `evidence/fidelity-oracle/`):**
+- **Design and freeze:** an author-written, requirements-derived battery from the original app at
+  `54d7e65`, the last commit before the package was generated on 2026-07-24. Three later commits
+  changed API routes, so HEAD was not used. The battery, golden answers and scoring rule were
+  committed in `4da1e97` before any snapshot ran.
+  - It has 132 checks over the 32 method-level routes. 77 are scorable: those the original
+    decides without its database.
+  - The golden master was byte-identical across two runs.
+- **Execution:** all 30 snapshots, each checksum-verified.
+- **Results:**
+  - weak tier: 18/960 visible-route checks matched (1.9%);
+  - discipline arms' over-built routes: 0/83;
+  - the two 12/12 completions: 3/29 each;
+  - strong tier: 176/480 (36.7%).
+- **Cause:** mostly `200` where the original returns `401`/`400`. None of the 83 signature-only
+  contracts records authentication, and handler extraction (0.2.13+) still covers Express only.
+- **What it means:** test completion (visible 20/20 everywhere, held-out up to 12/12) was not
+  fidelity for either policy. Model tier and contract content mattered more than the policy. The
+  paper's §V-A, abstract, intro, Table II, lessons and threats now say this, with the limits stated:
+  author-written, pre-database behavior only, coarse key-set comparison, one app.
+
+## Paper pin: `v0.2.18-paper` (2026-09-27)
+
+- **Tag:** `v0.2.18-paper` on `ea6e374` (PR #56's merge), which includes `evidence/fidelity-oracle/`.
+  The code is npm 0.2.15, unchanged.
+- **DOI:** version DOI **10.5281/zenodo.23005034**, the only record for this tag. It supersedes
+  `v0.2.17-paper` (10.5281/zenodo.23003458).
+- **Frozen PDF:** `seip-submission/rebuild-dossier-seip-v0.2.18-paper.pdf` (sha256
+  `27fe0f7d…0e4a`): 11 pages, main text through page 10, references on page 11, 0 undefined
+  references. It carries the fourth review's corrections and the oracle result (see the entry
+  above).

@@ -217,3 +217,10 @@ Two non-author operators each run `docs/validators.md` (tool pinned at `rebuild-
   - the package had no Codex instructions or hooks, so a Codex rebuild ran with no guard.
 
   Endpoints and the reporting rule are unchanged. A validator's CLI (Claude Code or Codex) is recorded per report, and the two are not pooled as one condition.
+- **2026-09-27, recorded after the fact: the one completed E7 run departed from this section in four ways.** They should have been logged here when they happened. A fourth review found them missing, so they are logged now, dated today.
+  1. **Version.** It ran on `rebuild-dossier@0.2.14` (npm), after the pin moved again on 2026-09-24. 0.2.14 added a clear refusal for unsupported stacks. The pin moved in the author's setup message; no deviation entry was written for it.
+  2. **Author assistance.** "The author does not operate, steer, or debug any run" was not fully met. Before the run, the author sent the operator a step-by-step setup message. It pinned 0.2.14, and it explained the application export change (`module.exports = app` behind a `require.main` guard) that `generate_spec`'s own note asks for. During the run the author did not operate, steer or debug; afterwards, the author checked the operator's logs and the generated contracts.
+  3. **Whose app.** "An app of their own" was not met. The app belongs to another team at the operator's company, which is also the author's employer. The operator cleared the run with the company.
+  4. **An earlier attempt.** The same day, before the run that counts, the operator's agent ran the pipeline without following the guide. It batch-resolved the cases on keywords, `generate_spec` made no tests because the app was not exported, and the agent then only checked that the original boots. Per §3.4 nothing is dropped: it is reported in `docs/v0-findings.md` and `evidence/external-production-case/README.md`.
+
+  The second validator has not reported. The endpoints were reported as registered (§12 (1)–(5)); see `evidence/external-production-case/`.

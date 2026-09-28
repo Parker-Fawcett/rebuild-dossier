@@ -1,0 +1,174 @@
+
+ RUN  v4.1.10 /Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep3
+
+ ❯ tests/held-out/GET-api-orders.spec.ts (0 test)
+ ❯ tests/held-out/DELETE-api-listings-id.spec.ts (0 test)
+ ❯ tests/held-out/POST-api-watchlist.spec.ts (0 test)
+ ❯ tests/held-out/GET-api-users-check-username.spec.ts (0 test)
+ ❯ tests/held-out/GET-api-portfolios.spec.ts (0 test)
+ ❯ tests/held-out/GET-api-health.spec.ts (0 test)
+ ❯ tests/held-out/PUT-api-portfolios-id-items-itemid.spec.ts (1 test | 1 failed) 5ms
+     × responds without crashing (from-repo contract) 4ms
+ ❯ tests/held-out/POST-api-portfolios-id-items.spec.ts (1 test | 1 failed) 5ms
+     × responds without crashing (from-repo contract) 4ms
+ ❯ tests/held-out/PUT-api-portfolios-id.spec.ts (1 test | 1 failed) 5ms
+     × responds without crashing (from-repo contract) 4ms
+ ❯ tests/held-out/GET-api-slabs.spec.ts (0 test)
+ ❯ tests/held-out/POST-api-scan.spec.ts (0 test)
+ ❯ tests/held-out/GET-api-users.spec.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/held-out/DELETE-api-listings-id.spec.ts [ tests/held-out/DELETE-api-listings-id.spec.ts ]
+Error: Cannot find module '../../src/app/api/listings/[id]/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep3/tests/held-out/DELETE-api-listings-id.spec.ts
+ ❯ tests/held-out/DELETE-api-listings-id.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { DELETE } from '../../src/app/api/listings/[id]/route.js';
+       | ^
+      4|
+      5| describe("DELETE /api/listings/:id", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/12]⎯
+
+ FAIL  tests/held-out/GET-api-health.spec.ts [ tests/held-out/GET-api-health.spec.ts ]
+Error: Cannot find module '../../src/app/api/health/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep3/tests/held-out/GET-api-health.spec.ts
+ ❯ tests/held-out/GET-api-health.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { GET } from '../../src/app/api/health/route.js';
+       | ^
+      4|
+      5| describe("GET /api/health", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/12]⎯
+
+ FAIL  tests/held-out/GET-api-orders.spec.ts [ tests/held-out/GET-api-orders.spec.ts ]
+Error: Cannot find module '../../src/app/api/orders/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep3/tests/held-out/GET-api-orders.spec.ts
+ ❯ tests/held-out/GET-api-orders.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { GET } from '../../src/app/api/orders/route.js';
+       | ^
+      4|
+      5| describe("GET /api/orders", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/12]⎯
+
+ FAIL  tests/held-out/GET-api-portfolios.spec.ts [ tests/held-out/GET-api-portfolios.spec.ts ]
+Error: Cannot find module '../../src/app/api/portfolios/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep3/tests/held-out/GET-api-portfolios.spec.ts
+ ❯ tests/held-out/GET-api-portfolios.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { GET } from '../../src/app/api/portfolios/route.js';
+       | ^
+      4|
+      5| describe("GET /api/portfolios", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/12]⎯
+
+ FAIL  tests/held-out/GET-api-slabs.spec.ts [ tests/held-out/GET-api-slabs.spec.ts ]
+Error: Cannot find module '../../src/app/api/slabs/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep3/tests/held-out/GET-api-slabs.spec.ts
+ ❯ tests/held-out/GET-api-slabs.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { GET } from '../../src/app/api/slabs/route.js';
+       | ^
+      4|
+      5| describe("GET /api/slabs", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/12]⎯
+
+ FAIL  tests/held-out/GET-api-users-check-username.spec.ts [ tests/held-out/GET-api-users-check-username.spec.ts ]
+Error: Cannot find module '../../src/app/api/users/check-username/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep3/tests/held-out/GET-api-users-check-username.spec.ts
+ ❯ tests/held-out/GET-api-users-check-username.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { GET } from '../../src/app/api/users/check-username/route.js';
+       | ^
+      4|
+      5| describe("GET /api/users/check-username", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/12]⎯
+
+ FAIL  tests/held-out/GET-api-users.spec.ts [ tests/held-out/GET-api-users.spec.ts ]
+Error: Cannot find module '../../src/app/api/users/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep3/tests/held-out/GET-api-users.spec.ts
+ ❯ tests/held-out/GET-api-users.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { GET } from '../../src/app/api/users/route.js';
+       | ^
+      4|
+      5| describe("GET /api/users", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/12]⎯
+
+ FAIL  tests/held-out/POST-api-scan.spec.ts [ tests/held-out/POST-api-scan.spec.ts ]
+Error: Cannot find module '../../src/app/api/scan/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep3/tests/held-out/POST-api-scan.spec.ts
+ ❯ tests/held-out/POST-api-scan.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { POST } from '../../src/app/api/scan/route.js';
+       | ^
+      4|
+      5| describe("POST /api/scan", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/12]⎯
+
+ FAIL  tests/held-out/POST-api-watchlist.spec.ts [ tests/held-out/POST-api-watchlist.spec.ts ]
+Error: Cannot find module '../../src/app/api/watchlist/route.js' imported from /Users/parkerfawcett/sealed-runs/astra-2026-09/g55orig-rep3/tests/held-out/POST-api-watchlist.spec.ts
+ ❯ tests/held-out/POST-api-watchlist.spec.ts:3:1
+      1| import { describe, it, expect } from 'vitest';
+      2| import { NextRequest } from 'next/server';
+      3| import { POST } from '../../src/app/api/watchlist/route.js';
+       | ^
+      4|
+      5| describe("POST /api/watchlist", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/12]⎯
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/held-out/POST-api-portfolios-id-items.spec.ts > POST /api/portfolios/:id/items > responds without crashing (from-repo contract)
+TypeError: POST is not a function
+ ❯ tests/held-out/POST-api-portfolios-id-items.spec.ts:8:23
+      6|   it('responds without crashing (from-repo contract)', async () => {
+      7|     const request = new NextRequest('http://localhost:3000/api/portfol…
+      8|     const res = await POST(request, { params: { id: 'test-value-123' }…
+       |                       ^
+      9|     expect(res.status).toBeLessThan(500);
+     10|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/12]⎯
+
+ FAIL  tests/held-out/PUT-api-portfolios-id-items-itemid.spec.ts > PUT /api/portfolios/:id/items/:itemId > responds without crashing (from-repo contract)
+TypeError: PUT is not a function
+ ❯ tests/held-out/PUT-api-portfolios-id-items-itemid.spec.ts:8:23
+      6|   it('responds without crashing (from-repo contract)', async () => {
+      7|     const request = new NextRequest('http://localhost:3000/api/portfol…
+      8|     const res = await PUT(request, { params: { id: 'test-value-123', i…
+       |                       ^
+      9|     expect(res.status).toBeLessThan(500);
+     10|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/12]⎯
+
+ FAIL  tests/held-out/PUT-api-portfolios-id.spec.ts > PUT /api/portfolios/:id > responds without crashing (from-repo contract)
+TypeError: PUT is not a function
+ ❯ tests/held-out/PUT-api-portfolios-id.spec.ts:8:23
+      6|   it('responds without crashing (from-repo contract)', async () => {
+      7|     const request = new NextRequest('http://localhost:3000/api/portfol…
+      8|     const res = await PUT(request, { params: { id: 'test-value-123' } …
+       |                       ^
+      9|     expect(res.status).toBeLessThan(500);
+     10|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/12]⎯
+
+
+ Test Files  12 failed (12)
+      Tests  3 failed (3)
+   Start at  23:43:33
+   Duration  340ms (transform 315ms, setup 0ms, import 283ms, tests 15ms, environment 1ms)
+
