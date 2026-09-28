@@ -6411,3 +6411,14 @@ one assisted run.
   fidelity for either policy. Model tier and contract content mattered more than the policy. The
   paper's §V-A, abstract, intro, Table II, lessons and threats now say this, with the limits stated:
   author-written, pre-database behavior only, coarse key-set comparison, one app.
+
+## Paper pin: `v0.2.18-paper` (2026-09-27)
+
+- **Tag:** `v0.2.18-paper` on `ea6e374` (PR #56's merge), which includes `evidence/fidelity-oracle/`.
+  The code is npm 0.2.15, unchanged.
+- **DOI:** version DOI **10.5281/zenodo.23005034**, the only record for this tag. It supersedes
+  `v0.2.17-paper` (10.5281/zenodo.23003458).
+- **Frozen PDF:** `seip-submission/rebuild-dossier-seip-v0.2.18-paper.pdf` (sha256
+  `27fe0f7d…0e4a`): 11 pages, main text through page 10, references on page 11, 0 undefined
+  references. It carries the fourth review's corrections and the oracle result (see the entry
+  above).
