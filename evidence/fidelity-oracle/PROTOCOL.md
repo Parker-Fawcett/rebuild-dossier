@@ -55,3 +55,38 @@ Each snapshot is extracted fresh from its archived `snapshot.tar` (sha256-checke
 `snapshot.sha256`). Its evaluation-time `node_modules` are linked read-only, and it is run with
 `vitest run --globals`, with no config, as the sealed evaluator ran held-out. The sealed `.eval`
 directories are not modified.
+
+## Results (run after the freeze above; `score.mjs`, `fidelity-scores.csv`, `score-output.txt`)
+
+All 30 snapshots ran, and every `snapshot.sha256` matched. There are 77 scorable checks per run: 48
+on the 20 visible-demanded routes, and 29 on the 12 held-out routes, i.e. those built only beyond
+visible demand.
+
+| Group | Visible-route checks, full match | Held-out-route checks built, full match |
+|---|---|---|
+| Haiku, discipline arms A/B/D (15 runs) | 9 / 720 (1.3%) | 0 / 83 |
+| Haiku, batch-permitted C (5 runs) | 9 / 240 (3.8%) | 6 / 58 (10.3%) |
+| Sonnet A/B (10 runs) | 176 / 480 (36.7%) | none built |
+
+Per run, full matches out of 48 visible-route checks:
+- **Haiku:** A 3,0,0,3,0; B 0,0,0,0,0; C 0,3,3,3,0; D 3,0,0,0,0.
+- **Sonnet:** A 14,38,29,3,3; B 7,10,14,18,40.
+
+The two full completions (C-rep3, C-rep4: 12/12 held-out files) each match on 3 of the 29 held-out-
+route checks.
+
+**Main mismatch:** the Haiku rebuilds answer unauthenticated and malformed requests with `200` (e.g.
+`{"success": …}`), where the original returns `401`/`400`. Every visible and held-out test only
+asserts `status < 500`.
+
+**No spec source for it:** none of the 83 contracts in the package mentions authentication. They
+were signature-only, generated before handler extraction existed. That extraction (npm 0.2.13+) still
+covers Express only, so Next.js contracts remain signature-only.
+
+**Limits:**
+- The oracle is author-written.
+- It covers only behavior the original decides before touching its database (auth gating, input
+  validation, a few static responses).
+- The key-set comparison is coarse.
+- The original's version is inferred from dates.
+- One application.
