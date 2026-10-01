@@ -1,0 +1,25 @@
+scored checks: 18; full match 11; status match 15
+  auth: full 2/4, status 2/4
+  data/shape: full 6/7, status 6/7
+  errors: full 0/4, status 4/4
+  flagged: full 3/3, status 3/3
+seed data (R02 list length): original 12, rebuild 0
+MATCH  R01 GET / redirect  expected 302 "non-json"  got 302 "non-json"
+MATCH  R02 GET recipes list  expected 200 ["data"]  got 200 ["data"]
+DIFF   R03 GET seeded recipe 1  expected 200 ["data"]  got 404 ["message"]
+MATCH  R04 POST recipe, no token  expected 401 "non-json"  got 401 "non-json"
+MATCH  R05 POST recipe, garbage token  expected 401 "non-json"  got 401 "non-json"
+DIFF   R06 PUT recipe 1, no token  expected 401 "non-json"  got 404 ["message"]
+DIFF   R07 DELETE recipe 1, no token  expected 401 "non-json"  got 404 ["message"]
+MATCH  R08 signup new user  expected 200 ["token"]  got 200 ["token"]
+status R09 signup duplicate email  expected 500 ["message","status","statusCode"]  got 500 ["message"]
+MATCH  R10 login correct password  expected 200 ["token"]  got 200 ["token"]
+MATCH  R11 login wrong password [flagged]  expected flagged intent 401  got 401 ["message"]
+status R12 login unknown email  expected 500 ["message","status","statusCode"]  got 500 ["message"]
+MATCH  R13 POST recipe, valid token  expected 201 ["data"]  got 201 ["data"]
+status R14 POST recipe, valid token, empty body  expected 500 ["message","status","statusCode"]  got 500 ["message"]
+MATCH  R15 GET created recipe  expected 200 ["data"]  got 200 ["data"]
+MATCH  R16 PUT created recipe [flagged]  expected flagged intent 200  got 200 ["data"]
+MATCH  R17 DELETE created recipe [flagged]  expected flagged intent 204  got 204 "empty"
+status R18 signup, malformed JSON  expected 400 ["message","status","statusCode"]  got 400 ["message"]
+n/a    R19 GET missing recipe (last: may crash the original)  original: no-response; rebuild: responded 404

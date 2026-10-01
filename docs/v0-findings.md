@@ -6411,3 +6411,49 @@ one assisted run.
   fidelity for either policy. Model tier and contract content mattered more than the policy. The
   paper's §V-A, abstract, intro, Table II, lessons and threats now say this, with the limits stated:
   author-written, pre-database behavior only, coarse key-set comparison, one app.
+
+## Mechanism audit: constant-200 baseline, fidelity breakdown, mutation trace, second app (2026-10-01)
+
+This follows the checklist agreed with a second reviewer (Codex). There were no agent runs. Each
+analysis's selection or scoring rule was committed before its outcome was seen.
+
+1. **Constant-200 baseline** (`evidence/baselines/constant-200/`). A stub with 21 route files whose
+   32 methods each return `200 {}` passes the sealed study's **visible 20/20 and held-out 12/12**,
+   and matches the oracle on **0/77**. The weak-tier rebuilds equal the stub on authentication and
+   validation (0/720, 0/180 visible-route checks).
+2. **Fidelity breakdown** (`evidence/fidelity-oracle/breakdown.mjs`, `breakdown.txt`).
+   - Haiku A+B: auth 0/360, validation 0/90, static 6/30.
+   - Sonnet A+B: auth 91/360, validation 55/90, static 30/30.
+   - Route level: Haiku is faithful on 0/230 auth and validation route cells.
+
+   These match the reviewer's independent recount exactly. The check counts are repeated measures,
+   not samples.
+3. **Mutation trace** (`evidence/mutation-trace/`). The routes were selected by rule in `c249515`,
+   before any mutation ran.
+   - `GET /api/pokedex` (auth): 1 of 5 mutants killed.
+   - `POST /api/auth` (validation): 1 of 11 killed.
+   - `GET /api/wishlist` (static): 0 mutation sites, so unassessed. The original is literally
+     `return NextResponse.json([])`.
+
+   Both kills are **exceptions** that the handler's catch-all turns into 500: a guard inversion
+   followed by `.replace` on `null`, and a flipped branch reaching `request.json()` with no body.
+   **My earlier "crash-induced kill because the backend is unavailable" hypothesis is disproven**
+   for these routes: both throws come before any database access. The `< 500` assertion on an
+   unauthenticated request is blind to authentication by construction. One exception-driven kill
+   is enough to retain a test. Even Sonnet's rebuilds return 200 on unauthenticated `GET
+   /api/pokedex` (10/10).
+4. **Second application** (`evidence/second-app-audit/`): mini-express-recipes-api; the Codex
+   build-from-contracts rebuild (gpt-6-astra) from the 0.2.13 package with handler source.
+   - The battery was frozen in `51cb25d`, with prior exposure disclosed.
+   - Result: **11/18 full, 15/18 status.** The flagged bugs were fixed 3/3. The divergences are
+     no seed data, error shape (0/4), and **auth ordering**: `router.param` checks existence
+     before auth, so an unauthenticated PUT/DELETE on a missing id gets 404 instead of 401.
+     The earlier side-by-side missed that.
+   - The package's own gate had 0 visible tests and 2 passing `status < 500` held-out tests.
+
+**Cross-app pattern** (two apps, author-run, not yet independent):
+- Behavior absent from contracts diverged. That was auth on signature-only Next.js contracts; and
+  app-level error middleware, seed data and middleware order even with Express handler source.
+- A structural refactor changed the order of checks: here, and in the production case's chat
+  endpoint.
+- Every acceptance gate (`status < 500`) was blind to all of it.
