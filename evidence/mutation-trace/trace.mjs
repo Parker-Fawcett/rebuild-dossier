@@ -3,7 +3,8 @@
 // (baseline), then against every mutant today's engine applies to the original
 // route file, recording vitest's own failure message for each. No agent runs.
 //
-//   ORIGINAL=<catchandtrade@54d7e65>/apps/web node evidence/mutation-trace/trace.mjs
+//   ORIGINAL=<catchandtrade@54d7e65>/apps/web VISIBLE_TESTS=<extracted tests/visible> \
+//     node evidence/mutation-trace/trace.mjs        (see TRACE.md, "Reproduce")
 import { mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';

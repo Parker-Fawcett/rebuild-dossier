@@ -6536,3 +6536,37 @@ The main text dropped from 10 pages to about 7.5. The pre-restructure source is 
 - **Frozen PDF:** `seip-submission/rebuild-dossier-seip-v0.2.19-paper.pdf` (sha256
   `49ce37af…bf7e`). It is the restructured manuscript: 8 pages, main text ending on page 8,
   0 undefined references.
+
+## Final corrections from the second reviewer's restructured-draft review (2026-10-01)
+
+The reviewer (Codex) independently re-ran the constant-200 stub (32/32) and re-scored the fidelity
+breakdown and the second app, and scored the draft borderline (3/5). It asked for finite
+corrections and no new agent runs. Each was checked first.
+
+1. **The mutation claim is narrowed to what the trace shows.** The abstract, introduction,
+   conclusion and lessons now describe a current-engine *reconstruction* on two routes; historical
+   per-mutant records are unavailable. `TRACE.md` drops an untested counterfactual ("would have
+   survived"). "Hooks showed no measurable effect" became "the experiments did not identify a
+   causal effect of the hooks".
+2. **The second application is described accurately.** Its package had no active acceptance tests.
+   It demonstrates the differential battery; it does not repeat the green-gate result. §VI-A now
+   says which check was demonstrated on which application. "Frozen before the rebuild ran" became
+   "frozen before the preserved rebuild was evaluated by this battery". Matches are now called
+   "status-and-shape matches under declared rules": R02 matches on shape with 0 of 12 items, and
+   the flagged checks verify only their stated responses.
+3. **The exact second-app rebuild is preserved.**
+   - Per-file sha256 hashes of the audited rebuild and the original working copy, plus the
+     original's export-only diff, are in `evidence/second-app-audit/provenance/`.
+   - A private archive is preserved (sha256 `29cef792…1043`). The source is withheld because the
+     app is unlicensed and the contracts quote it; the reproduction limits are stated.
+4. **A matched-state check backs the R06/R07 divergence** (`matched-state.mjs`, recorded separately
+   from the frozen score). For a recipe present in both apps, both return 401 to unauthenticated
+   PUT/DELETE. For one absent in both, the original returns 401 and the rebuild 404. It is reported
+   as a check-order divergence, not a confidentiality loss.
+5. **Reproduction is concrete.**
+   - The stub's commands were tested from a clean directory: `npm ci` from the archived lockfile,
+     then 20/20 visible and 12/12 held-out. A plain fresh `npm install` hit npm's own `edgesOut`
+     bug on this machine, so the documented route uses the lockfile.
+   - The trace's example now supplies `VISIBLE_TESTS`.
+   - The evidence README section map follows the restructured paper.
+6. **Layout:** the experiment matrix and the trace table are now full width.
