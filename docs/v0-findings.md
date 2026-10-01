@@ -6518,3 +6518,49 @@ corrections and no new agent runs. Each was checked first.
    - The trace's example now supplies `VISIBLE_TESTS`.
    - The evidence README section map follows the restructured paper.
 6. **Layout:** the experiment matrix and the trace table are now full width.
+
+## Manuscript v0.2.21: a cold-review presentation pass (2026-10-01)
+
+A fresh reviewer with no prior context read the frozen v0.2.20 PDF and scored it 2/5 (weak reject).
+It found no arithmetic error. The finite corrections were made in the manuscript only; the
+repository did not change, so v0.2.21 still cited `v0.2.20-paper`.
+- The abstract was cut from 306 to 225 words.
+- Figure 1 now marks the harness's heartbeat-only `PostToolUse` hook.
+- The healthcare case now separates test files from tests: 7 visible files (8 tests), 1 held-out
+  file (2 tests), 21 unrunnable route files.
+- Appendix C restores the pre-registered effort follow-up (revision 0/4 stalled at `xhigh` and
+  `ultra`; original 2/2 stalled at `ultra`).
+- The sealed package's generator is stated as inferred: no version stamp; timestamp 2026-07-24
+  13:04 -0600; last `src/` commit before that is `f46ccd7`, 17 commits after tag `v0.2.0`.
+- The paper now says the Next.js generator still emits `status < 500` at the cited version, and
+  that no remedy has been evaluated.
+- The cost pair now names its conditions: a package rebuild vs. a single prompt with full source,
+  both Sonnet.
+- Added definitions: handoff, discipline arms, BER (AgentModernize's Behavioral Equivalence Rate),
+  run-route-category cells, and "0 of 83 checks (checks, not routes)".
+- S. N. Ahmed is disclosed as first author of AgentModernize and *The Coming Legacy Cliff*.
+
+## An independent oracle: S. N. Ahmed's 59 checks (2026-10-01)
+
+Ahmed wrote requirement checks from the original (`catchandtrade@54d7e65`) alone. He was given a
+route list with the visible/held-out labels removed, and was asked not to look at this repository,
+the paper, or any rebuild. He reports 128 minutes of work and not having seen the author's oracle
+before.
+
+The file was committed byte-for-byte in `b74b856` (sha256 `af2c744d…2dc0d4`), together with a run
+protocol and scoring rule, **before** any target ran. Results (`9a9aa37`, `evidence/independent-
+oracle/RESULTS.md`):
+- **The original satisfies 59/59**, deterministically; no check needed excluding. The stub scores
+  0/59.
+- **Weak tier, visible routes:** 580/580 authentication and 120/120 validation checks answered with
+  `200`.
+- **A+B:** Haiku 2/416 and Sonnet 112/370 built checks. Per-run ranking agrees with the author's
+  oracle (Spearman 0.995 over 30 runs).
+- **New: no rebuild reads `POST /api/auth`'s `?action=` dispatch** (`logout`, `refresh`,
+  `providers`). The author's battery sends no query strings, so it could not see this. Nine Sonnet
+  rebuilds answer logout with `400`.
+- **Open:** his `ai_assistance` field reads "none written by me." Its meaning is being confirmed
+  with him.
+
+The manuscript (v0.2.22) adds one §V-A paragraph and updates the abstract, introduction, Table I,
+Threats and artifact list.
