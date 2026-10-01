@@ -1,0 +1,21 @@
+authentication src/app/api/pokedex/route.ts: baseline PASS; 5 sites, killed 1
+   drop-null-check @12: KILLED (wrong status (5xx response)) AssertionError: expected 500 to be less than 500
+   drop-null-check @14: survived
+   drop-null-check @21: survived
+   drop-null-check @30: survived
+   drop-null-check @41: survived
+validation src/app/api/auth/route.ts: baseline PASS; 11 sites, killed 1
+   flip-comparison @10: survived
+   flip-comparison @12: survived
+   flip-comparison @13: survived
+   flip-comparison @30: survived
+   flip-comparison @34: KILLED (wrong status (5xx response)) AssertionError: expected 500 to be less than 500
+   drop-null-check @12: survived
+   drop-null-check @12: survived
+   drop-null-check @13: survived
+   drop-null-check @13: survived
+   drop-null-check @38: survived
+   drop-null-check @51: survived
+static control src/app/api/wishlist/route.ts: baseline PASS; 0 sites, killed 0
+
+[exited with code 0]
