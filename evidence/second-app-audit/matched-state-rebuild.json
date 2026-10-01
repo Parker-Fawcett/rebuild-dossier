@@ -1,0 +1,22 @@
+[
+ {
+  "state": "present-in-both",
+  "method": "PUT",
+  "status": 401
+ },
+ {
+  "state": "present-in-both",
+  "method": "DELETE",
+  "status": 401
+ },
+ {
+  "state": "absent-in-both",
+  "method": "PUT",
+  "status": 404
+ },
+ {
+  "state": "absent-in-both",
+  "method": "DELETE",
+  "status": 404
+ }
+]

@@ -1,4 +1,4 @@
-# Mutation trace: why mutation screening kept tests that could not see authentication (2026-10-01)
+# Mutation trace: how mutation screening can keep tests that cannot see authentication (2026-10-01)
 
 The routes were fixed by `SELECTION.md` (commit `c249515`) before any mutation ran. The run is
 `trace.mjs`, and the raw output is `trace-results.json`. It uses today's mutation engine
@@ -29,9 +29,9 @@ visible tests, and no database (as in the oracle). No agent runs were involved.
    needed.
 2. **The assertion is blind to authentication by construction.** The test request carries no
    credentials, so the original's `401` and a rebuild's unauthenticated `200` both satisfy
-   `< 500`. A mutant that inverts the guard is caught only *incidentally*, because the next line
-   dereferences `null`. Had the guard been removed with no null dereference after it, that mutant
-   would have survived.
+   `< 500`. The mutant that inverts the guard was caught by the exception it caused: the next line
+   dereferences `null`. The test's assertion never distinguished the original `401` from a
+   non-crashing response.
 3. **One kill is enough to retain a test.** The tool keeps a test as mutation-sensitive when it kills
    ≥ 1 mutant. Here that was 1 of 5 and 1 of 11, each kill caused by an exception, and the static
    route had no mutation site at all, i.e. it was unassessed. The screen certified tests that were
@@ -45,3 +45,14 @@ visible tests, and no database (as in the oracle). No agent runs were involved.
 - Today's operators, not a replay of the July run, whose per-mutant records were not kept.
 - The rebuild column reports variant A only. The full battery is in
   `../fidelity-oracle/results/`.
+
+## Reproduce
+
+```
+# 1. the original at 54d7e65, with dependencies installed (apps/web/package.json, npm ci)
+git -C <catchandtrade> worktree add <dir> 54d7e65
+# 2. the sealed study's visible tests, from an archived snapshot
+mkdir -p /tmp/vis && tar -xzf evidence/runs/sealed-haiku/A-rep2/snapshot.tar.gz -C /tmp/vis ./tests/visible
+# 3. run (needs the repo's dist/ build: npm run build)
+ORIGINAL=<dir>/apps/web VISIBLE_TESTS=/tmp/vis/tests/visible node evidence/mutation-trace/trace.mjs
+```

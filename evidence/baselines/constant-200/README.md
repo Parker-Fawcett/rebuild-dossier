@@ -36,3 +36,17 @@ study. Those suites therefore certify only that each method exists and doesn't c
 they send. On authentication and validation checks, the weak-tier rebuilds score exactly what the
 stub scores (0/720 and 0/180 visible-route checks). Their only full matches (18) are on static
 responses.
+
+## Reproduce (tested from a clean directory, 2026-10-01)
+
+```
+E=<repo>/evidence; W=$(mktemp -d); cd $W
+# the sealed study's own manifest, lockfile, and visible tests, from an archived snapshot
+tar -xzf $E/runs/sealed-haiku/A-rep2/snapshot.tar.gz ./package.json ./package-lock.json ./tests/visible
+npm ci
+cp -R $E/baselines/constant-200/stub/src ./src                     # the stub, in place of a rebuild
+cp -R $E/study-level/sealed-heldout-suite/held-out tests/held-out
+find . -name '._*' -not -path './node_modules/*' -delete            # macOS AppleDouble files, if any
+npx vitest run tests/visible  --passWithNoTests                     # 20 files, 20 tests passed
+npx vitest run tests/held-out --passWithNoTests                     # 12 files, 12 tests passed
+```
