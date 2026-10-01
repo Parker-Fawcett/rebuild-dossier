@@ -1,0 +1,303 @@
+[
+ {
+  "role": "authentication",
+  "test": "GET-api-pokedex.spec.ts",
+  "file": "src/app/api/pokedex/route.ts",
+  "assertion": [
+   "expect(res.status).toBeLessThan(500);"
+  ],
+  "baseline": {
+   "passed": true,
+   "messages": []
+  },
+  "mutants": [
+   {
+    "site": {
+     "mutatorName": "drop-null-check",
+     "locator": {
+      "file": "src/app/api/pokedex/route.ts",
+      "startLine": 12,
+      "endLine": 12
+     },
+     "description": "drop negation in \"!authHeader?.startsWith('Bearer ')\"",
+     "occurrenceIndex": 0
+    },
+    "applied": true,
+    "killed": true,
+    "cause": "wrong status (5xx response)",
+    "messages": [
+     "AssertionError: expected 500 to be less than 500"
+    ]
+   },
+   {
+    "site": {
+     "mutatorName": "drop-null-check",
+     "locator": {
+      "file": "src/app/api/pokedex/route.ts",
+      "startLine": 14,
+      "endLine": 14
+     },
+     "description": "drop negation in \"!userId\"",
+     "occurrenceIndex": 0
+    },
+    "applied": true,
+    "killed": false,
+    "cause": null,
+    "messages": []
+   },
+   {
+    "site": {
+     "mutatorName": "drop-null-check",
+     "locator": {
+      "file": "src/app/api/pokedex/route.ts",
+      "startLine": 21,
+      "endLine": 21
+     },
+     "description": "drop negation in \"!portfolios.length\"",
+     "occurrenceIndex": 0
+    },
+    "applied": true,
+    "killed": false,
+    "cause": null,
+    "messages": []
+   },
+   {
+    "site": {
+     "mutatorName": "drop-null-check",
+     "locator": {
+      "file": "src/app/api/pokedex/route.ts",
+      "startLine": 30,
+      "endLine": 30
+     },
+     "description": "drop negation in \"!items.length\"",
+     "occurrenceIndex": 0
+    },
+    "applied": true,
+    "killed": false,
+    "cause": null,
+    "messages": []
+   },
+   {
+    "site": {
+     "mutatorName": "drop-null-check",
+     "locator": {
+      "file": "src/app/api/pokedex/route.ts",
+      "startLine": 41,
+      "endLine": 41
+     },
+     "description": "drop negation in \"!pokemonMap.has(pokemonName)\"",
+     "occurrenceIndex": 0
+    },
+    "applied": true,
+    "killed": false,
+    "cause": null,
+    "messages": []
+   }
+  ]
+ },
+ {
+  "role": "validation",
+  "test": "POST-api-auth.spec.ts",
+  "file": "src/app/api/auth/route.ts",
+  "assertion": [
+   "expect(res.status).toBeLessThan(500);"
+  ],
+  "baseline": {
+   "passed": true,
+   "messages": []
+  },
+  "mutants": [
+   {
+    "site": {
+     "mutatorName": "flip-comparison",
+     "locator": {
+      "file": "src/app/api/auth/route.ts",
+      "startLine": 10,
+      "endLine": 10
+     },
+     "description": "flip \"===\" to \"!==\"",
+     "occurrenceIndex": 0
+    },
+    "applied": true,
+    "killed": false,
+    "cause": null,
+    "messages": []
+   },
+   {
+    "site": {
+     "mutatorName": "flip-comparison",
+     "locator": {
+      "file": "src/app/api/auth/route.ts",
+      "startLine": 12,
+      "endLine": 12
+     },
+     "description": "flip \"!==\" to \"===\"",
+     "occurrenceIndex": 0
+    },
+    "applied": true,
+    "killed": false,
+    "cause": null,
+    "messages": []
+   },
+   {
+    "site": {
+     "mutatorName": "flip-comparison",
+     "locator": {
+      "file": "src/app/api/auth/route.ts",
+      "startLine": 13,
+      "endLine": 13
+     },
+     "description": "flip \"!==\" to \"===\"",
+     "occurrenceIndex": 0
+    },
+    "applied": true,
+    "killed": false,
+    "cause": null,
+    "messages": []
+   },
+   {
+    "site": {
+     "mutatorName": "flip-comparison",
+     "locator": {
+      "file": "src/app/api/auth/route.ts",
+      "startLine": 30,
+      "endLine": 30
+     },
+     "description": "flip \"===\" to \"!==\"",
+     "occurrenceIndex": 0
+    },
+    "applied": true,
+    "killed": false,
+    "cause": null,
+    "messages": []
+   },
+   {
+    "site": {
+     "mutatorName": "flip-comparison",
+     "locator": {
+      "file": "src/app/api/auth/route.ts",
+      "startLine": 34,
+      "endLine": 34
+     },
+     "description": "flip \"===\" to \"!==\"",
+     "occurrenceIndex": 0
+    },
+    "applied": true,
+    "killed": true,
+    "cause": "wrong status (5xx response)",
+    "messages": [
+     "AssertionError: expected 500 to be less than 500"
+    ]
+   },
+   {
+    "site": {
+     "mutatorName": "drop-null-check",
+     "locator": {
+      "file": "src/app/api/auth/route.ts",
+      "startLine": 12,
+      "endLine": 12
+     },
+     "description": "drop negation in \"!!process.env.GOOGLE_CLIENT_ID\"",
+     "occurrenceIndex": 0
+    },
+    "applied": true,
+    "killed": false,
+    "cause": null,
+    "messages": []
+   },
+   {
+    "site": {
+     "mutatorName": "drop-null-check",
+     "locator": {
+      "file": "src/app/api/auth/route.ts",
+      "startLine": 12,
+      "endLine": 12
+     },
+     "description": "drop negation in \"!process.env.GOOGLE_CLIENT_ID\"",
+     "occurrenceIndex": 1
+    },
+    "applied": true,
+    "killed": false,
+    "cause": null,
+    "messages": []
+   },
+   {
+    "site": {
+     "mutatorName": "drop-null-check",
+     "locator": {
+      "file": "src/app/api/auth/route.ts",
+      "startLine": 13,
+      "endLine": 13
+     },
+     "description": "drop negation in \"!!process.env.APPLE_CLIENT_ID\"",
+     "occurrenceIndex": 0
+    },
+    "applied": true,
+    "killed": false,
+    "cause": null,
+    "messages": []
+   },
+   {
+    "site": {
+     "mutatorName": "drop-null-check",
+     "locator": {
+      "file": "src/app/api/auth/route.ts",
+      "startLine": 13,
+      "endLine": 13
+     },
+     "description": "drop negation in \"!process.env.APPLE_CLIENT_ID\"",
+     "occurrenceIndex": 1
+    },
+    "applied": true,
+    "killed": false,
+    "cause": null,
+    "messages": []
+   },
+   {
+    "site": {
+     "mutatorName": "drop-null-check",
+     "locator": {
+      "file": "src/app/api/auth/route.ts",
+      "startLine": 38,
+      "endLine": 38
+     },
+     "description": "drop negation in \"!refreshToken\"",
+     "occurrenceIndex": 0
+    },
+    "applied": true,
+    "killed": false,
+    "cause": null,
+    "messages": []
+   },
+   {
+    "site": {
+     "mutatorName": "drop-null-check",
+     "locator": {
+      "file": "src/app/api/auth/route.ts",
+      "startLine": 51,
+      "endLine": 51
+     },
+     "description": "drop negation in \"!user\"",
+     "occurrenceIndex": 0
+    },
+    "applied": true,
+    "killed": false,
+    "cause": null,
+    "messages": []
+   }
+  ]
+ },
+ {
+  "role": "static control",
+  "test": "GET-api-wishlist.spec.ts",
+  "file": "src/app/api/wishlist/route.ts",
+  "assertion": [
+   "expect(res.status).toBeLessThan(500);"
+  ],
+  "baseline": {
+   "passed": true,
+   "messages": []
+  },
+  "mutants": []
+ }
+]

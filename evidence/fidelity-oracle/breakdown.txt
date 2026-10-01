@@ -1,0 +1,65 @@
+
+=== visible-route checks (built only) ===
+Haiku A+B (10 runs)
+  auth: status 0/360, full 0/360; route-cells faithful 0/180
+  static: status 30/30, full 6/30; route-cells faithful 2/10
+  validation: status 0/90, full 0/90; route-cells faithful 0/50
+Sonnet A+B (10 runs)
+  auth: status 105/360, full 91/360; route-cells faithful 44/180
+  static: status 30/30, full 30/30; route-cells faithful 10/10
+  validation: status 63/90, full 55/90; route-cells faithful 23/50
+Haiku C (5)
+  auth: status 0/180, full 0/180; route-cells faithful 0/90
+  static: status 15/15, full 9/15; route-cells faithful 3/5
+  validation: status 0/45, full 0/45; route-cells faithful 0/25
+Haiku D (5)
+  auth: status 0/180, full 0/180; route-cells faithful 0/90
+  static: status 15/15, full 3/15; route-cells faithful 1/5
+  validation: status 0/45, full 0/45; route-cells faithful 0/25
+
+=== held-out-route checks (built only) ===
+Haiku A+B (10 runs)
+  auth: status 0/46, full 0/46; route-cells faithful 0/23
+  static: status 0/0, full 0/0; route-cells faithful 0/0
+  validation: status 0/3, full 0/3; route-cells faithful 0/3
+Sonnet A+B (10 runs)
+  auth: status 0/0, full 0/0; route-cells faithful 0/0
+  static: status 0/0, full 0/0; route-cells faithful 0/0
+  validation: status 0/0, full 0/0; route-cells faithful 0/0
+Haiku C (5)
+  auth: status 0/36, full 0/36; route-cells faithful 0/18
+  static: status 18/18, full 6/18; route-cells faithful 2/6
+  validation: status 0/4, full 0/4; route-cells faithful 0/4
+Haiku D (5)
+  auth: status 0/32, full 0/32; route-cells faithful 0/16
+  static: status 0/0, full 0/0; route-cells faithful 0/0
+  validation: status 0/2, full 0/2; route-cells faithful 0/2
+
+=== per run, visible-route full matches by category (auth/validation/static) ===
+sealed-haiku/A-rep1: auth 0/36  validation 0/9  static 3/3
+sealed-haiku/A-rep2: auth 0/36  validation 0/9  static 0/3
+sealed-haiku/A-rep3: auth 0/36  validation 0/9  static 0/3
+sealed-haiku/A-rep4: auth 0/36  validation 0/9  static 3/3
+sealed-haiku/A-rep5: auth 0/36  validation 0/9  static 0/3
+sealed-haiku/B-rep1: auth 0/36  validation 0/9  static 0/3
+sealed-haiku/B-rep2: auth 0/36  validation 0/9  static 0/3
+sealed-haiku/B-rep3: auth 0/36  validation 0/9  static 0/3
+sealed-haiku/B-rep4: auth 0/36  validation 0/9  static 0/3
+sealed-haiku/B-rep5: auth 0/36  validation 0/9  static 0/3
+sealed-haiku/C-rep1: auth 0/36  validation 0/9  static 0/3
+sealed-haiku/C-rep2: auth 0/36  validation 0/9  static 3/3
+sealed-haiku/C-rep3: auth 0/36  validation 0/9  static 3/3
+sealed-haiku/C-rep4: auth 0/36  validation 0/9  static 3/3
+sealed-haiku/C-rep5: auth 0/36  validation 0/9  static 0/3
+sealed-haiku/D-rep1: auth 0/36  validation 0/9  static 3/3
+sealed-haiku/D-rep2: auth 0/36  validation 0/9  static 0/3
+sealed-haiku/D-rep3: auth 0/36  validation 0/9  static 0/3
+sealed-haiku/D-rep4: auth 0/36  validation 0/9  static 0/3
+sealed-haiku/D-rep5: auth 0/36  validation 0/9  static 0/3
+sealed-sonnet/A-rep1: auth 3/36  validation 8/9  static 3/3
+sealed-sonnet/A-rep2: auth 28/36  validation 7/9  static 3/3
+sealed-sonnet/A-rep3: auth 20/36  validation 6/9  static 3/3
+sealed-sonnet/A-rep4: auth 0/36  validation 0/9  static 3/3
+sealed-sonnet/A-rep5: auth 0/36  validation 0/9  static 3/3
+sealed-sonnet/B-rep1: auth 0/36  validation 4/9  static 3/3
+sealed-sonnet/B-rep2: auth 2/36  validation 5/9  static 3/3

@@ -1,0 +1,232 @@
+[
+ {
+  "id": "R01 GET / redirect",
+  "outcome": "responded",
+  "status": 302,
+  "keys": "non-json",
+  "location": "/api/v1/recipes",
+  "dataIsArray": false,
+  "hasToken": false
+ },
+ {
+  "id": "R02 GET recipes list",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "data"
+  ],
+  "location": null,
+  "dataIsArray": true,
+  "dataLength": 12,
+  "hasToken": false
+ },
+ {
+  "id": "R03 GET seeded recipe 1",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "data"
+  ],
+  "location": null,
+  "dataIsArray": false,
+  "dataKeys": [
+   "cookTimeMinutes",
+   "healthLabels",
+   "id",
+   "ingredients",
+   "name",
+   "prepTimeMinutes"
+  ],
+  "hasToken": false
+ },
+ {
+  "id": "R04 POST recipe, no token",
+  "outcome": "responded",
+  "status": 401,
+  "keys": "non-json",
+  "location": null,
+  "dataIsArray": false,
+  "hasToken": false
+ },
+ {
+  "id": "R05 POST recipe, garbage token",
+  "outcome": "responded",
+  "status": 401,
+  "keys": "non-json",
+  "location": null,
+  "dataIsArray": false,
+  "hasToken": false
+ },
+ {
+  "id": "R06 PUT recipe 1, no token",
+  "outcome": "responded",
+  "status": 401,
+  "keys": "non-json",
+  "location": null,
+  "dataIsArray": false,
+  "hasToken": false
+ },
+ {
+  "id": "R07 DELETE recipe 1, no token",
+  "outcome": "responded",
+  "status": 401,
+  "keys": "non-json",
+  "location": null,
+  "dataIsArray": false,
+  "hasToken": false
+ },
+ {
+  "id": "R08 signup new user",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "token"
+  ],
+  "location": null,
+  "dataIsArray": false,
+  "hasToken": true
+ },
+ {
+  "id": "R09 signup duplicate email",
+  "outcome": "responded",
+  "status": 500,
+  "keys": [
+   "message",
+   "status",
+   "statusCode"
+  ],
+  "location": null,
+  "dataIsArray": false,
+  "hasToken": false
+ },
+ {
+  "id": "R10 login correct password",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "token"
+  ],
+  "location": null,
+  "dataIsArray": false,
+  "hasToken": true
+ },
+ {
+  "id": "R11 login wrong password [flagged]",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "token"
+  ],
+  "location": null,
+  "dataIsArray": false,
+  "hasToken": true
+ },
+ {
+  "id": "R12 login unknown email",
+  "outcome": "responded",
+  "status": 500,
+  "keys": [
+   "message",
+   "status",
+   "statusCode"
+  ],
+  "location": null,
+  "dataIsArray": false,
+  "hasToken": false
+ },
+ {
+  "id": "R13 POST recipe, valid token",
+  "outcome": "responded",
+  "status": 201,
+  "keys": [
+   "data"
+  ],
+  "location": null,
+  "dataIsArray": false,
+  "dataKeys": [
+   "cookTimeMinutes",
+   "healthLabels",
+   "id",
+   "ingredients",
+   "name",
+   "prepTimeMinutes"
+  ],
+  "hasToken": false
+ },
+ {
+  "id": "R14 POST recipe, valid token, empty body",
+  "outcome": "responded",
+  "status": 500,
+  "keys": [
+   "message",
+   "status",
+   "statusCode"
+  ],
+  "location": null,
+  "dataIsArray": false,
+  "hasToken": false
+ },
+ {
+  "id": "R15 GET created recipe",
+  "outcome": "responded",
+  "status": 200,
+  "keys": [
+   "data"
+  ],
+  "location": null,
+  "dataIsArray": false,
+  "dataKeys": [
+   "cookTimeMinutes",
+   "healthLabels",
+   "id",
+   "ingredients",
+   "name",
+   "prepTimeMinutes"
+  ],
+  "hasToken": false
+ },
+ {
+  "id": "R16 PUT created recipe [flagged]",
+  "outcome": "responded",
+  "status": 500,
+  "keys": [
+   "message",
+   "status",
+   "statusCode"
+  ],
+  "location": null,
+  "dataIsArray": false,
+  "hasToken": false
+ },
+ {
+  "id": "R17 DELETE created recipe [flagged]",
+  "outcome": "responded",
+  "status": 500,
+  "keys": [
+   "message",
+   "status",
+   "statusCode"
+  ],
+  "location": null,
+  "dataIsArray": false,
+  "hasToken": false
+ },
+ {
+  "id": "R18 signup, malformed JSON",
+  "outcome": "responded",
+  "status": 400,
+  "keys": [
+   "message",
+   "status",
+   "statusCode"
+  ],
+  "location": null,
+  "dataIsArray": false,
+  "hasToken": false
+ },
+ {
+  "id": "R19 GET missing recipe (last: may crash the original)",
+  "outcome": "no-response",
+  "error": "TypeError"
+ }
+]
