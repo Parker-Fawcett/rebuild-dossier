@@ -75,10 +75,11 @@ unflagged missing-id crash (R19).
 **The earlier side-by-side missed it.** The 14-request comparison in the findings log
 (2026-09-24) recorded "401 without a token" as matched, because it used ids that existed.
 
-**The package's own gate saw none of this:**
-- 0 visible tests (all 8 downgraded to weak);
-- 2 held-out tests (`status < 500`), both passing on the rebuild;
-- the weak tests are hints and gate nothing.
+**The package's own gate saw none of this.** All 8 generated tests were downgraded to weak:
+`spec/test-dependencies.json`, written 15:15, lists only `tests/weak/`. So the package had no
+visible or held-out test to fail. (Correction, same day: an earlier draft of this note cited 2
+held-out tests. Those came from an earlier generation of the package, at 09:11, not the audited
+15:14 package.)
 
 **Limits:**
 - One rebuild of one small app, built by a different model and CLI than the sealed study.

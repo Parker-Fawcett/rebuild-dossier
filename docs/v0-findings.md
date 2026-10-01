@@ -6457,3 +6457,30 @@ analysis's selection or scoring rule was committed before its outcome was seen.
 - A structural refactor changed the order of checks: here, and in the production case's chat
   endpoint.
 - Every acceptance gate (`status < 500`) was blind to all of it.
+- **Correction, same day:** the entry above says the recipes package's gate had "2 passing
+  `status < 500` held-out tests". That was wrong. The audited package (generated 15:14 local)
+  lists only its 8 weak tests in `spec/test-dependencies.json`, so it had no visible or held-out
+  tests. The 2 held-out files I ran came from an earlier generation (09:11).
+  `evidence/second-app-audit/PROTOCOL.md` is corrected to match.
+
+## SEIP paper restructured around the audited failure (2026-10-01)
+
+As the agreed checklist calls for, the manuscript now leads with the audited failure:
+1. green gates certified unfaithful rebuilds: the sealed oracle result plus the constant-200
+   baseline;
+2. the mechanism: parallel-output provenance and the mutation trace;
+3. the second application;
+4. the production case.
+
+Then come supporting results: the scope/completion reversal, the hooks, and the wording test. The
+earlier handoffs are compressed into one subsection, and §VI-A states the three-check audit
+procedure. Table I is now an experiment matrix. The fixture-history and cost tables are gone, and
+their numbers are kept in prose or in this log.
+
+Claims removed or narrowed:
+- "contract content mattered more than the policy" (contract content was never varied);
+- the bare "2%";
+- the "tests derived from contracts" framing.
+
+The main text dropped from 10 pages to about 7.5. The pre-restructure source is saved as
+`rebuild-dossier-seip.pre-restructure.tex`.
