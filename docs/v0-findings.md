@@ -6570,3 +6570,15 @@ corrections and no new agent runs. Each was checked first.
    - The trace's example now supplies `VISIBLE_TESTS`.
    - The evidence README section map follows the restructured paper.
 6. **Layout:** the experiment matrix and the trace table are now full width.
+
+## Paper pin: `v0.2.20-paper` (2026-10-01)
+
+- **Tag:** `v0.2.20-paper` on `dd47428` (PR #59's merge). It includes the second-app provenance
+  hashes, the matched-state check and the tested reproduction commands. The code is npm 0.2.15,
+  unchanged.
+- **DOI:** version DOI **10.5281/zenodo.23091132**, the only record for this tag. It supersedes
+  `v0.2.19-paper` (10.5281/zenodo.23090978).
+- **Frozen PDF:** `seip-submission/rebuild-dossier-seip-v0.2.20-paper.pdf` (sha256
+  `941d629c…926d`): 8 pages, 0 errors, 0 undefined references, no overfull boxes. It carries the
+  final corrections logged above. Per the reviewer, this is the freeze: no more model sweeps and no
+  paid experiment; only a genuinely new external evaluation would justify another version.
