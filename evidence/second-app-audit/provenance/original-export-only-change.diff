@@ -1,0 +1,18 @@
+diff --git a/src/index.js b/src/index.js
+index f67ad2c..80677c1 100644
+--- a/src/index.js
++++ b/src/index.js
+@@ -39,6 +39,10 @@ app.use(handleError);
+ 
+ const port = process.env.PORT || 8080;
+ 
+-app.listen(port, () => {
+-  console.log(`Server is up on port ${port}`);
+-});
++if (require.main === module) {
++  app.listen(port, () => {
++    console.log(`Server is up on port ${port}`);
++  });
++}
++
++module.exports = app;
