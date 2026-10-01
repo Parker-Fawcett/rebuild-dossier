@@ -6452,3 +6452,87 @@ one assisted run.
   `27fe0f7d…0e4a`): 11 pages, main text through page 10, references on page 11, 0 undefined
   references. It carries the fourth review's corrections and the oracle result (see the entry
   above).
+
+## Mechanism audit: constant-200 baseline, fidelity breakdown, mutation trace, second app (2026-10-01)
+
+This follows the checklist agreed with a second reviewer (Codex). There were no agent runs. Each
+analysis's selection or scoring rule was committed before its outcome was seen.
+
+1. **Constant-200 baseline** (`evidence/baselines/constant-200/`). A stub with 21 route files whose
+   32 methods each return `200 {}` passes the sealed study's **visible 20/20 and held-out 12/12**,
+   and matches the oracle on **0/77**. The weak-tier rebuilds equal the stub on authentication and
+   validation (0/720, 0/180 visible-route checks).
+2. **Fidelity breakdown** (`evidence/fidelity-oracle/breakdown.mjs`, `breakdown.txt`).
+   - Haiku A+B: auth 0/360, validation 0/90, static 6/30.
+   - Sonnet A+B: auth 91/360, validation 55/90, static 30/30.
+   - Route level: Haiku is faithful on 0/230 auth and validation route cells.
+
+   These match the reviewer's independent recount exactly. The check counts are repeated measures,
+   not samples.
+3. **Mutation trace** (`evidence/mutation-trace/`). The routes were selected by rule in `c249515`,
+   before any mutation ran.
+   - `GET /api/pokedex` (auth): 1 of 5 mutants killed.
+   - `POST /api/auth` (validation): 1 of 11 killed.
+   - `GET /api/wishlist` (static): 0 mutation sites, so unassessed. The original is literally
+     `return NextResponse.json([])`.
+
+   Both kills are **exceptions** that the handler's catch-all turns into 500: a guard inversion
+   followed by `.replace` on `null`, and a flipped branch reaching `request.json()` with no body.
+   **My earlier "crash-induced kill because the backend is unavailable" hypothesis is disproven**
+   for these routes: both throws come before any database access. The `< 500` assertion on an
+   unauthenticated request is blind to authentication by construction. One exception-driven kill
+   is enough to retain a test. Even Sonnet's rebuilds return 200 on unauthenticated `GET
+   /api/pokedex` (10/10).
+4. **Second application** (`evidence/second-app-audit/`): mini-express-recipes-api; the Codex
+   build-from-contracts rebuild (gpt-6-astra) from the 0.2.13 package with handler source.
+   - The battery was frozen in `51cb25d`, with prior exposure disclosed.
+   - Result: **11/18 full, 15/18 status.** The flagged bugs were fixed 3/3. The divergences are
+     no seed data, error shape (0/4), and **auth ordering**: `router.param` checks existence
+     before auth, so an unauthenticated PUT/DELETE on a missing id gets 404 instead of 401.
+     The earlier side-by-side missed that.
+   - The package's own gate had 0 visible tests and 2 passing `status < 500` held-out tests.
+
+**Cross-app pattern** (two apps, author-run, not yet independent):
+- Behavior absent from contracts diverged. That was auth on signature-only Next.js contracts; and
+  app-level error middleware, seed data and middleware order even with Express handler source.
+- A structural refactor changed the order of checks: here, and in the production case's chat
+  endpoint.
+- Every acceptance gate (`status < 500`) was blind to all of it.
+- **Correction, same day:** the entry above says the recipes package's gate had "2 passing
+  `status < 500` held-out tests". That was wrong. The audited package (generated 15:14 local)
+  lists only its 8 weak tests in `spec/test-dependencies.json`, so it had no visible or held-out
+  tests. The 2 held-out files I ran came from an earlier generation (09:11).
+  `evidence/second-app-audit/PROTOCOL.md` is corrected to match.
+
+## SEIP paper restructured around the audited failure (2026-10-01)
+
+As the agreed checklist calls for, the manuscript now leads with the audited failure:
+1. green gates certified unfaithful rebuilds: the sealed oracle result plus the constant-200
+   baseline;
+2. the mechanism: parallel-output provenance and the mutation trace;
+3. the second application;
+4. the production case.
+
+Then come supporting results: the scope/completion reversal, the hooks, and the wording test. The
+earlier handoffs are compressed into one subsection, and §VI-A states the three-check audit
+procedure. Table I is now an experiment matrix. The fixture-history and cost tables are gone, and
+their numbers are kept in prose or in this log.
+
+Claims removed or narrowed:
+- "contract content mattered more than the policy" (contract content was never varied);
+- the bare "2%";
+- the "tests derived from contracts" framing.
+
+The main text dropped from 10 pages to about 7.5. The pre-restructure source is saved as
+`rebuild-dossier-seip.pre-restructure.tex`.
+
+## Paper pin: `v0.2.19-paper` (2026-10-01)
+
+- **Tag:** `v0.2.19-paper` on `65f70b8` (PR #58's merge). It includes `evidence/baselines/`,
+  `evidence/mutation-trace/`, `evidence/second-app-audit/` and the oracle breakdown. The code is
+  npm 0.2.15, unchanged.
+- **DOI:** version DOI **10.5281/zenodo.23090978**, the only record for this tag. It supersedes
+  `v0.2.18-paper` (10.5281/zenodo.23005034).
+- **Frozen PDF:** `seip-submission/rebuild-dossier-seip-v0.2.19-paper.pdf` (sha256
+  `49ce37af…bf7e`). It is the restructured manuscript: 8 pages, main text ending on page 8,
+  0 undefined references.
