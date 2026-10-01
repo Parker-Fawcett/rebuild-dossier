@@ -6304,6 +6304,26 @@ Suite 669/669 across 94 files (was 664/93).
   token has expired.
 - **Lesson:** a green workflow isn't evidence of a publish. Check the destination.
 
+## Paper pin: `v0.2.16-paper` (2026-09-25)
+
+- **Tag:** `v0.2.16-paper` on commit `ee3f39a`, the code of npm 0.2.15 plus the registry-workflow fix
+  (#52). CI was green before tagging.
+- **Zenodo:** version DOI **10.5281/zenodo.22954067**, verified as the only record for this tag.
+  The concept DOI 10.5281/zenodo.22036800 lists all versions. It supersedes `v0.2.15-paper`
+  (10.5281/zenodo.22931584), which stays as a historical version. The npm 0.2.15 code release got
+  10.5281/zenodo.22953910. Zenodo took about 80 minutes after each release.
+- **SEIP tex:**
+  - the artifact block (tag, commit, DOI, pointer to `evidence/`) and ref [13] are updated;
+  - 669/94 tests in both places;
+  - the abstract's archive clause now reads "per-trial logs for 139 agent sessions";
+  - §V-C notes the comment defect is fixed in npm 0.2.15.
+- **Pre-registered E4a (lock vs. writable spec, A vs. D) is now reported in §V-A.** It had been
+  omitted: 0 spec-edit attempts in both arms, so the lock never engaged. The intro's "untested" was
+  changed to "unobserved".
+- **E3:** §V-A now quotes the pre-registered reading, scoped to the policy bundle.
+- **Frozen PDF:** `seip-submission/rebuild-dossier-seip-v0.2.16-paper.pdf` (sha256
+  `72ac6876…eb14`): 10 pages plus references, 0 errors, 0 undefined references.
+
 ## Third adversarial review (Accept 4/5): four corrections, all verified first (2026-09-27)
 
 A third simulated review of the `v0.2.16-paper` PDF scored it **Accept 4/5**. The reviewer
@@ -6352,6 +6372,16 @@ Appendix C now describe the whole change.
   the guard").
 
 The new pin follows these changes.
+
+## Paper pin: `v0.2.17-paper` (2026-09-27)
+
+- **Tag:** `v0.2.17-paper` on `4850757` (PR #55's merge). Code: npm 0.2.15, unchanged since
+  `v0.2.16-paper`. The evidence metadata and CI config differ.
+- **DOI:** version DOI **10.5281/zenodo.23003458**, the only record for this tag. It supersedes
+  `v0.2.16-paper` (10.5281/zenodo.22954067), which stays as a historical version.
+- **Frozen PDF:** `seip-submission/rebuild-dossier-seip-v0.2.17-paper.pdf` (sha256
+  `8716c27c…1850`). The main text ends on page 10 and the references start on page 10.
+  0 undefined references. The paper carries the third review's corrections (see the entry above).
 
 ## Fourth review (independent, Reject 2/5) and a requirements oracle on the 30 sealed snapshots (2026-09-27)
 
@@ -6411,6 +6441,17 @@ one assisted run.
   fidelity for either policy. Model tier and contract content mattered more than the policy. The
   paper's §V-A, abstract, intro, Table II, lessons and threats now say this, with the limits stated:
   author-written, pre-database behavior only, coarse key-set comparison, one app.
+
+## Paper pin: `v0.2.18-paper` (2026-09-27)
+
+- **Tag:** `v0.2.18-paper` on `ea6e374` (PR #56's merge), which includes `evidence/fidelity-oracle/`.
+  The code is npm 0.2.15, unchanged.
+- **DOI:** version DOI **10.5281/zenodo.23005034**, the only record for this tag. It supersedes
+  `v0.2.17-paper` (10.5281/zenodo.23003458).
+- **Frozen PDF:** `seip-submission/rebuild-dossier-seip-v0.2.18-paper.pdf` (sha256
+  `27fe0f7d…0e4a`): 11 pages, main text through page 10, references on page 11, 0 undefined
+  references. It carries the fourth review's corrections and the oracle result (see the entry
+  above).
 
 ## Mechanism audit: constant-200 baseline, fidelity breakdown, mutation trace, second app (2026-10-01)
 
@@ -6485,6 +6526,17 @@ Claims removed or narrowed:
 The main text dropped from 10 pages to about 7.5. The pre-restructure source is saved as
 `rebuild-dossier-seip.pre-restructure.tex`.
 
+## Paper pin: `v0.2.19-paper` (2026-10-01)
+
+- **Tag:** `v0.2.19-paper` on `65f70b8` (PR #58's merge). It includes `evidence/baselines/`,
+  `evidence/mutation-trace/`, `evidence/second-app-audit/` and the oracle breakdown. The code is
+  npm 0.2.15, unchanged.
+- **DOI:** version DOI **10.5281/zenodo.23090978**, the only record for this tag. It supersedes
+  `v0.2.18-paper` (10.5281/zenodo.23005034).
+- **Frozen PDF:** `seip-submission/rebuild-dossier-seip-v0.2.19-paper.pdf` (sha256
+  `49ce37af…bf7e`). It is the restructured manuscript: 8 pages, main text ending on page 8,
+  0 undefined references.
+
 ## Final corrections from the second reviewer's restructured-draft review (2026-10-01)
 
 The reviewer (Codex) independently re-ran the constant-200 stub (32/32) and re-scored the fidelity
@@ -6518,3 +6570,15 @@ corrections and no new agent runs. Each was checked first.
    - The trace's example now supplies `VISIBLE_TESTS`.
    - The evidence README section map follows the restructured paper.
 6. **Layout:** the experiment matrix and the trace table are now full width.
+
+## Paper pin: `v0.2.20-paper` (2026-10-01)
+
+- **Tag:** `v0.2.20-paper` on `dd47428` (PR #59's merge). It includes the second-app provenance
+  hashes, the matched-state check and the tested reproduction commands. The code is npm 0.2.15,
+  unchanged.
+- **DOI:** version DOI **10.5281/zenodo.23091132**, the only record for this tag. It supersedes
+  `v0.2.19-paper` (10.5281/zenodo.23090978).
+- **Frozen PDF:** `seip-submission/rebuild-dossier-seip-v0.2.20-paper.pdf` (sha256
+  `941d629c…926d`): 8 pages, 0 errors, 0 undefined references, no overfull boxes. It carries the
+  final corrections logged above. Per the reviewer, this is the freeze: no more model sweeps and no
+  paid experiment; only a genuinely new external evaluation would justify another version.
