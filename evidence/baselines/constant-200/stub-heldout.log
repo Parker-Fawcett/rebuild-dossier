@@ -1,0 +1,22 @@
+
+ RUN  v4.1.10 /Users/parkerfawcett/fidelity-oracle/stub
+
+ ✓ tests/held-out/GET-api-slabs.spec.ts (1 test) 5ms
+ ✓ tests/held-out/GET-api-users.spec.ts (1 test) 5ms
+ ✓ tests/held-out/GET-api-orders.spec.ts (1 test) 5ms
+ ✓ tests/held-out/POST-api-scan.spec.ts (1 test) 5ms
+ ✓ tests/held-out/GET-api-health.spec.ts (1 test) 5ms
+ ✓ tests/held-out/DELETE-api-listings-id.spec.ts (1 test) 5ms
+ ✓ tests/held-out/GET-api-users-check-username.spec.ts (1 test) 6ms
+ ✓ tests/held-out/PUT-api-portfolios-id-items-itemid.spec.ts (1 test) 7ms
+ ✓ tests/held-out/PUT-api-portfolios-id.spec.ts (1 test) 5ms
+ ✓ tests/held-out/POST-api-watchlist.spec.ts (1 test) 5ms
+ ✓ tests/held-out/GET-api-portfolios.spec.ts (1 test) 5ms
+ ✓ tests/held-out/POST-api-portfolios-id-items.spec.ts (1 test) 5ms
+
+ Test Files  12 passed (12)
+      Tests  12 passed (12)
+   Start at  09:57:20
+   Duration  370ms (transform 299ms, setup 0ms, import 825ms, tests 62ms, environment 1ms)
+
+JSON report written to /Users/parkerfawcett/fidelity-oracle/stub-heldout.json
