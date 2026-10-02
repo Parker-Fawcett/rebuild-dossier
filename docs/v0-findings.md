@@ -6570,3 +6570,16 @@ Threats and artifact list.
 Ahmed confirmed that "none written by me." in his `ai_assistance` field means **no AI assistance**:
 he wrote the 59 checks himself. `RESULTS.md` records this. `PROTOCOL.md` is left as frozen before the
 run. The manuscript's §V-A now says the checks were written without AI assistance.
+
+## Independent oracle: two corrections after review (2026-10-01)
+
+A continuation review recounted the archived results (59/59, 0/59, 2/370 and 112/370) and found
+two wording errors, both confirmed against the files:
+1. **Matched denominators.** "Haiku 2/416 vs. Sonnet 112/370" is arithmetically right but unequal.
+   The 416 includes 46 held-out-route checks that only Haiku built, and Haiku matched none of them.
+   On the same 370 visible-route checks, the figures are **2/370 vs. 112/370**. `RESULTS.md` and the
+   manuscript now lead with that, and report the extra coverage separately.
+2. **Auth dispatch.** `providers` is dispatched by **GET** `/api/auth` (line 10). POST dispatches
+   only `logout` and `refresh` (lines 30, 34). The earlier entry above and the first `RESULTS.md`
+   grouped all three under POST. The finding itself is unchanged: no rebuild's auth route reads the
+   parameter on either method.
