@@ -6564,3 +6564,9 @@ oracle/RESULTS.md`):
 
 The manuscript (v0.2.22) adds one §V-A paragraph and updates the abstract, introduction, Table I,
 Threats and artifact list.
+
+## Independent oracle: AI-assistance field resolved (2026-10-01)
+
+Ahmed confirmed that "none written by me." in his `ai_assistance` field means **no AI assistance**:
+he wrote the 59 checks himself. `RESULTS.md` records this. `PROTOCOL.md` is left as frozen before the
+run. The manuscript's §V-A now says the checks were written without AI assistance.
