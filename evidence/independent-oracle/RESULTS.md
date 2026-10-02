@@ -41,6 +41,7 @@ silent, of the kind the second-application audit also found.
 ## Notes
 - **Trailing-space header (18 checks).** `Authorization: Bearer ` was delivered as `Bearer`, as
   PROTOCOL.md anticipated. For the original, the outcome is the same either way (`401`).
-- **AI assistance.** Ahmed's `ai_assistance` field reads "none written by me." Its meaning (no AI
-  assistance, or none of the text written by him) is being confirmed with him. The paper must not
-  characterize it until he answers.
+- **AI assistance: none.** Ahmed's `ai_assistance` field reads "none written by me." Asked after
+  the run, he confirmed (2026-10-01, relayed by the author) that this means he used no AI
+  assistance. `PROTOCOL.md` is left as frozen; it records the field verbatim, noting its meaning was
+  pending.
