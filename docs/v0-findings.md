@@ -6583,3 +6583,21 @@ two wording errors, both confirmed against the files:
    only `logout` and `refresh` (lines 30, 34). The earlier entry above and the first `RESULTS.md`
    grouped all three under POST. The finding itself is unchanged: no rebuild's auth route reads the
    parameter on either method.
+
+## Production case: the operator's retrospective answers (2026-10-01)
+
+After v0.2.23 the author sent the operator three neutral written questions:
+1. would they have accepted the rebuild on its green suite (8/8 visible tests), and for what use;
+2. what would the two `ReferenceError` routes have broken;
+3. did the side-by-side comparison change their decision.
+
+The reply was preserved verbatim; vendor and name were redacted. It is in
+`evidence/external-production-case/operator-followup.md`, and the private copy's sha256 is
+`52cbb197…3213e`. The answers:
+- **Q1:** yes. They would have trusted it as a functional rebuild faithful to the original.
+- **Q2:** the routes are pipelines between warehouse queries. This names their role, not a specific
+  effect on users.
+- **Q3:** yes, "a lot self reflectoin of blind trust".
+
+They are **retrospective**: the operator had already seen the failures. The manuscript reports them
+as such in §V-D.

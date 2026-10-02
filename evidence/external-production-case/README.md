@@ -29,6 +29,7 @@ agent only checked that the original boots. It is recorded in `docs/v0-findings.
 ## Files
 
 - `operator-report.md`: the operator's report, redacted (see its header for the redaction rules).
+- `operator-followup.md`: the operator's retrospective answers (2026-10-01) to three neutral questions: would they have accepted the green rebuild, what the failing routes would break, and whether the comparison changed their decision. Redacted the same way; the private copy is identified by its hash.
 - `routes.md`: stable route IDs (R1–R10) with each route's input class and what happened.
 - `operator-logs/`: the operator's raw outputs, redacted the same way:
   - `hook-heartbeat.json`: count 7.
