@@ -1,0 +1,624 @@
+{
+  "author": "Ahmed",
+  "app_commit": "54d7e65",
+  "time_spent_minutes": 128,
+  "ai_assistance": "none written by me.",
+  "seen_rebuild_dossier_oracle_or_results_before": false,
+  "checks": [
+    {
+      "id": "R01-a",
+      "method": "POST",
+      "path": "/api/auth?action=logout",
+      "headers": {},
+      "body": null,
+      "expect_status": 200,
+      "expect_keys": ["success", "message"],
+      "why": "apps/web/src/app/api/auth/route.ts:30-31 returns {success:true, message:'Logged out'} for action=logout without touching the database"
+    },
+    {
+      "id": "R01-b",
+      "method": "POST",
+      "path": "/api/auth?action=refresh",
+      "headers": { "Content-Type": "application/json" },
+      "body": {},
+      "expect_status": 400,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/auth/route.ts:38-40 requires refreshToken in the body before any database lookup"
+    },
+    {
+      "id": "R01-c",
+      "method": "POST",
+      "path": "/api/auth",
+      "headers": { "Content-Type": "application/json" },
+      "body": {},
+      "expect_status": 400,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/auth/route.ts:64 falls through to {error:'Invalid action'} when action is missing/unrecognized, decided before any DB call"
+    },
+    {
+      "id": "R02-a",
+      "method": "POST",
+      "path": "/api/ebay",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/ebay/route.ts:85-87 rejects a request with no 'Bearer ' Authorization header before touching the database"
+    },
+    {
+      "id": "R02-b",
+      "method": "POST",
+      "path": "/api/ebay",
+      "headers": { "Authorization": "Bearer dGVzdC11c2VyOnRlc3RAZXhhbXBsZS5jb20=", "Content-Type": "application/json" },
+      "body": {},
+      "expect_status": 400,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/ebay/route.ts:90-92 requires listingId and ebayItemId before the prisma.listing.findUnique call"
+    },
+    {
+      "id": "R03-a",
+      "method": "GET",
+      "path": "/api/health",
+      "headers": {},
+      "body": null,
+      "expect_status": 200,
+      "expect_keys": ["status", "message", "timestamp"],
+      "why": "apps/web/src/app/api/health/route.ts:5-10 always returns {status:'ok', message, timestamp} with no auth and no DB access"
+    },
+    {
+      "id": "R04-a",
+      "method": "DELETE",
+      "path": "/api/listings/test-value-123",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/listings/[id]/route.ts:56-57 rejects a missing Authorization header before the sellerId lookup"
+    },
+    {
+      "id": "R04-b",
+      "method": "DELETE",
+      "path": "/api/listings/test-value-123",
+      "headers": { "Authorization": "Bearer " },
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/listings/[id]/route.ts:4-8,56-57: getUserId() on an empty token decodes to '', which is falsy, so this is rejected the same as a missing header, before any DB call"
+    },
+    {
+      "id": "R05-a",
+      "method": "PUT",
+      "path": "/api/listings/test-value-123",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/listings/[id]/route.ts:30-31 rejects a missing Authorization header before the sellerId lookup"
+    },
+    {
+      "id": "R06-a",
+      "method": "GET",
+      "path": "/api/orders",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/orders/route.ts:12-13 rejects a missing Authorization header before any prisma.order query"
+    },
+    {
+      "id": "R06-b",
+      "method": "GET",
+      "path": "/api/orders",
+      "headers": { "Authorization": "Bearer " },
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/orders/route.ts:4-8,12-13: an empty bearer token decodes to a falsy userId, rejected before DB"
+    },
+    {
+      "id": "R07-a",
+      "method": "POST",
+      "path": "/api/orders",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/orders/route.ts:41-42 rejects a missing Authorization header before reading the body"
+    },
+    {
+      "id": "R07-b",
+      "method": "POST",
+      "path": "/api/orders",
+      "headers": { "Authorization": "Bearer dGVzdC11c2VyOnRlc3RAZXhhbXBsZS5jb20=", "Content-Type": "application/json" },
+      "body": {},
+      "expect_status": 400,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/orders/route.ts:44-45 requires listingId before the prisma.listing.findUnique call"
+    },
+    {
+      "id": "R08-a",
+      "method": "PUT",
+      "path": "/api/orders",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/orders/route.ts:78-79 rejects a missing Authorization header before reading the body"
+    },
+    {
+      "id": "R08-b",
+      "method": "PUT",
+      "path": "/api/orders",
+      "headers": { "Authorization": "Bearer dGVzdC11c2VyOnRlc3RAZXhhbXBsZS5jb20=", "Content-Type": "application/json" },
+      "body": {},
+      "expect_status": 400,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/orders/route.ts:81-82 requires orderId before the prisma.order.findUnique call"
+    },
+    {
+      "id": "R09-a",
+      "method": "GET",
+      "path": "/api/pokedex",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/pokedex/route.ts:11-12 rejects a missing/non-Bearer Authorization header ('No token provided') before any prisma call"
+    },
+    {
+      "id": "R09-b",
+      "method": "GET",
+      "path": "/api/pokedex",
+      "headers": { "Authorization": "Bearer " },
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/pokedex/route.ts:4-7,13-14: an empty bearer token decodes to a falsy userId, giving 'Invalid token' before the portfolio query runs"
+    },
+    {
+      "id": "R10-a",
+      "method": "DELETE",
+      "path": "/api/portfolios/test-value-123/items/test-value-456",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/portfolios/[id]/items/[itemId]/route.ts:67-68 rejects a missing Authorization header before the portfolio lookup"
+    },
+    {
+      "id": "R10-b",
+      "method": "DELETE",
+      "path": "/api/portfolios/test-value-123/items/test-value-456",
+      "headers": { "Authorization": "Bearer " },
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/portfolios/[id]/items/[itemId]/route.ts:4-7,69-70: an empty bearer token gives a falsy userId, rejected ('Invalid token') before any DB call"
+    },
+    {
+      "id": "R11-a",
+      "method": "GET",
+      "path": "/api/portfolios/test-value-123/items/test-value-456",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/portfolios/[id]/items/[itemId]/route.ts:11-12 rejects a missing Authorization header before the portfolio lookup"
+    },
+    {
+      "id": "R11-b",
+      "method": "GET",
+      "path": "/api/portfolios/test-value-123/items/test-value-456",
+      "headers": { "Authorization": "Bearer " },
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/portfolios/[id]/items/[itemId]/route.ts:4-7,13-14: empty bearer token -> falsy userId -> 'Invalid token' before DB"
+    },
+    {
+      "id": "R12-a",
+      "method": "PUT",
+      "path": "/api/portfolios/test-value-123/items/test-value-456",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/portfolios/[id]/items/[itemId]/route.ts:34-35 rejects a missing Authorization header before the portfolio lookup"
+    },
+    {
+      "id": "R12-b",
+      "method": "PUT",
+      "path": "/api/portfolios/test-value-123/items/test-value-456",
+      "headers": { "Authorization": "Bearer " },
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/portfolios/[id]/items/[itemId]/route.ts:4-7,36-37: empty bearer token -> falsy userId -> 'Invalid token' before DB"
+    },
+    {
+      "id": "R13-a",
+      "method": "DELETE",
+      "path": "/api/portfolios/test-value-123/items",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/portfolios/[id]/items/route.ts:71-72 rejects a missing Authorization header before the portfolio lookup"
+    },
+    {
+      "id": "R13-b",
+      "method": "DELETE",
+      "path": "/api/portfolios/test-value-123/items",
+      "headers": { "Authorization": "Bearer " },
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/portfolios/[id]/items/route.ts:4-7,73-74: empty bearer token -> falsy userId -> 'Invalid token' before DB"
+    },
+    {
+      "id": "R14-a",
+      "method": "GET",
+      "path": "/api/portfolios/test-value-123/items",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/portfolios/[id]/items/route.ts:11-12 rejects a missing Authorization header before the portfolio lookup"
+    },
+    {
+      "id": "R14-b",
+      "method": "GET",
+      "path": "/api/portfolios/test-value-123/items",
+      "headers": { "Authorization": "Bearer " },
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/portfolios/[id]/items/route.ts:4-7,13-14: empty bearer token -> falsy userId -> 'Invalid token' before DB"
+    },
+    {
+      "id": "R15-a",
+      "method": "POST",
+      "path": "/api/portfolios/test-value-123/items",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/portfolios/[id]/items/route.ts:34-35 rejects a missing Authorization header before the portfolio lookup"
+    },
+    {
+      "id": "R15-b",
+      "method": "POST",
+      "path": "/api/portfolios/test-value-123/items",
+      "headers": { "Authorization": "Bearer " },
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/portfolios/[id]/items/route.ts:4-7,36-37: empty bearer token -> falsy userId -> 'Invalid token' before DB. Note: the cardId-required check (line 45) is NOT reachable without a DB, since the portfolio lookup (line 39) runs first — see needs_database."
+    },
+    {
+      "id": "R16-a",
+      "method": "GET",
+      "path": "/api/portfolios/test-value-123/value",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/portfolios/[id]/value/route.ts:12-13 rejects a missing Authorization header before the portfolio lookup"
+    },
+    {
+      "id": "R16-b",
+      "method": "GET",
+      "path": "/api/portfolios/test-value-123/value",
+      "headers": { "Authorization": "Bearer " },
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/portfolios/[id]/value/route.ts:4-8,14-15: empty bearer token -> falsy userId -> 'Invalid token' before DB"
+    },
+    {
+      "id": "R17-a",
+      "method": "DELETE",
+      "path": "/api/portfolios/test-value-123",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/portfolios/[id]/route.ts:56-57 rejects a missing Authorization header before any prisma.portfolio call"
+    },
+    {
+      "id": "R17-b",
+      "method": "DELETE",
+      "path": "/api/portfolios/test-value-123",
+      "headers": { "Authorization": "Bearer " },
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/portfolios/[id]/route.ts:4-8,58-59: empty bearer token -> falsy userId -> 'Invalid token' before DB"
+    },
+    {
+      "id": "R18-a",
+      "method": "GET",
+      "path": "/api/portfolios/test-value-123",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/portfolios/[id]/route.ts:12-13 rejects a missing Authorization header before the portfolio lookup"
+    },
+    {
+      "id": "R18-b",
+      "method": "GET",
+      "path": "/api/portfolios/test-value-123",
+      "headers": { "Authorization": "Bearer " },
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/portfolios/[id]/route.ts:4-8,14-15: empty bearer token -> falsy userId -> 'Invalid token' before DB"
+    },
+    {
+      "id": "R19-a",
+      "method": "PUT",
+      "path": "/api/portfolios/test-value-123",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/portfolios/[id]/route.ts:32-33 rejects a missing Authorization header before reading the body"
+    },
+    {
+      "id": "R19-b",
+      "method": "PUT",
+      "path": "/api/portfolios/test-value-123",
+      "headers": { "Authorization": "Bearer " },
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/portfolios/[id]/route.ts:4-8,34-35: empty bearer token -> falsy userId -> 'Invalid token' before DB"
+    },
+    {
+      "id": "R20-a",
+      "method": "GET",
+      "path": "/api/portfolios",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/portfolios/route.ts:16-18 rejects a missing Authorization header ('No token provided') before any prisma.portfolio.findMany call"
+    },
+    {
+      "id": "R20-b",
+      "method": "GET",
+      "path": "/api/portfolios",
+      "headers": { "Authorization": "Bearer " },
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/portfolios/route.ts:4-11,20-21: empty bearer token -> falsy userId -> 'Invalid token' before DB"
+    },
+    {
+      "id": "R21-a",
+      "method": "POST",
+      "path": "/api/portfolios",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/portfolios/route.ts:47-49 rejects a missing Authorization header before reading the body or touching the DB"
+    },
+    {
+      "id": "R21-b",
+      "method": "POST",
+      "path": "/api/portfolios",
+      "headers": { "Authorization": "Bearer " },
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/portfolios/route.ts:4-11,51-52: empty bearer token -> falsy userId -> 'Invalid token' before DB"
+    },
+    {
+      "id": "R22-a",
+      "method": "POST",
+      "path": "/api/pricing",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/pricing/route.ts:74-75 rejects a missing Authorization header before the prisma.cardPrice.create call"
+    },
+    {
+      "id": "R22-b",
+      "method": "POST",
+      "path": "/api/pricing",
+      "headers": { "Authorization": "Bearer dGVzdC11c2VyOnRlc3RAZXhhbXBsZS5jb20=", "Content-Type": "application/json" },
+      "body": {},
+      "expect_status": 400,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/pricing/route.ts:77-78 requires cardId and price before the create call"
+    },
+    {
+      "id": "R23-a",
+      "method": "POST",
+      "path": "/api/scan",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/scan/route.ts:16-17 rejects a missing Authorization header before OCR or any DB access. Note: this only checks the 'Bearer ' prefix, so an empty-token header ('Bearer ' alone) is NOT rejected here (see ambiguities)."
+    },
+    {
+      "id": "R23-b",
+      "method": "POST",
+      "path": "/api/scan",
+      "headers": { "Authorization": "Bearer dGVzdC11c2VyOnRlc3RAZXhhbXBsZS5jb20=", "Content-Type": "application/json" },
+      "body": {},
+      "expect_status": 400,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/scan/route.ts:19-20 requires imageUrl or imageBase64 before Tesseract.recognize runs"
+    },
+    {
+      "id": "R24-a",
+      "method": "PUT",
+      "path": "/api/seller",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/seller/route.ts:46-47 rejects a missing Authorization header before the prisma.user.update call"
+    },
+    {
+      "id": "R24-b",
+      "method": "PUT",
+      "path": "/api/seller",
+      "headers": { "Authorization": "Bearer " },
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/seller/route.ts:4-8,46-47: empty bearer token decodes to a falsy userId, rejected before DB"
+    },
+    {
+      "id": "R25-a",
+      "method": "GET",
+      "path": "/api/slabs",
+      "headers": {},
+      "body": null,
+      "expect_status": 200,
+      "expect_keys": [],
+      "why": "apps/web/src/app/api/slabs/route.ts:4 always returns [] with no auth and no DB; GradedSlab is not in the Prisma schema. Response body is a bare JSON array, not an object (no top-level keys to check)."
+    },
+    {
+      "id": "R26-a",
+      "method": "GET",
+      "path": "/api/users/check-username",
+      "headers": {},
+      "body": null,
+      "expect_status": 200,
+      "expect_keys": ["available", "error"],
+      "why": "apps/web/src/app/api/users/check-username/route.ts:8-10 returns 200 {available:false, error:'Username too short'} when the 'u' query param is missing, before any prisma.user.findUnique call"
+    },
+    {
+      "id": "R26-b",
+      "method": "GET",
+      "path": "/api/users/check-username?u=ab",
+      "headers": {},
+      "body": null,
+      "expect_status": 200,
+      "expect_keys": ["available", "error"],
+      "why": "apps/web/src/app/api/users/check-username/route.ts:8-10: the same 'too short' branch triggers for any u with length < 3, decided before the DB lookup"
+    },
+    {
+      "id": "R27-a",
+      "method": "GET",
+      "path": "/api/users/me",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/users/me/route.ts:6-9 rejects a missing/non-Bearer Authorization header before the prisma.user.findUnique call"
+    },
+    {
+      "id": "R28-a",
+      "method": "PUT",
+      "path": "/api/users/profile",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/users/profile/route.ts:6-9 rejects a missing/non-Bearer Authorization header before the username-taken check or update"
+    },
+    {
+      "id": "R29-a",
+      "method": "GET",
+      "path": "/api/users",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/users/route.ts:8-11 calls getUserIdFromRequest (apps/web/src/lib/auth.ts:58-59), which returns null for a missing/non-Bearer header, rejected before any prisma.user query"
+    },
+    {
+      "id": "R29-b",
+      "method": "GET",
+      "path": "/api/users",
+      "headers": { "Authorization": "Bearer " },
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/lib/auth.ts:57-74: an empty bearer token fails jwtVerify (no DB access, caught internally) and then the legacy base64 fallback decodes to '', which is falsy, so getUserIdFromRequest returns null and apps/web/src/app/api/users/route.ts:9-11 returns 401 before any DB call"
+    },
+    {
+      "id": "R30-a",
+      "method": "GET",
+      "path": "/api/watchlist",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/watchlist/route.ts:13 rejects a missing Authorization header before any prisma.watchlistItem query"
+    },
+    {
+      "id": "R30-b",
+      "method": "GET",
+      "path": "/api/watchlist",
+      "headers": { "Authorization": "Bearer " },
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/watchlist/route.ts:4-8,13: empty bearer token decodes to a falsy userId, rejected before DB"
+    },
+    {
+      "id": "R31-a",
+      "method": "POST",
+      "path": "/api/watchlist",
+      "headers": {},
+      "body": null,
+      "expect_status": 401,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/watchlist/route.ts:31 rejects a missing Authorization header before reading the body"
+    },
+    {
+      "id": "R31-b",
+      "method": "POST",
+      "path": "/api/watchlist",
+      "headers": { "Authorization": "Bearer dGVzdC11c2VyOnRlc3RAZXhhbXBsZS5jb20=", "Content-Type": "application/json" },
+      "body": {},
+      "expect_status": 400,
+      "expect_keys": ["error"],
+      "why": "apps/web/src/app/api/watchlist/route.ts:34-35 requires cardId (or cardid) before the duplicate-check prisma.watchlistItem.findUnique call"
+    },
+    {
+      "id": "R32-a",
+      "method": "GET",
+      "path": "/api/wishlist",
+      "headers": {},
+      "body": null,
+      "expect_status": 200,
+      "expect_keys": [],
+      "why": "apps/web/src/app/api/wishlist/route.ts:3 always returns [] with no auth and no DB; WishlistItem is not in the Prisma schema (watchlist is used instead). Response body is a bare JSON array, not an object."
+    }
+  ],
+  "needs_database": [
+    { "route": "DELETE/PUT /api/listings/:id", "behavior": "With a valid non-empty bearer token: 404 'Listing not found' vs 403 'Not authorized' (sellerId mismatch) vs success — all require a real listing/seller row (apps/web/src/app/api/listings/[id]/route.ts:33-34,59-60)." },
+    { "route": "GET /api/orders", "behavior": "Successful listing of orders filtered by role/status needs real Order rows and relations." },
+    { "route": "POST /api/orders", "behavior": "404 'Listing not found', 400 'Listing is not available', and successful order creation (with fee math) all need a real Listing row (orders/route.ts:47-67)." },
+    { "route": "PUT /api/orders", "behavior": "404 'Order not found', 403 'Not authorized', and successful status update need a real Order row (orders/route.ts:84-93)." },
+    { "route": "GET /api/pokedex", "behavior": "The grouped-by-Pokemon overview needs real Portfolio/PortfolioItem/Card rows; the empty-portfolio {pokemon:[],...} 200 path also only differs from the error path with real data." },
+    { "route": "all /api/portfolios* routes with a valid (non-empty) bearer token", "behavior": "404 'Portfolio not found'/'Item not found', 403 'Not authorized' (value route), and all successful GET/PUT/POST/DELETE bodies need real Portfolio/PortfolioItem/Card rows owned by the token's userId." },
+    { "route": "POST /api/pricing", "behavior": "Successful price-point creation (200 {success:true}) needs a writable CardPrice table." },
+    { "route": "POST /api/scan", "behavior": "The full success/no-match paths depend on Tesseract OCR output and then a prisma.card search/fallback query; cannot be reached deterministically without DB data (and possibly without network access for Tesseract's language data on first run)." },
+    { "route": "PUT /api/seller", "behavior": "Successful update to isVerifiedSeller needs a writable User row for the token's userId." },
+    { "route": "GET /api/users/check-username?u=<3+ chars>", "behavior": "available:true vs available:false depends on whether a User with that username exists." },
+    { "route": "GET /api/users/me", "behavior": "200 with the user object vs 404 'User not found' depends on whether a User row exists for the token's userId." },
+    { "route": "PUT /api/users/profile", "behavior": "400 'Username already taken' vs successful update depends on existing User rows." },
+    { "route": "GET /api/users", "behavior": "With a valid (non-empty) bearer token, the paginated/searched user list needs real User rows." },
+    { "route": "GET/POST /api/watchlist", "behavior": "Listing existing items, and 400 'Already in watchlist' vs successful creation, need real WatchlistItem/Card rows for the token's userId." },
+    { "route": "POST /api/ebay", "behavior": "With a valid (non-empty) bearer token and listingId/ebayItemId present, 404 'Listing not found' vs success needs a real Listing row." }
+  ],
+  "ambiguities_or_bugs": [
+    { "route": "POST /api/auth?action=refresh", "note": "Looks like a bug: generateRefreshToken() (apps/web/src/lib/auth.ts:31-37) issues a signed JWT, but the refresh handler (apps/web/src/app/api/auth/route.ts:42-61) never calls verifyRefreshToken/jwtVerify — it only base64-decodes the token as 'userId:email' (legacy format) and looks up the first segment as a user id. A real refresh token from this same app would not decode to a valid id string the way the handler expects, so the refresh flow as written only works with hand-crafted legacy tokens, not with tokens the app itself issues. Flagging rather than guessing, since I can't run it against a live DB to confirm the exact failure mode." },
+    { "route": "GET /api/users vs. other authenticated routes", "note": "apps/web/src/app/api/users/route.ts:8 is the only one of the 32 routes that calls getUserIdFromRequest (apps/web/src/lib/auth.ts), which accepts a real signed JWT (as issued by generateToken) OR the legacy base64 'id:email' format. Every other authenticated route in this list (orders, portfolios*, listings, pokedex, watchlist, seller, ebay, pricing, scan, users/me, users/profile) only does the legacy base64 decode and never verifies a JWT. So a JWT minted by the app's own token issuer would be accepted by GET /api/users but rejected (or silently misread) everywhere else. Possibly intentional inconsistency/leftover from a partial migration — worth confirming with the author." },
+    { "route": "DELETE /api/portfolios/:id/items", "note": "apps/web/src/app/api/portfolios/[id]/items/route.ts:69 types params as { id: string; itemId: string }, but this file's route segment is only [id]/items — there is no [itemId] folder here, so params.itemId can never actually be populated by Next.js routing. Line 80 falls back to (params as any).itemId after checking searchParams.get('itemId') first, but that fallback looks unreachable/dead. This looks like copy-paste from the itemId-specific route; functionally itemId must be passed as a query string." },
+    { "route": "GET /api/users/check-username", "note": "Returns HTTP 200 (not 400) with {available:false, error:'Username too short'} for a missing or <3-char 'u' param, unlike most other validation failures in this codebase which use 400. Not necessarily a bug, but worth confirming it's intentional, since a rebuild might reasonably use 400 here instead." },
+    { "route": "POST /api/scan", "note": "Only checks `authHeader?.startsWith('Bearer ')` (line 16-17) and never decodes/validates the token's contents, unlike the sibling routes in this codebase that reject an empty-token Bearer header (e.g. orders, listings, seller all treat 'Bearer ' with nothing after it as unauthorized). So 'Authorization: Bearer ' alone would pass this route's auth check but fail the equivalent check elsewhere — an inconsistency worth flagging rather than a clear bug." },
+    { "route": "PUT /api/portfolios/:id", "note": "Uses prisma.portfolio.updateMany({where:{id, userId}, ...}) and always returns {success:true} (line 42-47) regardless of whether any row actually matched/updated — unlike the sibling GET/DELETE handlers in the same file, which return 404/check ownership explicitly. Calling PUT on someone else's (or a nonexistent) portfolio id looks like it would still report success:true. Needs a live DB to confirm, so listed here rather than asserted as a check." }
+  ]
+}
