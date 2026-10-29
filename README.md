@@ -6,6 +6,18 @@
 [![M8ven Score](https://m8ven.ai/badge/mcp/businessfawcett-cloud-rebuild-dossier-17tqsh)](https://m8ven.ai/mcp/businessfawcett-cloud-rebuild-dossier-17tqsh)
 [![CI](https://github.com/Parker-Fawcett/rebuild-dossier/actions/workflows/ci.yml/badge.svg)](https://github.com/Parker-Fawcett/rebuild-dossier/actions/workflows/ci.yml)
 
+## Why passing tests isn't enough
+
+**A deliberately trivial HTTP-200 stub passed all 20 visible and 12 held-out test files, but matched 0 of 77 checks in a separate behavioral fidelity battery.** Passing those test files did not mean the implementation reproduced the application.
+
+The archived suites accepted a handler that returned `200` with an empty JSON object; their tests did not enforce the application's authentication, validation, or response-body behavior. A separate **author-written** fidelity oracle compared the original application's status codes and top-level response keys: the stub failed all 77 full-match checks. This is a deliberately constructed control on one application, **not** a coding-agent rebuild or a claim about how often agents fail.
+
+- **[Constant-200 baseline: reproduction steps, test logs, and results](evidence/baselines/constant-200/README.md)**
+- **[Fidelity oracle: frozen protocol, scoring rule, and limitations](evidence/fidelity-oracle/PROTOCOL.md)**
+- **[Research preprint](https://arxiv.org/abs/2608.23616)** (broader tool and earlier evaluation; the specific constant-200 control is documented in the linked baseline)
+
+Rebuild Dossier addresses parts of this assurance gap by extracting interface contracts, surfacing ambiguities for explicit decisions, and generating mutation-tested checks before a coding agent rebuilds the application.
+
 An MCP server that reverse-engineers a trustworthy **rebuild spec** — a locked `CLAUDE.md`,
 `.claude/` config, and a mutation-tested test suite — out of an existing app, so any coding
 agent can rebuild it cleanly against that spec instead of guessing.
