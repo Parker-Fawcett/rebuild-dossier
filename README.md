@@ -78,6 +78,19 @@ Claude Code session (nothing else should be in scope), and paste the contents of
 
 If this looks useful, a star helps other developers find it.
 
+## Releases and versioning
+
+Two kinds of tags live in this repo, and they mean different things.
+
+- **`v0.x.y`** are tool releases. These are what gets published to npm.
+- **`v0.x.y-paper`** are archival pins. Each one freezes the repo at a state the paper cites,
+  so a reader can re-check a specific claim later. They are not npm releases.
+
+So npm's newest version can look older than the newest tag on this page. That is expected
+rather than stale. When `src/` has not changed since the last npm publish, the published
+package and `main` are the same code. Check `git diff --name-only v<published>..HEAD -- src`
+if you want to confirm it for yourself.
+
 ## Why
 
 Prior research ([AgentModernize, arXiv:2605.17535](https://arxiv.org/abs/2605.17535)) found
