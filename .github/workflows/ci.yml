@@ -14,6 +14,32 @@ permissions:
   contents: read
 
 jobs:
+  versions:
+    # The MCP Registry publisher reads server.json, not package.json. If the two
+    # drift, `mcp-publisher publish` fails with "cannot publish duplicate version"
+    # and the registry quietly stalls behind npm. Nothing else checks this.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: server.json must agree with package.json
+        run: |
+          PKG=$(node -p "require('./package.json').version")
+          SRV=$(node -p "require('./server.json').version")
+          SRV_PKG=$(node -p "require('./server.json').packages[0].version")
+          echo "package.json      $PKG"
+          echo "server.json       $SRV"
+          echo "server.json npm   $SRV_PKG"
+          if [ "$PKG" != "$SRV" ] || [ "$PKG" != "$SRV_PKG" ]; then
+            echo "::error::version drift: package.json=$PKG server.json=$SRV server.json.packages[0]=$SRV_PKG"
+            exit 1
+          fi
+
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
