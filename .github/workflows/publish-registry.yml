@@ -49,7 +49,12 @@ jobs:
           mcp-publisher login dns --domain parkerfawcett.com --private-key "$MCP_PRIVATE_KEY"
 
       - name: Publish to registry
-        run: mcp-publisher publish
+        # A re-run against a version the registry already holds returns 400
+        # "cannot publish duplicate version". That is not a failure worth a red
+        # X, because the verify step below is the actual gate: it fails when the
+        # version is absent, whether the publish was skipped or rejected.
+        run: |
+          mcp-publisher publish || echo "::notice::publish returned non-zero; see the verify step for the real outcome"
 
       - name: Verify the registry now lists this version
         run: |
